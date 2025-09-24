@@ -264,7 +264,7 @@ fn run_demo() {
     }
 
     // Test execution functionality
-    use evaluator::{execute, execute_string};
+    use evaluator::execute_string;
     println!("\n--- Execution Demo ---");
 
     // Demo 1: Execute simple arithmetic

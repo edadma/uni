@@ -148,19 +148,6 @@ fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), RuntimeErr
     }
 }
 
-// RUST CONCEPT: Quote builtin - pushes the quoted atom without executing
-pub fn quote_builtin(_interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Quote is special - it's already parsed as (quote atom)
-    // When we execute (quote atom), we want to push just the atom
-
-    // The quote structure is: (quote atom)
-    // We're currently executing this, so we need to extract the atom part
-    // This is tricky because we're already in the middle of executing the quote
-
-    // For now, let's implement a simple version that expects the atom to be
-    // the next thing that would be executed
-    Err(RuntimeError::TypeError("Quote builtin needs special implementation".to_string()))
-}
 
 // RUST CONCEPT: The def builtin - defines new words in the dictionary
 // Usage: 'word-name definition def
@@ -475,6 +462,23 @@ pub fn list_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     Ok(())
 }
 
+// RUST CONCEPT: Type checking predicates
+// null? ( value -- boolean ) - Check if value is null
+pub fn null_predicate_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    let value = interp.pop()?;
+    let is_null = interp.is_null(&value);
+    interp.push(Value::Boolean(is_null));
+    Ok(())
+}
+
+// truthy? ( value -- boolean ) - Check if value is truthy
+pub fn truthy_predicate_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    let value = interp.pop()?;
+    let is_truthy = interp.is_truthy(&value);
+    interp.push(Value::Boolean(is_truthy));
+    Ok(())
+}
+
 // RUST CONCEPT: Registering all builtins with the interpreter
 pub fn register_builtins(interp: &mut Interpreter) {
     use crate::interpreter::DictEntry;
@@ -597,6 +601,19 @@ pub fn register_builtins(interp: &mut Interpreter) {
     let list_atom = interp.intern_atom("list");
     interp.dictionary.insert(list_atom, DictEntry {
         value: Value::Builtin(list_builtin),
+        is_executable: true,
+    });
+
+    // Type checking predicates
+    let null_predicate_atom = interp.intern_atom("null?");
+    interp.dictionary.insert(null_predicate_atom, DictEntry {
+        value: Value::Builtin(null_predicate_builtin),
+        is_executable: true,
+    });
+
+    let truthy_predicate_atom = interp.intern_atom("truthy?");
+    interp.dictionary.insert(truthy_predicate_atom, DictEntry {
+        value: Value::Builtin(truthy_predicate_builtin),
         is_executable: true,
     });
 }
@@ -1513,6 +1530,162 @@ mod tests {
         let result = cons_builtin(&mut interp);
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), RuntimeError::StackUnderflow));
+    }
+
+    #[test]
+    fn test_null_predicate_builtin() {
+        let mut interp = setup_interpreter();
+
+        // Test null? with null value -> true
+        interp.push(Value::Null);
+        null_predicate_builtin(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test null? with non-null values -> false
+        let test_cases = vec![
+            Value::Boolean(false),
+            Value::Boolean(true),
+            Value::Number(0.0),
+            Value::Number(42.0),
+            Value::String("".into()),
+            Value::String("hello".into()),
+            Value::Nil,
+            Value::Atom(interp.intern_atom("test")),
+        ];
+
+        for test_value in test_cases {
+            interp.push(test_value);
+            null_predicate_builtin(&mut interp).unwrap();
+            let result = interp.pop().unwrap();
+            assert!(matches!(result, Value::Boolean(false)),
+                "Expected false for non-null value");
+        }
+
+        // Test stack underflow
+        let result = null_predicate_builtin(&mut interp);
+        assert!(matches!(result, Err(RuntimeError::StackUnderflow)));
+    }
+
+    #[test]
+    fn test_truthy_predicate_builtin() {
+        let mut interp = setup_interpreter();
+
+        // Test truthy values -> true
+        let truthy_cases = vec![
+            Value::Boolean(true),
+            Value::Number(1.0),
+            Value::Number(-1.0),
+            Value::Number(42.0),
+            Value::String("hello".into()),
+            Value::String("false".into()),  // String "false" is truthy!
+            Value::Atom(interp.intern_atom("test")),
+            Value::QuotedAtom(interp.intern_atom("quoted")),
+            Value::Pair(Rc::new(Value::Number(1.0)), Rc::new(Value::Nil)),
+        ];
+
+        for (i, test_value) in truthy_cases.into_iter().enumerate() {
+            interp.push(test_value.clone());
+            truthy_predicate_builtin(&mut interp).unwrap();
+            let result = interp.pop().unwrap();
+            assert!(matches!(result, Value::Boolean(true)),
+                "Expected true for truthy value #{}: {:?}", i, test_value);
+        }
+
+        // Test falsy values -> false
+        let falsy_cases = vec![
+            Value::Boolean(false),
+            Value::Number(0.0),
+            Value::String("".into()),
+            Value::Null,
+            Value::Nil,
+        ];
+
+        for (i, test_value) in falsy_cases.into_iter().enumerate() {
+            interp.push(test_value.clone());
+            truthy_predicate_builtin(&mut interp).unwrap();
+            let result = interp.pop().unwrap();
+            assert!(matches!(result, Value::Boolean(false)),
+                "Expected false for falsy value #{}: {:?}", i, test_value);
+        }
+
+        // Test stack underflow
+        let result = truthy_predicate_builtin(&mut interp);
+        assert!(matches!(result, Err(RuntimeError::StackUnderflow)));
+    }
+
+    #[test]
+    fn test_edge_cases_list_cons_interaction() {
+        let mut interp = setup_interpreter();
+
+        // Edge case: cons with null
+        interp.push(Value::Number(1.0));
+        interp.push(Value::Null);
+        cons_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        match result {
+            Value::Pair(car, cdr) => {
+                assert!(matches!(car.as_ref(), Value::Number(n) if *n == 1.0));
+                assert!(matches!(cdr.as_ref(), Value::Null));
+            },
+            _ => panic!("Expected Pair with null cdr"),
+        }
+
+        // Edge case: list with boolean and null
+        interp.push(Value::Boolean(true));
+        interp.push(Value::Null);
+        interp.push(Value::Boolean(false));
+        interp.push(Value::Number(3.0));
+        list_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        // Should be [true null false]
+        match result {
+            Value::Pair(car1, cdr1) => {
+                assert!(matches!(car1.as_ref(), Value::Boolean(true)));
+                match cdr1.as_ref() {
+                    Value::Pair(car2, cdr2) => {
+                        assert!(matches!(car2.as_ref(), Value::Null));
+                        match cdr2.as_ref() {
+                            Value::Pair(car3, cdr3) => {
+                                assert!(matches!(car3.as_ref(), Value::Boolean(false)));
+                                assert!(matches!(cdr3.as_ref(), Value::Nil));
+                            },
+                            _ => panic!("Expected third element"),
+                        }
+                    },
+                    _ => panic!("Expected second element"),
+                }
+            },
+            _ => panic!("Expected list structure"),
+        }
+    }
+
+    #[test]
+    fn test_edge_cases_equality_boolean_null() {
+        let mut interp = setup_interpreter();
+
+        // Edge case: null vs boolean false (should be false - different types)
+        interp.push(Value::Null);
+        interp.push(Value::Boolean(false));
+        eq_builtin(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+
+        // Edge case: null vs number 0 (should be false - different types)
+        interp.push(Value::Null);
+        interp.push(Value::Number(0.0));
+        eq_builtin(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+
+        // Edge case: boolean true vs number 1 (should be false - different types)
+        interp.push(Value::Boolean(true));
+        interp.push(Value::Number(1.0));
+        eq_builtin(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
     }
 }
 
