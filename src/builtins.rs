@@ -131,9 +131,13 @@ pub fn def_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // The word name must be an Atom (interned string)
     match name_value {
         Value::Atom(atom_name) => {
-            // RUST CONCEPT: HashMap insertion
-            // Store the definition in the dictionary under this atom name
-            interp.dictionary.insert(atom_name, definition);
+            // RUST CONCEPT: Creating dict entry with executable flag
+            use crate::interpreter::DictEntry;
+            let entry = DictEntry {
+                value: definition,
+                is_executable: true,  // def marks entries as executable
+            };
+            interp.dictionary.insert(atom_name, entry);
             Ok(())
         },
 
@@ -159,7 +163,13 @@ pub fn val_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
     match name_value {
         Value::Atom(atom_name) => {
-            interp.dictionary.insert(atom_name, definition);
+            // RUST CONCEPT: Creating dict entry with constant flag
+            use crate::interpreter::DictEntry;
+            let entry = DictEntry {
+                value: definition,
+                is_executable: false,  // val marks entries as constants
+            };
+            interp.dictionary.insert(atom_name, entry);
             Ok(())
         },
         _ => Err(RuntimeError::TypeError(
@@ -281,40 +291,70 @@ pub fn print_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
 // RUST CONCEPT: Registering all builtins with the interpreter
 pub fn register_builtins(interp: &mut Interpreter) {
+    use crate::interpreter::DictEntry;
+
     // RUST CONCEPT: Creating atoms for builtin names
     // We intern the names so they can be looked up in the dictionary
+    // Builtins are always executable
 
     // Arithmetic operations
     let add_atom = interp.intern_atom("+");
-    interp.dictionary.insert(add_atom, Value::Builtin(add_builtin));
+    interp.dictionary.insert(add_atom, DictEntry {
+        value: Value::Builtin(add_builtin),
+        is_executable: true,  // builtins are always executable
+    });
 
     let sub_atom = interp.intern_atom("-");
-    interp.dictionary.insert(sub_atom, Value::Builtin(sub_builtin));
+    interp.dictionary.insert(sub_atom, DictEntry {
+        value: Value::Builtin(sub_builtin),
+        is_executable: true,
+    });
 
     let mul_atom = interp.intern_atom("*");
-    interp.dictionary.insert(mul_atom, Value::Builtin(mul_builtin));
+    interp.dictionary.insert(mul_atom, DictEntry {
+        value: Value::Builtin(mul_builtin),
+        is_executable: true,
+    });
 
     let div_atom = interp.intern_atom("/");
-    interp.dictionary.insert(div_atom, Value::Builtin(div_builtin));
+    interp.dictionary.insert(div_atom, DictEntry {
+        value: Value::Builtin(div_builtin),
+        is_executable: true,
+    });
 
     // Stack operations - primitives
     let roll_atom = interp.intern_atom("roll");
-    interp.dictionary.insert(roll_atom, Value::Builtin(roll_builtin));
+    interp.dictionary.insert(roll_atom, DictEntry {
+        value: Value::Builtin(roll_builtin),
+        is_executable: true,
+    });
 
     let pick_atom = interp.intern_atom("pick");
-    interp.dictionary.insert(pick_atom, Value::Builtin(pick_builtin));
+    interp.dictionary.insert(pick_atom, DictEntry {
+        value: Value::Builtin(pick_builtin),
+        is_executable: true,
+    });
 
     let drop_atom = interp.intern_atom("drop");
-    interp.dictionary.insert(drop_atom, Value::Builtin(drop_builtin));
+    interp.dictionary.insert(drop_atom, DictEntry {
+        value: Value::Builtin(drop_builtin),
+        is_executable: true,
+    });
 
     let dup_atom = interp.intern_atom("dup");
-    interp.dictionary.insert(dup_atom, Value::Builtin(dup_builtin));
+    interp.dictionary.insert(dup_atom, DictEntry {
+        value: Value::Builtin(dup_builtin),
+        is_executable: true,
+    });
 
     // NOTE: swap and other operations will be defined in stdlib.rs using the primitives above
 
     // The crucial eval builtin
     let eval_atom = interp.intern_atom("eval");
-    interp.dictionary.insert(eval_atom, Value::Builtin(eval_builtin));
+    interp.dictionary.insert(eval_atom, DictEntry {
+        value: Value::Builtin(eval_builtin),
+        is_executable: true,
+    });
 
     // Control flow - TEMPORARILY DISABLED
     // let if_atom = interp.intern_atom("if");
@@ -322,15 +362,24 @@ pub fn register_builtins(interp: &mut Interpreter) {
 
     // The def builtin for defining new words
     let def_atom = interp.intern_atom("def");
-    interp.dictionary.insert(def_atom, Value::Builtin(def_builtin));
+    interp.dictionary.insert(def_atom, DictEntry {
+        value: Value::Builtin(def_builtin),
+        is_executable: true,
+    });
 
     // The val builtin for defining constants
     let val_atom = interp.intern_atom("val");
-    interp.dictionary.insert(val_atom, Value::Builtin(val_builtin));
+    interp.dictionary.insert(val_atom, DictEntry {
+        value: Value::Builtin(val_builtin),
+        is_executable: true,
+    });
 
     // The print builtin for output
     let print_atom = interp.intern_atom("pr");
-    interp.dictionary.insert(print_atom, Value::Builtin(print_builtin));
+    interp.dictionary.insert(print_atom, DictEntry {
+        value: Value::Builtin(print_builtin),
+        is_executable: true,
+    });
 }
 
 #[cfg(test)]

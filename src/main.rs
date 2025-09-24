@@ -111,10 +111,12 @@ fn run_demo() {
     interp.push(Value::Number(3.0));
 
     let plus_atom = interp.intern_atom("+");
-    if let Some(Value::Builtin(func)) = interp.dictionary.get(&plus_atom) {
-        match func(&mut interp) {
-            Ok(()) => println!("Successfully called + builtin"),
-            Err(e) => println!("Error calling +: {:?}", e),
+    if let Some(entry) = interp.dictionary.get(&plus_atom) {
+        if let Value::Builtin(func) = &entry.value {
+            match func(&mut interp) {
+                Ok(()) => println!("Successfully called + builtin"),
+                Err(e) => println!("Error calling +: {:?}", e),
+            }
         }
     }
 

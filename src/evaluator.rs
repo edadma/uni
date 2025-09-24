@@ -68,21 +68,64 @@ pub fn execute(value: &Value, interp: &mut Interpreter) -> Result<(), RuntimeErr
     }
 }
 
+// RUST CONCEPT: Helper function to execute a list as code
+// This is used by execute_atom for executable definitions
+fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    // RUST CONCEPT: Converting list to vector of values
+    let mut current = list.clone();
+    let mut items = Vec::new();
+
+    // RUST CONCEPT: Traversing cons cell lists
+    loop {
+        match current {
+            Value::Pair(car, cdr) => {
+                items.push((*car).clone());
+                current = (*cdr).clone();
+            },
+            Value::Nil => break,
+            _ => {
+                return Err(RuntimeError::TypeError("Cannot execute improper list".to_string()));
+            }
+        }
+    }
+
+    // RUST CONCEPT: Execute each element in sequence
+    for item in items {
+        execute(&item, interp)?;
+    }
+
+    Ok(())
+}
+
 // RUST CONCEPT: Helper functions for code organization
 // This handles the specific logic for executing atoms (looking them up in dictionary)
 fn execute_atom(atom_name: &Rc<str>, interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // RUST CONCEPT: HashMap lookups return Option<T>
     // We use match to handle both found and not-found cases
     match interp.dictionary.get(atom_name) {
-        // RUST CONCEPT: Recursive execution
-        // The definition might be another atom, a list, a builtin, etc.
-        // We recursively call execute to handle whatever we find
-        Some(definition) => {
+        // RUST CONCEPT: Dictionary entries with metadata
+        Some(entry) => {
             // RUST CONCEPT: Cloning to avoid borrow checker issues
-            // We need to clone the definition because we can't borrow from dictionary
-            // while also passing &mut interp to execute (that would be two mutable borrows)
-            let definition_copy = definition.clone();
-            execute(&definition_copy, interp)
+            let entry_copy = entry.clone();
+
+            // RUST CONCEPT: Execution behavior based on metadata
+            if entry_copy.is_executable {
+                // Entry was created with def - execute lists, others execute normally
+                match &entry_copy.value {
+                    Value::Pair(_, _) | Value::Nil => {
+                        // Execute the list as code
+                        execute_list(&entry_copy.value, interp)
+                    },
+                    _ => {
+                        // Execute builtins, atoms, etc normally
+                        execute(&entry_copy.value, interp)
+                    }
+                }
+            } else {
+                // Entry was created with val - always push as constant
+                interp.push(entry_copy.value);
+                Ok(())
+            }
         },
 
         // RUST CONCEPT: Custom error types
