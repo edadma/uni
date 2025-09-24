@@ -268,23 +268,56 @@ pub fn pick_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 // RUST CONCEPT: Print builtin - pops and displays the top stack value
 // Usage: 42 pr  (prints "42" and removes it from stack)
 // Note: We use "pr" instead of "." because "." is reserved for cons pair notation
+// RUST CONCEPT: Helper function to print any Value type
+// Eliminates code duplication by handling all Value printing in one place
+fn print_value(value: &Value) {
+    match value {
+        Value::Number(n) => print!("{}", n),
+        Value::String(s) => print!("\"{}\"", s),
+        Value::Atom(atom) => print!("{}", atom),
+        Value::QuotedAtom(atom) => print!("'{}", atom),
+        Value::Nil => print!("[]"),
+        Value::Pair(_, _) => print_list(value),
+        Value::Builtin(_) => print!("[builtin]"),
+    }
+}
+
+fn print_list(value: &Value) {
+    print!("[");
+    print_list_contents(value, true);
+    print!("]");
+}
+
+fn print_list_contents(value: &Value, first: bool) {
+    match value {
+        Value::Nil => {
+            // End of list - don't print anything
+        },
+        Value::Pair(car, cdr) => {
+            if !first {
+                print!(" ");
+            }
+
+            // Print the car (first element) - no duplication!
+            print_value(car.as_ref());
+
+            // Recursively print the cdr (rest of list)
+            print_list_contents(cdr.as_ref(), false);
+        },
+        _ => {
+            // Improper list (dotted pair) - show the dot notation
+            print!(" . ");
+            print_value(value);
+        }
+    }
+}
+
 pub fn print_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let value = interp.pop()?;
 
-    // RUST CONCEPT: Pattern matching for different display formats
-    match value {
-        Value::Number(n) => println!("{}", n),
-        Value::String(s) => println!("\"{}\"", s),
-        Value::Atom(atom) => println!("{}", atom),
-        Value::QuotedAtom(atom) => println!("'{}", atom),
-        Value::Nil => println!("[]"),
-        Value::Pair(_, _) => {
-            // RUST CONCEPT: For lists, we could implement pretty printing
-            // For now, just show it's a list
-            println!("[list]");
-        },
-        Value::Builtin(_) => println!("[builtin]"),
-    }
+    // RUST CONCEPT: No duplication - use shared print_value function
+    print_value(&value);
+    println!(); // Add newline after printing
 
     Ok(())
 }
@@ -385,6 +418,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::interpreter::DictEntry;
 
     fn setup_interpreter() -> Interpreter {
         // RUST CONCEPT: Automatic initialization
@@ -587,7 +621,7 @@ mod tests {
             // Verify it's actually a builtin function
             assert!(matches!(
                 interp.dictionary.get(&atom),
-                Some(Value::Builtin(_))
+                Some(DictEntry { value: Value::Builtin(_), .. })
             ));
         }
     }
@@ -609,7 +643,7 @@ mod tests {
 
         // Verify we can retrieve the constant
         match interp.dictionary.get(&pi_lookup) {
-            Some(Value::Number(n)) => assert!((n - 3.14159).abs() < 1e-10),
+            Some(DictEntry { value: Value::Number(n), .. }) => assert!((n - 3.14159).abs() < 1e-10),
             _ => panic!("Expected pi to be defined as a number"),
         }
 
@@ -643,7 +677,7 @@ mod tests {
 
         // Verify we can retrieve the procedure
         match interp.dictionary.get(&square_lookup) {
-            Some(Value::Pair(_, _)) => (), // It's a list (procedure)
+            Some(DictEntry { value: Value::Pair(_, _), .. }) => (), // It's a list (procedure)
             _ => panic!("Expected square to be defined as a list"),
         }
 
@@ -667,7 +701,7 @@ mod tests {
         // Verify it was stored
         let greeting_lookup = interp.intern_atom("greeting");
         match interp.dictionary.get(&greeting_lookup) {
-            Some(Value::String(s)) => assert_eq!(s.as_ref(), "Hello, Uni!"),
+            Some(DictEntry { value: Value::String(s), .. }) => assert_eq!(s.as_ref(), "Hello, Uni!"),
             _ => panic!("Expected greeting to be defined as a string"),
         }
 
@@ -711,7 +745,7 @@ mod tests {
 
         // Verify first definition
         match interp.dictionary.get(&foo_atom) {
-            Some(Value::Number(n)) => assert_eq!(*n, 123.0),
+            Some(DictEntry { value: Value::Number(n), .. }) => assert_eq!(*n, 123.0),
             _ => panic!("Expected foo to be 123"),
         }
 
@@ -722,7 +756,7 @@ mod tests {
 
         // Verify redefinition worked
         match interp.dictionary.get(&foo_atom) {
-            Some(Value::Number(n)) => assert_eq!(*n, 456.0),
+            Some(DictEntry { value: Value::Number(n), .. }) => assert_eq!(*n, 456.0),
             _ => panic!("Expected foo to be redefined as 456"),
         }
 
@@ -742,7 +776,7 @@ mod tests {
 
         // Verify nil definition
         match interp.dictionary.get(&empty_atom) {
-            Some(Value::Nil) => (),
+            Some(DictEntry { value: Value::Nil, .. }) => (),
             _ => panic!("Expected empty to be defined as Nil"),
         }
 
@@ -763,7 +797,7 @@ mod tests {
 
         // Verify it was stored
         match interp.dictionary.get(&pi_atom) {
-            Some(Value::Number(n)) => assert!((n - 3.14159).abs() < 1e-10),
+            Some(DictEntry { value: Value::Number(n), .. }) => assert!((n - 3.14159).abs() < 1e-10),
             _ => panic!("Expected pi constant"),
         }
 
@@ -776,7 +810,7 @@ mod tests {
 
         // Verify string constant
         match interp.dictionary.get(&greeting_atom) {
-            Some(Value::String(s)) => assert_eq!(s.as_ref(), "Hello!"),
+            Some(DictEntry { value: Value::String(s), .. }) => assert_eq!(s.as_ref(), "Hello!"),
             _ => panic!("Expected greeting string constant"),
         }
 
@@ -837,8 +871,8 @@ mod tests {
         assert!(interp.dictionary.contains_key(&proc_atom));
 
         // Verify types
-        assert!(matches!(interp.dictionary.get(&num_atom), Some(Value::Number(_))));
-        assert!(matches!(interp.dictionary.get(&proc_atom), Some(Value::Pair(_, _))));
+        assert!(matches!(interp.dictionary.get(&num_atom), Some(DictEntry { value: Value::Number(_), .. })));
+        assert!(matches!(interp.dictionary.get(&proc_atom), Some(DictEntry { value: Value::Pair(_, _), .. })));
 
         // Clear stack
         while interp.pop().is_ok() {}

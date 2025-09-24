@@ -185,24 +185,33 @@ mod tests {
         ));
     }
 
-    // TEMPORARILY COMMENTED OUT - will fix after updating all code
-    // #[test]
-    // fn test_dictionary_operations() {
-    //     let mut interp = Interpreter::new();
-    //
-    //     // Test inserting and retrieving from dictionary
-    //     let key = interp.intern_atom("test");
-    //     interp.dictionary.insert(key.clone(), Value::Number(99.0));
-    //
-    //     match interp.dictionary.get(&key) {
-    //         Some(Value::Number(n)) => assert_eq!(*n, 99.0),
-    //         _ => panic!("Expected to find Number(99.0) in dictionary"),
-    //     }
-    //
-    //     // Test that non-existent keys return None
-    //     let missing = interp.intern_atom("missing");
-    //     assert!(interp.dictionary.get(&missing).is_none());
-    // }
+    #[test]
+    fn test_dictionary_operations() {
+        let mut interp = Interpreter::new();
+
+        // Test inserting and retrieving from dictionary
+        let key = interp.intern_atom("test");
+        let entry = DictEntry {
+            value: Value::Number(99.0),
+            is_executable: false,  // Constants are not executable
+        };
+        interp.dictionary.insert(key.clone(), entry);
+
+        match interp.dictionary.get(&key) {
+            Some(dict_entry) => {
+                match &dict_entry.value {
+                    Value::Number(n) => assert_eq!(*n, 99.0),
+                    _ => panic!("Expected to find Number(99.0) in dictionary entry"),
+                }
+                assert!(!dict_entry.is_executable);
+            },
+            _ => panic!("Expected to find dictionary entry"),
+        }
+
+        // Test that non-existent keys return None
+        let missing = interp.intern_atom("missing");
+        assert!(interp.dictionary.get(&missing).is_none());
+    }
 
     #[test]
     fn test_atom_interning_different_atoms() {
