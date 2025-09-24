@@ -20,6 +20,7 @@ pub enum RuntimeError {
     UndefinedWord(String),
     DivisionByZero,
     ModuloByZero,
+    DomainError(String),
 }
 
 // RUST CONCEPT: Implementing traits for custom error types
@@ -32,6 +33,7 @@ impl std::fmt::Display for RuntimeError {
             RuntimeError::UndefinedWord(word) => write!(f, "Undefined word: {}", word),
             RuntimeError::DivisionByZero => write!(f, "Division by zero"),
             RuntimeError::ModuloByZero => write!(f, "Modulo by zero"),
+            RuntimeError::DomainError(msg) => write!(f, "Domain error: {}", msg),
         }
     }
 }
