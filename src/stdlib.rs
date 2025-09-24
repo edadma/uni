@@ -21,6 +21,7 @@ pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         'rot [2 roll] def
         'nip [swap drop] def
         'tuck [swap over] def
+        'nil? [[] =] def
     ";
 
     // RUST CONCEPT: Execute the stdlib code directly

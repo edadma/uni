@@ -10,3 +10,13 @@
 
 \ Test some stack operations
 1 2 3 swap pr drop pr  \ Should print 2, then 1
+
+'factorial [
+  dup 1 = [
+    drop 1                  \ Base case: factorial(0) = factorial(1) = 1
+  ] [
+    dup 1 - factorial *    \ Recursive case: n * factorial(n-1)
+  ] if
+] def
+
+5 factorial pr             \ Prints 120

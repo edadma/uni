@@ -306,8 +306,14 @@ pub fn if_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // RUST CONCEPT: Conditional execution
     let branch_to_execute = if is_true { true_branch } else { false_branch };
 
-    // RUST CONCEPT: Execute the chosen branch
-    execute(&branch_to_execute, interp)
+    // RUST CONCEPT: Execute the chosen branch like eval does
+    // Lists should be executed as code, not pushed as data
+    match branch_to_execute {
+        Value::Pair(_, _) | Value::Nil => {
+            execute_list(&branch_to_execute, interp)
+        },
+        _ => execute(&branch_to_execute, interp)
+    }
 }
 
 // RUST CONCEPT: Print builtin - pops and displays the top stack value
@@ -365,6 +371,53 @@ pub fn print_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     println!(); // Add newline after printing
 
     Ok(())
+}
+
+// RUST CONCEPT: List operations - head builtin
+// head ( list -- element ) - Get first element of a list
+// Example: [1 2 3] head -> 1
+pub fn head_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    let list = interp.pop()?;
+
+    match list {
+        Value::Pair(car, _) => {
+            // Return the first element (car) of the pair
+            interp.push((*car).clone());
+            Ok(())
+        },
+        Value::Nil => {
+            // Empty list has no head
+            Err(RuntimeError::TypeError("Cannot get head of empty list".to_string()))
+        },
+        _ => {
+            // Not a list
+            Err(RuntimeError::TypeError("head expects a list".to_string()))
+        }
+    }
+}
+
+// RUST CONCEPT: List operations - tail builtin
+// tail ( list -- list ) - Get rest of list after first element
+// Example: [1 2 3] tail -> [2 3]
+pub fn tail_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    let list = interp.pop()?;
+
+    match list {
+        Value::Pair(_, cdr) => {
+            // Return the rest of the list (cdr)
+            interp.push((*cdr).clone());
+            Ok(())
+        },
+        Value::Nil => {
+            // Tail of empty list is empty list
+            interp.push(Value::Nil);
+            Ok(())
+        },
+        _ => {
+            // Not a list
+            Err(RuntimeError::TypeError("tail expects a list".to_string()))
+        }
+    }
 }
 
 // RUST CONCEPT: Registering all builtins with the interpreter
@@ -464,6 +517,19 @@ pub fn register_builtins(interp: &mut Interpreter) {
     let print_atom = interp.intern_atom("pr");
     interp.dictionary.insert(print_atom, DictEntry {
         value: Value::Builtin(print_builtin),
+        is_executable: true,
+    });
+
+    // List operations
+    let head_atom = interp.intern_atom("head");
+    interp.dictionary.insert(head_atom, DictEntry {
+        value: Value::Builtin(head_builtin),
+        is_executable: true,
+    });
+
+    let tail_atom = interp.intern_atom("tail");
+    interp.dictionary.insert(tail_atom, DictEntry {
+        value: Value::Builtin(tail_builtin),
         is_executable: true,
     });
 }
@@ -695,52 +761,58 @@ mod tests {
     fn test_if_builtin() {
         let mut interp = setup_interpreter();
 
-        // Test true condition
-        // if executes the chosen branch, which pushes the branch as data
-        let true_branch = interp.make_list(vec![Value::Number(42.0)]);
-        let false_branch = interp.make_list(vec![Value::Number(99.0)]);
+        // Test true condition - if should execute the true branch
+        // Create branches that push specific numbers
+        let true_branch = interp.make_list(vec![Value::Number(42.0)]);   // [42]
+        let false_branch = interp.make_list(vec![Value::Number(99.0)]);  // [99]
 
         interp.push(Value::Number(1.0));    // true condition
-        interp.push(true_branch.clone());   // true branch
+        interp.push(true_branch);           // true branch
         interp.push(false_branch);          // false branch
         if_builtin(&mut interp).unwrap();
 
+        // Should have executed the true branch, which pushes 42
         let result = interp.pop().unwrap();
-        // Should get the true branch list back
-        assert!(matches!(result, Value::Pair(_, _)));
+        assert!(matches!(result, Value::Number(n) if n == 42.0));
 
-        // Test false condition
+        // Test false condition - if should execute the false branch
         let true_branch = interp.make_list(vec![Value::Number(42.0)]);
         let false_branch = interp.make_list(vec![Value::Number(99.0)]);
 
         interp.push(Value::Number(0.0));    // false condition
         interp.push(true_branch);           // true branch
-        interp.push(false_branch.clone());  // false branch
+        interp.push(false_branch);          // false branch
         if_builtin(&mut interp).unwrap();
 
+        // Should have executed the false branch, which pushes 99
         let result = interp.pop().unwrap();
-        // Should get the false branch list back
-        assert!(matches!(result, Value::Pair(_, _)));
+        assert!(matches!(result, Value::Number(n) if n == 99.0));
 
         // Test empty string is falsy
+        let true_branch = interp.make_list(vec![Value::Number(42.0)]);
+        let false_branch = interp.make_list(vec![Value::Number(99.0)]);
+
         interp.push(Value::String("".into()));  // false condition (empty string)
-        interp.push(interp.make_list(vec![Value::Number(42.0)]));  // true branch
-        interp.push(interp.make_list(vec![Value::Number(99.0)]));  // false branch
+        interp.push(true_branch);               // true branch
+        interp.push(false_branch);              // false branch
         if_builtin(&mut interp).unwrap();
 
+        // Should execute false branch because empty string is falsy
         let result = interp.pop().unwrap();
-        // Should get the false branch (99) because empty string is falsy
-        assert!(matches!(result, Value::Pair(_, _)));
+        assert!(matches!(result, Value::Number(n) if n == 99.0));
 
         // Test empty list is truthy (like [] in JavaScript)
-        interp.push(Value::Nil);  // true condition (empty list is truthy)
-        interp.push(interp.make_list(vec![Value::Number(42.0)]));  // true branch
-        interp.push(interp.make_list(vec![Value::Number(99.0)]));  // false branch
+        let true_branch = interp.make_list(vec![Value::Number(42.0)]);
+        let false_branch = interp.make_list(vec![Value::Number(99.0)]);
+
+        interp.push(Value::Nil);             // true condition (empty list is truthy)
+        interp.push(true_branch);            // true branch
+        interp.push(false_branch);           // false branch
         if_builtin(&mut interp).unwrap();
 
+        // Should execute true branch because empty list is truthy
         let result = interp.pop().unwrap();
-        // Should get the true branch (42) because empty list is truthy
-        assert!(matches!(result, Value::Pair(_, _)));
+        assert!(matches!(result, Value::Number(n) if n == 42.0));
     }
 
     #[test]
@@ -791,7 +863,7 @@ mod tests {
         let mut interp = setup_interpreter();
 
         // RUST CONCEPT: Testing that all expected builtins are in the dictionary
-        let expected_builtins = ["+", "-", "*", "/", "mod", "=", "roll", "pick", "drop", "eval", "if", "def", "val", "pr"];
+        let expected_builtins = ["+", "-", "*", "/", "mod", "=", "roll", "pick", "drop", "eval", "if", "def", "val", "pr", "head", "tail"];
 
         for builtin_name in expected_builtins.iter() {
             let atom = interp.intern_atom(builtin_name);
@@ -1056,6 +1128,82 @@ mod tests {
 
         // Clear stack
         while interp.pop().is_ok() {}
+    }
+
+    #[test]
+    fn test_head_builtin() {
+        let mut interp = setup_interpreter();
+
+        // Test head of non-empty list [1 2 3] -> 1
+        let list = interp.make_list(vec![
+            Value::Number(1.0),
+            Value::Number(2.0),
+            Value::Number(3.0)
+        ]);
+        interp.push(list);
+        head_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 1.0));
+
+        // Test head of single element list [42] -> 42
+        let single = interp.make_list(vec![Value::Number(42.0)]);
+        interp.push(single);
+        head_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 42.0));
+
+        // Test head of empty list should error
+        interp.push(Value::Nil);
+        let result = head_builtin(&mut interp);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("Cannot get head of empty list")));
+
+        // Test head of non-list should error
+        interp.push(Value::Number(42.0));
+        let result = head_builtin(&mut interp);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("head expects a list")));
+    }
+
+    #[test]
+    fn test_tail_builtin() {
+        let mut interp = setup_interpreter();
+
+        // Test tail of [1 2 3] -> [2 3]
+        let list = interp.make_list(vec![
+            Value::Number(1.0),
+            Value::Number(2.0),
+            Value::Number(3.0)
+        ]);
+        interp.push(list);
+        tail_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        // Should be a list [2 3]
+        assert!(matches!(result, Value::Pair(_, _)));
+
+        // Test tail of single element list [42] -> []
+        let single = interp.make_list(vec![Value::Number(42.0)]);
+        interp.push(single);
+        tail_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Nil));
+
+        // Test tail of empty list -> []
+        interp.push(Value::Nil);
+        tail_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Nil));
+
+        // Test tail of non-list should error
+        interp.push(Value::Number(42.0));
+        let result = tail_builtin(&mut interp);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("tail expects a list")));
     }
 }
 
