@@ -113,6 +113,20 @@ fn parse_value(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) ->
             Ok(Value::String(string_rc))
         },
 
+        Some(&Token::Boolean(b)) => {
+            *index += 1;
+            // RUST CONCEPT: Boolean literals
+            // Boolean tokens directly create Boolean values
+            Ok(Value::Boolean(b))
+        },
+
+        Some(&Token::Null) => {
+            *index += 1;
+            // RUST CONCEPT: Null literal
+            // Null token creates a Null value
+            Ok(Value::Null)
+        },
+
         Some(&Token::LeftBracket) => {
             // RUST CONCEPT: Recursive parsing
             // Lists can contain other lists, so we call parse_list which may call parse_value again
@@ -147,6 +161,14 @@ fn parse_value(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) ->
                 Some(&Token::Number(_)) => {
                     // Numbers don't need quotes - they push themselves onto the stack
                     Err(ParseError::UnexpectedToken("Numbers cannot be quoted - they are data by default".to_string()))
+                },
+                Some(&Token::Boolean(_)) => {
+                    // Booleans don't need quotes - they are data by default
+                    Err(ParseError::UnexpectedToken("Booleans cannot be quoted - they are data by default".to_string()))
+                },
+                Some(&Token::Null) => {
+                    // Null doesn't need quotes - it is data by default
+                    Err(ParseError::UnexpectedToken("Null cannot be quoted - it is data by default".to_string()))
                 },
                 _ => {
                     // Quote without anything following, or followed by invalid token
@@ -819,6 +841,138 @@ mod tests {
             assert!(error_string.contains(expected_error),
                 "Expected '{}' in error message for '{}', got: {}",
                 expected_error, input, error_string);
+        }
+    }
+
+    #[test]
+    fn test_parse_booleans() {
+        let mut interp = Interpreter::new();
+
+        // Test parsing true
+        let result = parse("true", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Boolean(true)));
+
+        // Test parsing false
+        let result = parse("false", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Boolean(false)));
+
+        // Test mixed with other values
+        let result = parse("true 42 \"hello\" false", &mut interp).unwrap();
+        assert_eq!(result.len(), 4);
+        assert!(matches!(result[0], Value::Boolean(true)));
+        assert!(matches!(result[1], Value::Number(n) if n == 42.0));
+        assert!(matches!(result[2], Value::String(_)));
+        assert!(matches!(result[3], Value::Boolean(false)));
+    }
+
+    #[test]
+    fn test_parse_null() {
+        let mut interp = Interpreter::new();
+
+        // Test parsing null
+        let result = parse("null", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Null));
+
+        // Test mixed with other values
+        let result = parse("null 42 true \"test\"", &mut interp).unwrap();
+        assert_eq!(result.len(), 4);
+        assert!(matches!(result[0], Value::Null));
+        assert!(matches!(result[1], Value::Number(n) if n == 42.0));
+        assert!(matches!(result[2], Value::Boolean(true)));
+        assert!(matches!(result[3], Value::String(_)));
+    }
+
+    #[test]
+    fn test_parse_boolean_null_in_lists() {
+        let mut interp = Interpreter::new();
+
+        // Test booleans in list
+        let result = parse("[true false null 42]", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+
+        match &result[0] {
+            Value::Pair(car1, cdr1) => {
+                assert!(matches!(car1.as_ref(), Value::Boolean(true)));
+                match cdr1.as_ref() {
+                    Value::Pair(car2, cdr2) => {
+                        assert!(matches!(car2.as_ref(), Value::Boolean(false)));
+                        match cdr2.as_ref() {
+                            Value::Pair(car3, cdr3) => {
+                                assert!(matches!(car3.as_ref(), Value::Null));
+                                match cdr3.as_ref() {
+                                    Value::Pair(car4, cdr4) => {
+                                        assert!(matches!(car4.as_ref(), Value::Number(n) if *n == 42.0));
+                                        assert!(matches!(cdr4.as_ref(), Value::Nil));
+                                    },
+                                    _ => panic!("Expected fourth element"),
+                                }
+                            },
+                            _ => panic!("Expected third element"),
+                        }
+                    },
+                    _ => panic!("Expected second element"),
+                }
+            },
+            _ => panic!("Expected list structure"),
+        }
+    }
+
+    #[test]
+    fn test_parse_quoted_booleans_null_error() {
+        let mut interp = Interpreter::new();
+
+        // Quoted booleans should be errors - booleans are data by default
+        let error_cases = vec![
+            ("'true", "cannot be quoted"),
+            ("'false", "cannot be quoted"),
+            ("'null", "cannot be quoted"),
+        ];
+
+        for (input, expected_error) in error_cases.iter() {
+            let result = parse(input, &mut interp);
+            assert!(result.is_err(), "Expected error for input: '{}'", input);
+
+            let error_string = format!("{:?}", result.unwrap_err());
+            assert!(error_string.to_lowercase().contains(&expected_error.to_lowercase()),
+                "Expected '{}' in error message for '{}', got: {}",
+                expected_error, input, error_string);
+        }
+    }
+
+    #[test]
+    fn test_boolean_null_not_atoms() {
+        let mut interp = Interpreter::new();
+
+        // Explicitly verify that true/false/null are NOT parsed as atoms
+        let result = parse("true false null", &mut interp).unwrap();
+        assert_eq!(result.len(), 3);
+
+        // These should NOT be atoms - they should be their proper types
+        assert!(matches!(result[0], Value::Boolean(true)),
+            "Expected Boolean(true), got: {:?}", result[0]);
+        assert!(!matches!(result[0], Value::Atom(_)),
+            "true should NOT be parsed as an atom");
+
+        assert!(matches!(result[1], Value::Boolean(false)),
+            "Expected Boolean(false), got: {:?}", result[1]);
+        assert!(!matches!(result[1], Value::Atom(_)),
+            "false should NOT be parsed as an atom");
+
+        assert!(matches!(result[2], Value::Null),
+            "Expected Null, got: {:?}", result[2]);
+        assert!(!matches!(result[2], Value::Atom(_)),
+            "null should NOT be parsed as an atom");
+
+        // Verify similar-looking strings ARE still atoms
+        let result = parse("TRUE True false-flag NULL nil", &mut interp).unwrap();
+        assert_eq!(result.len(), 5);
+
+        for (i, val) in result.iter().enumerate() {
+            assert!(matches!(val, Value::Atom(_)),
+                "Element {} should be an atom, got: {:?}", i, val);
         }
     }
 }

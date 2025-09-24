@@ -58,6 +58,8 @@ pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         (Value::Atom(a1), Value::Atom(a2)) => a1 == a2,
         (Value::QuotedAtom(a1), Value::QuotedAtom(a2)) => a1 == a2,
         (Value::String(s1), Value::String(s2)) => s1 == s2,
+        (Value::Boolean(b1), Value::Boolean(b2)) => b1 == b2,
+        (Value::Null, Value::Null) => true,
         (Value::Nil, Value::Nil) => true,
         (Value::Pair(car1, cdr1), Value::Pair(car2, cdr2)) => {
             // Recursive structural equality for pairs
@@ -72,10 +74,9 @@ pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         _ => false,
     };
 
-    // RUST CONCEPT: Boolean to number conversion (Forth-style)
-    // True = 1.0, False = 0.0
-    let result = if are_equal { 1.0 } else { 0.0 };
-    interp.push(Value::Number(result));
+    // RUST CONCEPT: Return proper Boolean values
+    // Modern approach: return actual boolean instead of numbers
+    interp.push(Value::Boolean(are_equal));
     Ok(())
 }
 
@@ -87,6 +88,8 @@ fn values_equal(a: &Value, b: &Value) -> bool {
         (Value::Atom(a1), Value::Atom(a2)) => a1 == a2,
         (Value::QuotedAtom(a1), Value::QuotedAtom(a2)) => a1 == a2,
         (Value::String(s1), Value::String(s2)) => s1 == s2,
+        (Value::Boolean(b1), Value::Boolean(b2)) => b1 == b2,
+        (Value::Null, Value::Null) => true,
         (Value::Nil, Value::Nil) => true,
         (Value::Pair(car1, cdr1), Value::Pair(car2, cdr2)) => {
             values_equal(car1, car2) && values_equal(cdr1, cdr2)
@@ -294,8 +297,10 @@ pub fn if_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // RUST CONCEPT: Truthiness evaluation (JavaScript-style)
     // We need to determine if the condition is "true"
     let is_true = match condition {
+        Value::Boolean(b) => b,        // Boolean values use their literal truth value
         Value::Number(n) => n != 0.0,  // Zero is false, non-zero is true
         Value::String(s) => !s.is_empty(),  // Empty string is false, non-empty is true
+        Value::Null => false,          // Null is falsy
         Value::Nil => true,            // Empty list is truthy (like [] in JS)
         Value::Atom(_) => true,        // Atoms are true
         Value::QuotedAtom(_) => true,  // Quoted atoms are true
@@ -325,6 +330,8 @@ fn print_value(value: &Value) {
     match value {
         Value::Number(n) => print!("{}", n),
         Value::String(s) => print!("\"{}\"", s),
+        Value::Boolean(b) => print!("{}", if *b { "true" } else { "false" }),
+        Value::Null => print!("null"),
         Value::Atom(atom) => print!("{}", atom),
         Value::QuotedAtom(atom) => print!("'{}", atom),
         Value::Nil => print!("[]"),
@@ -418,6 +425,54 @@ pub fn tail_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             Err(RuntimeError::TypeError("tail expects a list".to_string()))
         }
     }
+}
+
+// RUST CONCEPT: List construction - cons builtin
+// cons ( element list -- new-list ) - Construct a new list with element as head
+// Example: 1 [2 3] cons -> [1 2 3]
+// Example: 'hello [] cons -> [hello]
+pub fn cons_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    let list = interp.pop()?;    // Second argument (the list to cons onto)
+    let element = interp.pop()?; // First argument (the element to add)
+
+    // RUST CONCEPT: List construction using Pair
+    // cons always creates a new pair with element as car and list as cdr
+    let new_pair = Value::Pair(Rc::new(element), Rc::new(list));
+    interp.push(new_pair);
+
+    Ok(())
+}
+
+// RUST CONCEPT: List construction - list builtin
+// list ( element1 element2 ... elementN count -- list ) - Construct list from N stack elements
+// Example: 1 2 3 3 list -> [1 2 3]
+// Example: 0 list -> []
+pub fn list_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    // RUST CONCEPT: Type-safe count extraction
+    let count = interp.pop_number()?;
+
+    // RUST CONCEPT: Input validation
+    if count < 0.0 || count.fract() != 0.0 {
+        return Err(RuntimeError::TypeError("list count must be a non-negative integer".to_string()));
+    }
+
+    let count = count as usize;
+
+    // RUST CONCEPT: Collecting stack elements into vector
+    let mut elements = Vec::with_capacity(count);
+    for _ in 0..count {
+        elements.push(interp.pop()?);
+    }
+
+    // RUST CONCEPT: Reverse to maintain stack order
+    // Stack is LIFO, so we reverse to get original push order
+    elements.reverse();
+
+    // RUST CONCEPT: Reuse existing list construction logic
+    let list = interp.make_list(elements);
+    interp.push(list);
+
+    Ok(())
 }
 
 // RUST CONCEPT: Registering all builtins with the interpreter
@@ -532,6 +587,18 @@ pub fn register_builtins(interp: &mut Interpreter) {
         value: Value::Builtin(tail_builtin),
         is_executable: true,
     });
+
+    let cons_atom = interp.intern_atom("cons");
+    interp.dictionary.insert(cons_atom, DictEntry {
+        value: Value::Builtin(cons_builtin),
+        is_executable: true,
+    });
+
+    let list_atom = interp.intern_atom("list");
+    interp.dictionary.insert(list_atom, DictEntry {
+        value: Value::Builtin(list_builtin),
+        is_executable: true,
+    });
 }
 
 #[cfg(test)]
@@ -639,21 +706,21 @@ mod tests {
     fn test_eq_builtin() {
         let mut interp = setup_interpreter();
 
-        // Test equal numbers: 5.0 = 5.0 -> 1.0 (true)
+        // Test equal numbers: 5.0 = 5.0 -> true
         interp.push(Value::Number(5.0));
         interp.push(Value::Number(5.0));
         eq_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 1.0));
+        assert!(matches!(result, Value::Boolean(true)));
 
-        // Test unequal numbers: 5.0 = 3.0 -> 0.0 (false)
+        // Test unequal numbers: 5.0 = 3.0 -> false
         interp.push(Value::Number(5.0));
         interp.push(Value::Number(3.0));
         eq_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 0.0));
+        assert!(matches!(result, Value::Boolean(false)));
 
         // Test equal atoms
         let atom1 = interp.intern_atom("hello");
@@ -663,7 +730,7 @@ mod tests {
         eq_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 1.0));
+        assert!(matches!(result, Value::Boolean(true)));
 
         // Test unequal atoms
         let atom1 = interp.intern_atom("hello");
@@ -673,7 +740,7 @@ mod tests {
         eq_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 0.0));
+        assert!(matches!(result, Value::Boolean(false)));
 
         // Test equal strings
         interp.push(Value::String("hello".into()));
@@ -681,7 +748,7 @@ mod tests {
         eq_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 1.0));
+        assert!(matches!(result, Value::Boolean(true)));
 
         // Test nil equality
         interp.push(Value::Nil);
@@ -689,7 +756,38 @@ mod tests {
         eq_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 1.0));
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test boolean equality
+        interp.push(Value::Boolean(true));
+        interp.push(Value::Boolean(true));
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        interp.push(Value::Boolean(true));
+        interp.push(Value::Boolean(false));
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+
+        // Test null equality
+        interp.push(Value::Null);
+        interp.push(Value::Null);
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test null vs nil (should be false - different types)
+        interp.push(Value::Null);
+        interp.push(Value::Nil);
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
 
         // Test mixed types (should be false)
         interp.push(Value::Number(42.0));
@@ -697,7 +795,15 @@ mod tests {
         eq_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 0.0));
+        assert!(matches!(result, Value::Boolean(false)));
+
+        // Test boolean vs number (should be false)
+        interp.push(Value::Boolean(true));
+        interp.push(Value::Number(1.0));
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
     }
 
     #[test]
@@ -1204,6 +1310,209 @@ mod tests {
         let result = tail_builtin(&mut interp);
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("tail expects a list")));
+    }
+
+    #[test]
+    fn test_cons_builtin() {
+        let mut interp = setup_interpreter();
+
+        // Test cons onto empty list: 1 [] cons -> [1]
+        interp.push(Value::Number(1.0));
+        interp.push(Value::Nil);
+        cons_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        match result {
+            Value::Pair(car, cdr) => {
+                assert!(matches!(car.as_ref(), Value::Number(n) if *n == 1.0));
+                assert!(matches!(cdr.as_ref(), Value::Nil));
+            },
+            _ => panic!("Expected Pair for cons result"),
+        }
+
+        // Test cons onto non-empty list: 1 [2 3] cons -> [1 2 3]
+        let list_23 = interp.make_list(vec![Value::Number(2.0), Value::Number(3.0)]);
+        interp.push(Value::Number(1.0));
+        interp.push(list_23);
+        cons_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        match result {
+            Value::Pair(car, cdr) => {
+                assert!(matches!(car.as_ref(), Value::Number(n) if *n == 1.0));
+                // cdr should be the [2 3] list
+                assert!(matches!(cdr.as_ref(), Value::Pair(_, _)));
+            },
+            _ => panic!("Expected Pair for cons result"),
+        }
+
+        // Test cons with different value types: 'hello [42] cons -> [hello 42]
+        let hello_atom = interp.intern_atom("hello");
+        let list_42 = interp.make_list(vec![Value::Number(42.0)]);
+        interp.push(Value::Atom(hello_atom));
+        interp.push(list_42);
+        cons_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        match result {
+            Value::Pair(car, cdr) => {
+                assert!(matches!(car.as_ref(), Value::Atom(a) if a.as_ref() == "hello"));
+                assert!(matches!(cdr.as_ref(), Value::Pair(_, _)));
+            },
+            _ => panic!("Expected Pair for cons result"),
+        }
+
+        // Test cons can create improper lists: 1 2 cons -> (1 . 2)
+        interp.push(Value::Number(1.0));
+        interp.push(Value::Number(2.0));
+        cons_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        match result {
+            Value::Pair(car, cdr) => {
+                assert!(matches!(car.as_ref(), Value::Number(n) if *n == 1.0));
+                assert!(matches!(cdr.as_ref(), Value::Number(n) if *n == 2.0));
+            },
+            _ => panic!("Expected Pair for cons result"),
+        }
+    }
+
+    #[test]
+    fn test_list_builtin() {
+        let mut interp = setup_interpreter();
+
+        // Test empty list: 0 list -> []
+        interp.push(Value::Number(0.0));
+        list_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Nil));
+
+        // Test single element list: 42 1 list -> [42]
+        interp.push(Value::Number(42.0));
+        interp.push(Value::Number(1.0));
+        list_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        match result {
+            Value::Pair(car, cdr) => {
+                assert!(matches!(car.as_ref(), Value::Number(n) if *n == 42.0));
+                assert!(matches!(cdr.as_ref(), Value::Nil));
+            },
+            _ => panic!("Expected single-element list"),
+        }
+
+        // Test multi-element list: 1 2 3 3 list -> [1 2 3]
+        interp.push(Value::Number(1.0));
+        interp.push(Value::Number(2.0));
+        interp.push(Value::Number(3.0));
+        interp.push(Value::Number(3.0));
+        list_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        // Verify it's the correct list structure
+        let expected = interp.make_list(vec![
+            Value::Number(1.0),
+            Value::Number(2.0),
+            Value::Number(3.0)
+        ]);
+
+        // Compare list structures by checking each element
+        let mut current_result = &result;
+        let mut current_expected = &expected;
+        let mut element_count = 0;
+
+        loop {
+            match (current_result, current_expected) {
+                (Value::Pair(car1, cdr1), Value::Pair(car2, cdr2)) => {
+                    assert!(matches!((car1.as_ref(), car2.as_ref()),
+                        (Value::Number(n1), Value::Number(n2)) if n1 == n2));
+                    current_result = cdr1.as_ref();
+                    current_expected = cdr2.as_ref();
+                    element_count += 1;
+                },
+                (Value::Nil, Value::Nil) => break,
+                _ => panic!("List structures don't match"),
+            }
+        }
+
+        assert_eq!(element_count, 3);
+
+        // Test mixed types: 'hello 42 true 3 list -> [hello 42 true]
+        let hello_atom = interp.intern_atom("hello");
+        interp.push(Value::Atom(hello_atom));
+        interp.push(Value::Number(42.0));
+        interp.push(Value::Boolean(true));
+        interp.push(Value::Number(3.0));
+        list_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        // Should be [hello 42 true]
+        match result {
+            Value::Pair(car1, cdr1) => {
+                assert!(matches!(car1.as_ref(), Value::Atom(a) if a.as_ref() == "hello"));
+                match cdr1.as_ref() {
+                    Value::Pair(car2, cdr2) => {
+                        assert!(matches!(car2.as_ref(), Value::Number(n) if *n == 42.0));
+                        match cdr2.as_ref() {
+                            Value::Pair(car3, cdr3) => {
+                                assert!(matches!(car3.as_ref(), Value::Boolean(b) if *b == true));
+                                assert!(matches!(cdr3.as_ref(), Value::Nil));
+                            },
+                            _ => panic!("Expected third element"),
+                        }
+                    },
+                    _ => panic!("Expected second element"),
+                }
+            },
+            _ => panic!("Expected multi-element list"),
+        }
+    }
+
+    #[test]
+    fn test_list_builtin_error_cases() {
+        let mut interp = setup_interpreter();
+
+        // Test negative count
+        interp.push(Value::Number(-1.0));
+        let result = list_builtin(&mut interp);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("non-negative integer")));
+
+        // Test non-integer count
+        interp.push(Value::Number(2.5));
+        let result = list_builtin(&mut interp);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("non-negative integer")));
+
+        // Test stack underflow
+        interp.push(Value::Number(3.0)); // Want 3 elements but stack is empty
+        let result = list_builtin(&mut interp);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), RuntimeError::StackUnderflow));
+
+        // Test partial stack underflow
+        interp.push(Value::Number(1.0));  // Only one element on stack
+        interp.push(Value::Number(2.0));  // But we want 2 elements
+        let result = list_builtin(&mut interp);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), RuntimeError::StackUnderflow));
+    }
+
+    #[test]
+    fn test_cons_builtin_error_cases() {
+        let mut interp = setup_interpreter();
+
+        // Test stack underflow with no elements
+        let result = cons_builtin(&mut interp);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), RuntimeError::StackUnderflow));
+
+        // Test stack underflow with only one element
+        interp.push(Value::Number(1.0));
+        let result = cons_builtin(&mut interp);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), RuntimeError::StackUnderflow));
     }
 }
 

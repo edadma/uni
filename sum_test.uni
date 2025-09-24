@@ -1,0 +1,23 @@
+#!/usr/bin/env uni
+\ Sum all numbers in a list
+'sum-helper [
+  \ Stack: [acc list]
+  dup nil? [
+    \ List is empty: [acc []]
+    drop            \ Drop the empty list, leave acc: [acc]
+  ] [
+    \ List not empty: [acc [head|tail]]
+    dup head        \ [acc list head]
+    rot +           \ [list (acc+head)]  - add head to acc
+    swap            \ [(acc+head) list]
+    dup tail        \ [(acc+head) list tail]
+    nip             \ [(acc+head) tail] - remove original list
+    sum-helper      \ recurse with new acc and tail
+  ] if
+] def
+
+'sum [
+  0 swap sum-helper
+] def
+
+[1 2 3 4 5] sum pr         \ Should print 15

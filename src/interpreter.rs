@@ -77,6 +77,32 @@ impl Interpreter {
             _ => Err(RuntimeError::TypeError("Expected string".to_string())),
         }
     }
+
+    pub fn pop_boolean(&mut self) -> Result<bool, RuntimeError> {
+        let value = self.pop()?;
+        match value {
+            Value::Boolean(b) => Ok(b),
+            _ => Err(RuntimeError::TypeError("Expected boolean".to_string())),
+        }
+    }
+
+    pub fn is_null(&self, value: &Value) -> bool {
+        matches!(value, Value::Null)
+    }
+
+    pub fn is_truthy(&self, value: &Value) -> bool {
+        match value {
+            Value::Boolean(b) => *b,
+            Value::Null => false,
+            Value::Nil => false,
+            Value::Number(n) => *n != 0.0,
+            Value::String(s) => !s.is_empty(),
+            Value::Atom(_) => true,
+            Value::QuotedAtom(_) => true,
+            Value::Pair(_, _) => true,
+            Value::Builtin(_) => true,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -278,5 +304,72 @@ mod tests {
             assert_eq!(a1, a2); // Same content
             assert!(Rc::ptr_eq(a1, a2)); // Same object
         }
+    }
+
+    #[test]
+    fn test_pop_boolean() {
+        let mut interp = Interpreter::new();
+
+        // Test successful pop_boolean
+        interp.push(Value::Boolean(true));
+        assert_eq!(interp.pop_boolean().unwrap(), true);
+
+        interp.push(Value::Boolean(false));
+        assert_eq!(interp.pop_boolean().unwrap(), false);
+
+        // Test type error when popping non-boolean
+        interp.push(Value::Number(42.0));
+        assert!(matches!(
+            interp.pop_boolean(),
+            Err(RuntimeError::TypeError(msg)) if msg == "Expected boolean"
+        ));
+
+        // Test stack underflow
+        assert!(matches!(
+            interp.pop_boolean(),
+            Err(RuntimeError::StackUnderflow)
+        ));
+    }
+
+    #[test]
+    fn test_is_null() {
+        let interp = Interpreter::new();
+
+        assert!(interp.is_null(&Value::Null));
+        assert!(!interp.is_null(&Value::Nil));
+        assert!(!interp.is_null(&Value::Boolean(false)));
+        assert!(!interp.is_null(&Value::Number(0.0)));
+    }
+
+    #[test]
+    fn test_is_truthy() {
+        let interp = Interpreter::new();
+
+        // Boolean values
+        assert!(interp.is_truthy(&Value::Boolean(true)));
+        assert!(!interp.is_truthy(&Value::Boolean(false)));
+
+        // Null and Nil are falsy
+        assert!(!interp.is_truthy(&Value::Null));
+        assert!(!interp.is_truthy(&Value::Nil));
+
+        // Numbers: 0 is falsy, everything else is truthy
+        assert!(!interp.is_truthy(&Value::Number(0.0)));
+        assert!(interp.is_truthy(&Value::Number(42.0)));
+        assert!(interp.is_truthy(&Value::Number(-1.0)));
+
+        // Strings: empty is falsy, non-empty is truthy
+        assert!(!interp.is_truthy(&Value::String("".into())));
+        assert!(interp.is_truthy(&Value::String("hello".into())));
+
+        // Atoms and QuotedAtoms are always truthy
+        assert!(interp.is_truthy(&Value::Atom("hello".into())));
+        assert!(interp.is_truthy(&Value::QuotedAtom("hello".into())));
+
+        // Pairs are always truthy
+        assert!(interp.is_truthy(&Value::Pair(
+            Rc::new(Value::Number(1.0)),
+            Rc::new(Value::Nil)
+        )));
     }
 }

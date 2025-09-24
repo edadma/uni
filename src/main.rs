@@ -223,6 +223,28 @@ fn run_demo() {
         Err(e) => println!("Error retrieving string: {:?}", e),
     }
 
+    // Test boolean handling
+    interp.push(Value::Boolean(true));
+    println!("Pushed boolean: true");
+
+    match interp.pop_boolean() {
+        Ok(b) => println!("Retrieved boolean: {}", b),
+        Err(e) => println!("Error retrieving boolean: {:?}", e),
+    }
+
+    interp.push(Value::Boolean(false));
+    println!("Pushed boolean: false");
+
+    // Test null handling
+    interp.push(Value::Null);
+    println!("Pushed null value");
+
+    match interp.pop() {
+        Ok(Value::Null) => println!("Retrieved null value"),
+        Ok(other) => println!("Got unexpected value: {:?}", other),
+        Err(e) => println!("Error retrieving value: {:?}", e),
+    }
+
     // Test parser functionality
     use parser::parse;
     println!("\n--- Parser Demo ---");
@@ -359,5 +381,63 @@ fn run_demo() {
         Err(e) => println!("Error: {:?}", e),
     }
 
-    println!("\nUni interpreter with def and val demo complete!");
+    // Demo 8: List construction with cons
+    println!("\n--- List Construction Demo ---");
+    println!("Using cons primitive: 1 [2 3] cons");
+    match execute_string("1 [2 3] cons", &mut interp) {
+        Ok(()) => {
+            match interp.pop() {
+                Ok(list) => println!("Result: {}", list),
+                Err(e) => println!("Error popping result: {:?}", e),
+            }
+        },
+        Err(e) => println!("Error: {:?}", e),
+    }
+
+    println!("Building list step by step: 'hello [] cons 42 swap cons");
+    match execute_string("'hello [] cons 42 swap cons", &mut interp) {
+        Ok(()) => {
+            match interp.pop() {
+                Ok(list) => println!("Result: {}", list),
+                Err(e) => println!("Error popping result: {:?}", e),
+            }
+        },
+        Err(e) => println!("Error: {:?}", e),
+    }
+
+    // Demo 9: List construction with list builtin
+    println!("\nUsing list primitive: 1 2 3 3 list");
+    match execute_string("1 2 3 3 list", &mut interp) {
+        Ok(()) => {
+            match interp.pop() {
+                Ok(list) => println!("Result: {}", list),
+                Err(e) => println!("Error popping result: {:?}", e),
+            }
+        },
+        Err(e) => println!("Error: {:?}", e),
+    }
+
+    println!("Creating empty list: 0 list");
+    match execute_string("0 list", &mut interp) {
+        Ok(()) => {
+            match interp.pop() {
+                Ok(list) => println!("Result: {}", list),
+                Err(e) => println!("Error popping result: {:?}", e),
+            }
+        },
+        Err(e) => println!("Error: {:?}", e),
+    }
+
+    println!("Mixed types in list: 'hello 42 true 3 list");
+    match execute_string("'hello 42 true 3 list", &mut interp) {
+        Ok(()) => {
+            match interp.pop() {
+                Ok(list) => println!("Result: {}", list),
+                Err(e) => println!("Error popping result: {:?}", e),
+            }
+        },
+        Err(e) => println!("Error: {:?}", e),
+    }
+
+    println!("\nUni interpreter with cons and list primitives demo complete!");
 }

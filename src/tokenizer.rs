@@ -5,6 +5,8 @@ pub enum Token {
     Number(f64),
     Atom(String),
     String(String),  // Quoted strings - not interned
+    Boolean(bool),   // Boolean literals: true, false
+    Null,           // Null literal
     LeftBracket,
     RightBracket,
     Quote,
@@ -17,6 +19,8 @@ impl fmt::Display for Token {
             Token::Number(n) => write!(f, "{}", n),
             Token::Atom(s) => write!(f, "{}", s),
             Token::String(s) => write!(f, "\"{}\"", s),
+            Token::Boolean(b) => write!(f, "{}", if *b { "true" } else { "false" }),
+            Token::Null => write!(f, "null"),
             Token::LeftBracket => write!(f, "["),
             Token::RightBracket => write!(f, "]"),
             Token::Quote => write!(f, "'"),
@@ -208,7 +212,14 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                 }
 
                 if !atom.is_empty() {
-                    tokens.push(Token::Atom(atom));
+                    // RUST CONCEPT: Pattern matching on string literals
+                    // Check for special boolean and null literals
+                    match atom.as_str() {
+                        "true" => tokens.push(Token::Boolean(true)),
+                        "false" => tokens.push(Token::Boolean(false)),
+                        "null" => tokens.push(Token::Null),
+                        _ => tokens.push(Token::Atom(atom)),
+                    }
                 }
             }
         }
@@ -503,5 +514,112 @@ mod tests {
 
         // Just a comment
         assert_eq!(tokenize("\\ just a comment").unwrap(), vec![]);
+    }
+
+    #[test]
+    fn test_tokenize_booleans() {
+        // Test true literal
+        assert_eq!(tokenize("true").unwrap(), vec![Token::Boolean(true)]);
+
+        // Test false literal
+        assert_eq!(tokenize("false").unwrap(), vec![Token::Boolean(false)]);
+
+        // Test mixed with other tokens
+        assert_eq!(
+            tokenize("true false 42 'test").unwrap(),
+            vec![
+                Token::Boolean(true),
+                Token::Boolean(false),
+                Token::Number(42.0),
+                Token::Quote,
+                Token::Atom("test".to_string())
+            ]
+        );
+
+        // Test in brackets
+        assert_eq!(
+            tokenize("[true false]").unwrap(),
+            vec![
+                Token::LeftBracket,
+                Token::Boolean(true),
+                Token::Boolean(false),
+                Token::RightBracket
+            ]
+        );
+
+        // Test boolean-like but not exact (should be atoms)
+        assert_eq!(tokenize("TRUE").unwrap(), vec![Token::Atom("TRUE".to_string())]);
+        assert_eq!(tokenize("True").unwrap(), vec![Token::Atom("True".to_string())]);
+        assert_eq!(tokenize("false-flag").unwrap(), vec![Token::Atom("false-flag".to_string())]);
+        assert_eq!(tokenize("truthy").unwrap(), vec![Token::Atom("truthy".to_string())]);
+    }
+
+    #[test]
+    fn test_tokenize_null() {
+        // Test null literal
+        assert_eq!(tokenize("null").unwrap(), vec![Token::Null]);
+
+        // Test mixed with other values
+        assert_eq!(
+            tokenize("null 42 \"hello\" true").unwrap(),
+            vec![
+                Token::Null,
+                Token::Number(42.0),
+                Token::String("hello".to_string()),
+                Token::Boolean(true)
+            ]
+        );
+
+        // Test in list context
+        assert_eq!(
+            tokenize("[1 null true \"test\"]").unwrap(),
+            vec![
+                Token::LeftBracket,
+                Token::Number(1.0),
+                Token::Null,
+                Token::Boolean(true),
+                Token::String("test".to_string()),
+                Token::RightBracket
+            ]
+        );
+
+        // Test null-like but not exact (should be atoms)
+        assert_eq!(tokenize("NULL").unwrap(), vec![Token::Atom("NULL".to_string())]);
+        assert_eq!(tokenize("nil").unwrap(), vec![Token::Atom("nil".to_string())]);
+        assert_eq!(tokenize("null-check").unwrap(), vec![Token::Atom("null-check".to_string())]);
+    }
+
+    #[test]
+    fn test_tokenize_boolean_null_edge_cases() {
+        // Test with whitespace
+        assert_eq!(
+            tokenize("  true   false   null  ").unwrap(),
+            vec![Token::Boolean(true), Token::Boolean(false), Token::Null]
+        );
+
+        // Test adjacent to special characters
+        assert_eq!(
+            tokenize("true[false]null").unwrap(),
+            vec![
+                Token::Boolean(true),
+                Token::LeftBracket,
+                Token::Boolean(false),
+                Token::RightBracket,
+                Token::Null
+            ]
+        );
+
+        // Test with quotes
+        assert_eq!(
+            tokenize("'true 'false 'null").unwrap(),
+            vec![
+                Token::Quote,
+                Token::Boolean(true),
+                Token::Quote,
+                Token::Boolean(false),
+                Token::Quote,
+                Token::Null
+            ]
+        );
     }
 }

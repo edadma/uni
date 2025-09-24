@@ -36,6 +36,18 @@ pub fn execute(value: &Value, interp: &mut Interpreter) -> Result<(), RuntimeErr
             Ok(())
         },
 
+        // RUST CONCEPT: Boolean and Null values are data
+        // They push themselves onto the stack like numbers and strings
+        Value::Boolean(b) => {
+            interp.push(Value::Boolean(*b));
+            Ok(())
+        },
+
+        Value::Null => {
+            interp.push(Value::Null);
+            Ok(())
+        },
+
         // RUST CONCEPT: Pattern matching with complex data
         // Lists (Pairs and Nil) are data - they push themselves onto the stack
         Value::Pair(_, _) | Value::Nil => {
