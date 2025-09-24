@@ -18,6 +18,8 @@ pub enum RuntimeError {
     StackUnderflow,
     TypeError(String),
     UndefinedWord(String),
+    DivisionByZero,
+    ModuloByZero,
 }
 
 // RUST CONCEPT: Implementing traits for custom error types
@@ -28,6 +30,8 @@ impl std::fmt::Display for RuntimeError {
             RuntimeError::StackUnderflow => write!(f, "Stack underflow"),
             RuntimeError::TypeError(msg) => write!(f, "Type error: {}", msg),
             RuntimeError::UndefinedWord(word) => write!(f, "Undefined word: {}", word),
+            RuntimeError::DivisionByZero => write!(f, "Division by zero"),
+            RuntimeError::ModuloByZero => write!(f, "Modulo by zero"),
         }
     }
 }

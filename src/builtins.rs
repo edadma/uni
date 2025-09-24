@@ -1,152 +1,16 @@
 use crate::interpreter::Interpreter;
 use crate::value::{Value, RuntimeError};
-use std::rc::Rc;
+
+// RUST CONCEPT: Import modular primitives
+// Import completed primitives from the new modular structure
+use crate::primitives::{
+    add_builtin, sub_builtin, mul_builtin, div_builtin, mod_builtin, eq_builtin,
+    drop_builtin, eval_builtin, cons_builtin, list_builtin, head_builtin,
+    truthy_predicate_builtin
+};
 
 // RUST CONCEPT: Builtin function implementations
-// Each builtin is a Rust function that takes &mut Interpreter and returns Result
-
-// RUST CONCEPT: Arithmetic operations
-pub fn add_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let b = interp.pop_number()?;
-    let a = interp.pop_number()?;
-    interp.push(Value::Number(a + b));
-    Ok(())
-}
-
-pub fn sub_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let b = interp.pop_number()?;  // Second operand (top of stack)
-    let a = interp.pop_number()?;  // First operand
-    interp.push(Value::Number(a - b));  // a - b (left-associative)
-    Ok(())
-}
-
-pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let b = interp.pop_number()?;
-    let a = interp.pop_number()?;
-    interp.push(Value::Number(a * b));
-    Ok(())
-}
-
-pub fn div_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let b = interp.pop_number()?;
-    let a = interp.pop_number()?;
-    if b == 0.0 {
-        return Err(RuntimeError::TypeError("Division by zero".to_string()));
-    }
-    interp.push(Value::Number(a / b));
-    Ok(())
-}
-
-pub fn mod_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let b = interp.pop_number()?;
-    let a = interp.pop_number()?;
-    if b == 0.0 {
-        return Err(RuntimeError::TypeError("Modulo by zero".to_string()));
-    }
-    interp.push(Value::Number(a % b));
-    Ok(())
-}
-
-pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let b = interp.pop()?;
-    let a = interp.pop()?;
-
-    // RUST CONCEPT: Pattern matching for equality comparison
-    // Compare values based on their types
-    let are_equal = match (&a, &b) {
-        (Value::Number(n1), Value::Number(n2)) => n1 == n2,
-        (Value::Atom(a1), Value::Atom(a2)) => a1 == a2,
-        (Value::QuotedAtom(a1), Value::QuotedAtom(a2)) => a1 == a2,
-        (Value::String(s1), Value::String(s2)) => s1 == s2,
-        (Value::Boolean(b1), Value::Boolean(b2)) => b1 == b2,
-        (Value::Null, Value::Null) => true,
-        (Value::Nil, Value::Nil) => true,
-        (Value::Pair(car1, cdr1), Value::Pair(car2, cdr2)) => {
-            // Recursive structural equality for pairs
-            values_equal(car1, car2) && values_equal(cdr1, cdr2)
-        },
-        (Value::Builtin(_), Value::Builtin(_)) => {
-            // Builtins can't be compared for equality (function pointers)
-            // We consider them unequal for safety
-            false
-        },
-        // Different types are never equal
-        _ => false,
-    };
-
-    // RUST CONCEPT: Return proper Boolean values
-    // Modern approach: return actual boolean instead of numbers
-    interp.push(Value::Boolean(are_equal));
-    Ok(())
-}
-
-// RUST CONCEPT: Helper function for recursive equality checking
-// This avoids the need to derive PartialEq on Value (which fails due to function pointers)
-fn values_equal(a: &Value, b: &Value) -> bool {
-    match (a, b) {
-        (Value::Number(n1), Value::Number(n2)) => n1 == n2,
-        (Value::Atom(a1), Value::Atom(a2)) => a1 == a2,
-        (Value::QuotedAtom(a1), Value::QuotedAtom(a2)) => a1 == a2,
-        (Value::String(s1), Value::String(s2)) => s1 == s2,
-        (Value::Boolean(b1), Value::Boolean(b2)) => b1 == b2,
-        (Value::Null, Value::Null) => true,
-        (Value::Nil, Value::Nil) => true,
-        (Value::Pair(car1, cdr1), Value::Pair(car2, cdr2)) => {
-            values_equal(car1, car2) && values_equal(cdr1, cdr2)
-        },
-        (Value::Builtin(_), Value::Builtin(_)) => false,  // Can't compare function pointers
-        _ => false,  // Different types
-    }
-}
-
-// RUST CONCEPT: Basic stack operations that can't be built from primitives
-pub fn drop_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Discarding values
-    // Just pop and don't push anything back
-    interp.pop()?;
-    Ok(())
-}
-
-
-// RUST CONCEPT: The crucial eval builtin - executes lists as code
-pub fn eval_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Importing from other modules
-    use crate::evaluator::execute;
-
-    let value = interp.pop()?;
-
-    // RUST CONCEPT: Pattern matching for type checking
-    match value {
-        // RUST CONCEPT: Recursive execution of list elements
-        Value::Pair(_, _) | Value::Nil => {
-            execute_list(&value, interp)
-        },
-        // RUST CONCEPT: Single values can be executed directly
-        _ => execute(&value, interp)
-    }
-}
-
-// RUST CONCEPT: Helper function for eval
-// This walks through a list and executes each element in order
-fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    use crate::evaluator::execute;
-
-    match list {
-        Value::Nil => Ok(()), // Empty list - nothing to do
-
-        Value::Pair(car, cdr) => {
-            // RUST CONCEPT: Recursive list traversal
-            // Execute the first element (car)
-            execute(car, interp)?;
-
-            // Then recursively execute the rest of the list (cdr)
-            execute_list(cdr, interp)
-        },
-
-        // RUST CONCEPT: This shouldn't happen if eval is called correctly
-        _ => Err(RuntimeError::TypeError("eval expected a list".to_string()))
-    }
-}
+// Modularized primitives are imported, remaining builtins implemented here
 
 
 // RUST CONCEPT: The def builtin - defines new words in the dictionary
@@ -274,7 +138,6 @@ pub fn pick_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 // Example: 1 [42 pr] [99 pr] if  -> prints 42
 //          0 [42 pr] [99 pr] if  -> prints 99
 pub fn if_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    use crate::evaluator::execute;
 
     // RUST CONCEPT: Stack order - items are popped in reverse order
     let false_branch = interp.pop()?;  // Top of stack
@@ -299,13 +162,9 @@ pub fn if_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let branch_to_execute = if is_true { true_branch } else { false_branch };
 
     // RUST CONCEPT: Execute the chosen branch like eval does
-    // Lists should be executed as code, not pushed as data
-    match branch_to_execute {
-        Value::Pair(_, _) | Value::Nil => {
-            execute_list(&branch_to_execute, interp)
-        },
-        _ => execute(&branch_to_execute, interp)
-    }
+    // We can use eval_builtin which handles both lists and single values
+    interp.push(branch_to_execute);
+    eval_builtin(interp)
 }
 
 // RUST CONCEPT: Print builtin - pops and displays the top stack value
@@ -368,27 +227,6 @@ pub fn print_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 }
 
 // RUST CONCEPT: List operations - head builtin
-// head ( list -- element ) - Get first element of a list
-// Example: [1 2 3] head -> 1
-pub fn head_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let list = interp.pop()?;
-
-    match list {
-        Value::Pair(car, _) => {
-            // Return the first element (car) of the pair
-            interp.push((*car).clone());
-            Ok(())
-        },
-        Value::Nil => {
-            // Empty list has no head
-            Err(RuntimeError::TypeError("Cannot get head of empty list".to_string()))
-        },
-        _ => {
-            // Not a list
-            Err(RuntimeError::TypeError("head expects a list".to_string()))
-        }
-    }
-}
 
 // RUST CONCEPT: List operations - tail builtin
 // tail ( list -- list ) - Get rest of list after first element
@@ -414,53 +252,6 @@ pub fn tail_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     }
 }
 
-// RUST CONCEPT: List construction - cons builtin
-// cons ( element list -- new-list ) - Construct a new list with element as head
-// Example: 1 [2 3] cons -> [1 2 3]
-// Example: 'hello [] cons -> [hello]
-pub fn cons_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let list = interp.pop()?;    // Second argument (the list to cons onto)
-    let element = interp.pop()?; // First argument (the element to add)
-
-    // RUST CONCEPT: List construction using Pair
-    // cons always creates a new pair with element as car and list as cdr
-    let new_pair = Value::Pair(Rc::new(element), Rc::new(list));
-    interp.push(new_pair);
-
-    Ok(())
-}
-
-// RUST CONCEPT: List construction - list builtin
-// list ( element1 element2 ... elementN count -- list ) - Construct list from N stack elements
-// Example: 1 2 3 3 list -> [1 2 3]
-// Example: 0 list -> []
-pub fn list_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Type-safe count extraction
-    let count = interp.pop_number()?;
-
-    // RUST CONCEPT: Input validation
-    if count < 0.0 || count.fract() != 0.0 {
-        return Err(RuntimeError::TypeError("list count must be a non-negative integer".to_string()));
-    }
-
-    let count = count as usize;
-
-    // RUST CONCEPT: Collecting stack elements into vector
-    let mut elements = Vec::with_capacity(count);
-    for _ in 0..count {
-        elements.push(interp.pop()?);
-    }
-
-    // RUST CONCEPT: Reverse to maintain stack order
-    // Stack is LIFO, so we reverse to get original push order
-    elements.reverse();
-
-    // RUST CONCEPT: Reuse existing list construction logic
-    let list = interp.make_list(elements);
-    interp.push(list);
-
-    Ok(())
-}
 
 // RUST CONCEPT: Type checking predicates
 // null? ( value -- boolean ) - Check if value is null
@@ -472,12 +263,6 @@ pub fn null_predicate_builtin(interp: &mut Interpreter) -> Result<(), RuntimeErr
 }
 
 // truthy? ( value -- boolean ) - Check if value is truthy
-pub fn truthy_predicate_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let value = interp.pop()?;
-    let is_truthy = interp.is_truthy(&value);
-    interp.push(Value::Boolean(is_truthy));
-    Ok(())
-}
 
 // RUST CONCEPT: Registering all builtins with the interpreter
 pub fn register_builtins(interp: &mut Interpreter) {
@@ -621,6 +406,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value::Value;
     use crate::interpreter::DictEntry;
 
     fn setup_interpreter() -> Interpreter {
@@ -629,42 +415,6 @@ mod tests {
         Interpreter::new()
     }
 
-    #[test]
-    fn test_arithmetic_builtins() {
-        let mut interp = setup_interpreter();
-
-        // Test addition
-        interp.push(Value::Number(5.0));
-        interp.push(Value::Number(3.0));
-        add_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 8.0));
-
-        // Test subtraction (left-associative)
-        interp.push(Value::Number(10.0));
-        interp.push(Value::Number(3.0));
-        sub_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 7.0));
-
-        // Test multiplication
-        interp.push(Value::Number(4.0));
-        interp.push(Value::Number(3.0));
-        mul_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 12.0));
-
-        // Test division
-        interp.push(Value::Number(12.0));
-        interp.push(Value::Number(3.0));
-        div_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 4.0));
-    }
 
     #[test]
     fn test_division_by_zero() {
@@ -675,37 +425,9 @@ mod tests {
 
         let result = div_builtin(&mut interp);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("Division by zero")));
+        assert!(matches!(result.unwrap_err(), RuntimeError::DivisionByZero));
     }
 
-    #[test]
-    fn test_mod_builtin() {
-        let mut interp = setup_interpreter();
-
-        // Test basic modulo: 7 mod 3 = 1
-        interp.push(Value::Number(7.0));
-        interp.push(Value::Number(3.0));
-        mod_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 1.0));
-
-        // Test modulo with remainder 0: 6 mod 3 = 0
-        interp.push(Value::Number(6.0));
-        interp.push(Value::Number(3.0));
-        mod_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 0.0));
-
-        // Test modulo with negative numbers: -7 mod 3 = -1
-        interp.push(Value::Number(-7.0));
-        interp.push(Value::Number(3.0));
-        mod_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == -1.0));
-    }
 
     #[test]
     fn test_mod_by_zero() {
@@ -716,125 +438,10 @@ mod tests {
 
         let result = mod_builtin(&mut interp);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("Modulo by zero")));
+        assert!(matches!(result.unwrap_err(), RuntimeError::ModuloByZero));
     }
 
-    #[test]
-    fn test_eq_builtin() {
-        let mut interp = setup_interpreter();
 
-        // Test equal numbers: 5.0 = 5.0 -> true
-        interp.push(Value::Number(5.0));
-        interp.push(Value::Number(5.0));
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(true)));
-
-        // Test unequal numbers: 5.0 = 3.0 -> false
-        interp.push(Value::Number(5.0));
-        interp.push(Value::Number(3.0));
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(false)));
-
-        // Test equal atoms
-        let atom1 = interp.intern_atom("hello");
-        let atom2 = interp.intern_atom("hello");
-        interp.push(Value::Atom(atom1));
-        interp.push(Value::Atom(atom2));
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(true)));
-
-        // Test unequal atoms
-        let atom1 = interp.intern_atom("hello");
-        let atom2 = interp.intern_atom("world");
-        interp.push(Value::Atom(atom1));
-        interp.push(Value::Atom(atom2));
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(false)));
-
-        // Test equal strings
-        interp.push(Value::String("hello".into()));
-        interp.push(Value::String("hello".into()));
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(true)));
-
-        // Test nil equality
-        interp.push(Value::Nil);
-        interp.push(Value::Nil);
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(true)));
-
-        // Test boolean equality
-        interp.push(Value::Boolean(true));
-        interp.push(Value::Boolean(true));
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(true)));
-
-        interp.push(Value::Boolean(true));
-        interp.push(Value::Boolean(false));
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(false)));
-
-        // Test null equality
-        interp.push(Value::Null);
-        interp.push(Value::Null);
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(true)));
-
-        // Test null vs nil (should be false - different types)
-        interp.push(Value::Null);
-        interp.push(Value::Nil);
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(false)));
-
-        // Test mixed types (should be false)
-        interp.push(Value::Number(42.0));
-        interp.push(Value::String("42".into()));
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(false)));
-
-        // Test boolean vs number (should be false)
-        interp.push(Value::Boolean(true));
-        interp.push(Value::Number(1.0));
-        eq_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(false)));
-    }
-
-    #[test]
-    fn test_stack_operations() {
-        let mut interp = setup_interpreter();
-
-        // Test drop
-        interp.push(Value::Number(99.0));
-        interp.push(Value::Number(88.0));
-        drop_builtin(&mut interp).unwrap();
-
-        let remaining = interp.pop().unwrap();
-        assert!(matches!(remaining, Value::Number(n) if n == 99.0));
-    }
 
     #[test]
     fn test_roll_builtin() {
@@ -938,48 +545,6 @@ mod tests {
         assert!(matches!(result, Value::Number(n) if n == 42.0));
     }
 
-    #[test]
-    fn test_eval_builtin_simple() {
-        let mut interp = setup_interpreter();
-
-        // Create [3 4 +] list
-        let plus_atom = interp.intern_atom("+");
-        let list = interp.make_list(vec![
-            Value::Number(3.0),
-            Value::Number(4.0),
-            Value::Atom(plus_atom),
-        ]);
-
-        interp.push(list);
-        eval_builtin(&mut interp).unwrap();
-
-        // Should have executed the list: 3 4 + -> 7
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 7.0));
-    }
-
-    #[test]
-    fn test_eval_builtin_empty_list() {
-        let mut interp = setup_interpreter();
-
-        interp.push(Value::Nil);  // Empty list
-        eval_builtin(&mut interp).unwrap();
-
-        // Stack should be empty after evaluating empty list
-        assert!(interp.pop().is_err());
-    }
-
-    #[test]
-    fn test_eval_builtin_single_value() {
-        let mut interp = setup_interpreter();
-
-        // eval can also work on single values
-        interp.push(Value::Number(42.0));
-        eval_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 42.0));
-    }
 
     #[test]
     fn test_all_builtins_registered() {
@@ -1253,42 +818,6 @@ mod tests {
         while interp.pop().is_ok() {}
     }
 
-    #[test]
-    fn test_head_builtin() {
-        let mut interp = setup_interpreter();
-
-        // Test head of non-empty list [1 2 3] -> 1
-        let list = interp.make_list(vec![
-            Value::Number(1.0),
-            Value::Number(2.0),
-            Value::Number(3.0)
-        ]);
-        interp.push(list);
-        head_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 1.0));
-
-        // Test head of single element list [42] -> 42
-        let single = interp.make_list(vec![Value::Number(42.0)]);
-        interp.push(single);
-        head_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 42.0));
-
-        // Test head of empty list should error
-        interp.push(Value::Nil);
-        let result = head_builtin(&mut interp);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("Cannot get head of empty list")));
-
-        // Test head of non-list should error
-        interp.push(Value::Number(42.0));
-        let result = head_builtin(&mut interp);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("head expects a list")));
-    }
 
     #[test]
     fn test_tail_builtin() {
@@ -1329,208 +858,8 @@ mod tests {
         assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("tail expects a list")));
     }
 
-    #[test]
-    fn test_cons_builtin() {
-        let mut interp = setup_interpreter();
 
-        // Test cons onto empty list: 1 [] cons -> [1]
-        interp.push(Value::Number(1.0));
-        interp.push(Value::Nil);
-        cons_builtin(&mut interp).unwrap();
 
-        let result = interp.pop().unwrap();
-        match result {
-            Value::Pair(car, cdr) => {
-                assert!(matches!(car.as_ref(), Value::Number(n) if *n == 1.0));
-                assert!(matches!(cdr.as_ref(), Value::Nil));
-            },
-            _ => panic!("Expected Pair for cons result"),
-        }
-
-        // Test cons onto non-empty list: 1 [2 3] cons -> [1 2 3]
-        let list_23 = interp.make_list(vec![Value::Number(2.0), Value::Number(3.0)]);
-        interp.push(Value::Number(1.0));
-        interp.push(list_23);
-        cons_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        match result {
-            Value::Pair(car, cdr) => {
-                assert!(matches!(car.as_ref(), Value::Number(n) if *n == 1.0));
-                // cdr should be the [2 3] list
-                assert!(matches!(cdr.as_ref(), Value::Pair(_, _)));
-            },
-            _ => panic!("Expected Pair for cons result"),
-        }
-
-        // Test cons with different value types: 'hello [42] cons -> [hello 42]
-        let hello_atom = interp.intern_atom("hello");
-        let list_42 = interp.make_list(vec![Value::Number(42.0)]);
-        interp.push(Value::Atom(hello_atom));
-        interp.push(list_42);
-        cons_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        match result {
-            Value::Pair(car, cdr) => {
-                assert!(matches!(car.as_ref(), Value::Atom(a) if a.as_ref() == "hello"));
-                assert!(matches!(cdr.as_ref(), Value::Pair(_, _)));
-            },
-            _ => panic!("Expected Pair for cons result"),
-        }
-
-        // Test cons can create improper lists: 1 2 cons -> (1 . 2)
-        interp.push(Value::Number(1.0));
-        interp.push(Value::Number(2.0));
-        cons_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        match result {
-            Value::Pair(car, cdr) => {
-                assert!(matches!(car.as_ref(), Value::Number(n) if *n == 1.0));
-                assert!(matches!(cdr.as_ref(), Value::Number(n) if *n == 2.0));
-            },
-            _ => panic!("Expected Pair for cons result"),
-        }
-    }
-
-    #[test]
-    fn test_list_builtin() {
-        let mut interp = setup_interpreter();
-
-        // Test empty list: 0 list -> []
-        interp.push(Value::Number(0.0));
-        list_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Nil));
-
-        // Test single element list: 42 1 list -> [42]
-        interp.push(Value::Number(42.0));
-        interp.push(Value::Number(1.0));
-        list_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        match result {
-            Value::Pair(car, cdr) => {
-                assert!(matches!(car.as_ref(), Value::Number(n) if *n == 42.0));
-                assert!(matches!(cdr.as_ref(), Value::Nil));
-            },
-            _ => panic!("Expected single-element list"),
-        }
-
-        // Test multi-element list: 1 2 3 3 list -> [1 2 3]
-        interp.push(Value::Number(1.0));
-        interp.push(Value::Number(2.0));
-        interp.push(Value::Number(3.0));
-        interp.push(Value::Number(3.0));
-        list_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        // Verify it's the correct list structure
-        let expected = interp.make_list(vec![
-            Value::Number(1.0),
-            Value::Number(2.0),
-            Value::Number(3.0)
-        ]);
-
-        // Compare list structures by checking each element
-        let mut current_result = &result;
-        let mut current_expected = &expected;
-        let mut element_count = 0;
-
-        loop {
-            match (current_result, current_expected) {
-                (Value::Pair(car1, cdr1), Value::Pair(car2, cdr2)) => {
-                    assert!(matches!((car1.as_ref(), car2.as_ref()),
-                        (Value::Number(n1), Value::Number(n2)) if n1 == n2));
-                    current_result = cdr1.as_ref();
-                    current_expected = cdr2.as_ref();
-                    element_count += 1;
-                },
-                (Value::Nil, Value::Nil) => break,
-                _ => panic!("List structures don't match"),
-            }
-        }
-
-        assert_eq!(element_count, 3);
-
-        // Test mixed types: 'hello 42 true 3 list -> [hello 42 true]
-        let hello_atom = interp.intern_atom("hello");
-        interp.push(Value::Atom(hello_atom));
-        interp.push(Value::Number(42.0));
-        interp.push(Value::Boolean(true));
-        interp.push(Value::Number(3.0));
-        list_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        // Should be [hello 42 true]
-        match result {
-            Value::Pair(car1, cdr1) => {
-                assert!(matches!(car1.as_ref(), Value::Atom(a) if a.as_ref() == "hello"));
-                match cdr1.as_ref() {
-                    Value::Pair(car2, cdr2) => {
-                        assert!(matches!(car2.as_ref(), Value::Number(n) if *n == 42.0));
-                        match cdr2.as_ref() {
-                            Value::Pair(car3, cdr3) => {
-                                assert!(matches!(car3.as_ref(), Value::Boolean(b) if *b == true));
-                                assert!(matches!(cdr3.as_ref(), Value::Nil));
-                            },
-                            _ => panic!("Expected third element"),
-                        }
-                    },
-                    _ => panic!("Expected second element"),
-                }
-            },
-            _ => panic!("Expected multi-element list"),
-        }
-    }
-
-    #[test]
-    fn test_list_builtin_error_cases() {
-        let mut interp = setup_interpreter();
-
-        // Test negative count
-        interp.push(Value::Number(-1.0));
-        let result = list_builtin(&mut interp);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("non-negative integer")));
-
-        // Test non-integer count
-        interp.push(Value::Number(2.5));
-        let result = list_builtin(&mut interp);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("non-negative integer")));
-
-        // Test stack underflow
-        interp.push(Value::Number(3.0)); // Want 3 elements but stack is empty
-        let result = list_builtin(&mut interp);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RuntimeError::StackUnderflow));
-
-        // Test partial stack underflow
-        interp.push(Value::Number(1.0));  // Only one element on stack
-        interp.push(Value::Number(2.0));  // But we want 2 elements
-        let result = list_builtin(&mut interp);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RuntimeError::StackUnderflow));
-    }
-
-    #[test]
-    fn test_cons_builtin_error_cases() {
-        let mut interp = setup_interpreter();
-
-        // Test stack underflow with no elements
-        let result = cons_builtin(&mut interp);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RuntimeError::StackUnderflow));
-
-        // Test stack underflow with only one element
-        interp.push(Value::Number(1.0));
-        let result = cons_builtin(&mut interp);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RuntimeError::StackUnderflow));
-    }
 
     #[test]
     fn test_null_predicate_builtin() {
@@ -1567,125 +896,7 @@ mod tests {
         assert!(matches!(result, Err(RuntimeError::StackUnderflow)));
     }
 
-    #[test]
-    fn test_truthy_predicate_builtin() {
-        let mut interp = setup_interpreter();
 
-        // Test truthy values -> true
-        let truthy_cases = vec![
-            Value::Boolean(true),
-            Value::Number(1.0),
-            Value::Number(-1.0),
-            Value::Number(42.0),
-            Value::String("hello".into()),
-            Value::String("false".into()),  // String "false" is truthy!
-            Value::Atom(interp.intern_atom("test")),
-            Value::QuotedAtom(interp.intern_atom("quoted")),
-            Value::Pair(Rc::new(Value::Number(1.0)), Rc::new(Value::Nil)),
-        ];
 
-        for (i, test_value) in truthy_cases.into_iter().enumerate() {
-            interp.push(test_value.clone());
-            truthy_predicate_builtin(&mut interp).unwrap();
-            let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Boolean(true)),
-                "Expected true for truthy value #{}: {:?}", i, test_value);
-        }
-
-        // Test falsy values -> false
-        let falsy_cases = vec![
-            Value::Boolean(false),
-            Value::Number(0.0),
-            Value::String("".into()),
-            Value::Null,
-            Value::Nil,
-        ];
-
-        for (i, test_value) in falsy_cases.into_iter().enumerate() {
-            interp.push(test_value.clone());
-            truthy_predicate_builtin(&mut interp).unwrap();
-            let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Boolean(false)),
-                "Expected false for falsy value #{}: {:?}", i, test_value);
-        }
-
-        // Test stack underflow
-        let result = truthy_predicate_builtin(&mut interp);
-        assert!(matches!(result, Err(RuntimeError::StackUnderflow)));
-    }
-
-    #[test]
-    fn test_edge_cases_list_cons_interaction() {
-        let mut interp = setup_interpreter();
-
-        // Edge case: cons with null
-        interp.push(Value::Number(1.0));
-        interp.push(Value::Null);
-        cons_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        match result {
-            Value::Pair(car, cdr) => {
-                assert!(matches!(car.as_ref(), Value::Number(n) if *n == 1.0));
-                assert!(matches!(cdr.as_ref(), Value::Null));
-            },
-            _ => panic!("Expected Pair with null cdr"),
-        }
-
-        // Edge case: list with boolean and null
-        interp.push(Value::Boolean(true));
-        interp.push(Value::Null);
-        interp.push(Value::Boolean(false));
-        interp.push(Value::Number(3.0));
-        list_builtin(&mut interp).unwrap();
-
-        let result = interp.pop().unwrap();
-        // Should be [true null false]
-        match result {
-            Value::Pair(car1, cdr1) => {
-                assert!(matches!(car1.as_ref(), Value::Boolean(true)));
-                match cdr1.as_ref() {
-                    Value::Pair(car2, cdr2) => {
-                        assert!(matches!(car2.as_ref(), Value::Null));
-                        match cdr2.as_ref() {
-                            Value::Pair(car3, cdr3) => {
-                                assert!(matches!(car3.as_ref(), Value::Boolean(false)));
-                                assert!(matches!(cdr3.as_ref(), Value::Nil));
-                            },
-                            _ => panic!("Expected third element"),
-                        }
-                    },
-                    _ => panic!("Expected second element"),
-                }
-            },
-            _ => panic!("Expected list structure"),
-        }
-    }
-
-    #[test]
-    fn test_edge_cases_equality_boolean_null() {
-        let mut interp = setup_interpreter();
-
-        // Edge case: null vs boolean false (should be false - different types)
-        interp.push(Value::Null);
-        interp.push(Value::Boolean(false));
-        eq_builtin(&mut interp).unwrap();
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(false)));
-
-        // Edge case: null vs number 0 (should be false - different types)
-        interp.push(Value::Null);
-        interp.push(Value::Number(0.0));
-        eq_builtin(&mut interp).unwrap();
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(false)));
-
-        // Edge case: boolean true vs number 1 (should be false - different types)
-        interp.push(Value::Boolean(true));
-        interp.push(Value::Number(1.0));
-        eq_builtin(&mut interp).unwrap();
-        let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Boolean(false)));
-    }
 }
 

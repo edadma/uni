@@ -1,6 +1,7 @@
 mod value;
 mod interpreter;
 mod builtins;
+mod primitives;  // RUST CONCEPT: New modular primitives organization
 mod tokenizer;
 mod parser;
 mod evaluator;
