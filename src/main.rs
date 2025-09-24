@@ -16,31 +16,100 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     // RUST CONCEPT: Pattern matching on argument count and content
-    // Check for flags to execute code directly
-    if args.len() >= 3 {
-        match args[1].as_str() {
-            "-c" => {
-                // Execute code without automatic printing
-                execute_code(&args[2], false);
-                return;
-            },
-            "-e" => {
-                // Execute code with automatic printing of stack top
-                execute_code(&args[2], true);
-                return;
-            },
-            _ => {
-                // Unknown flag - show usage and exit
-                eprintln!("Usage: {} [-c|-e] \"code\"", args[0]);
-                eprintln!("  -c: Execute code");
-                eprintln!("  -e: Execute code and print result");
+    match args.len() {
+        // No arguments - run demo
+        1 => run_demo(),
+
+        // One argument - execute file or show help
+        2 => {
+            if args[1].starts_with('-') {
+                // Treat flags without arguments as help request
+                eprintln!("Usage:");
+                eprintln!("  {} [file.uni]           # Execute Uni file", args[0]);
+                eprintln!("  {} -f [file.uni]        # Execute Uni file (explicit)", args[0]);
+                eprintln!("  {} -c \"code\"            # Execute code string", args[0]);
+                eprintln!("  {} -e \"code\"            # Execute code and print result", args[0]);
+                eprintln!("  {}                      # Run interactive demo", args[0]);
                 std::process::exit(1);
+            } else {
+                execute_file(&args[1]);
+            }
+        },
+
+        // Two or more arguments - check for flags
+        _ => {
+            match args[1].as_str() {
+                "-c" => {
+                    // Execute code without automatic printing
+                    execute_code(&args[2], false);
+                },
+                "-e" => {
+                    // Execute code with automatic printing of stack top
+                    execute_code(&args[2], true);
+                },
+                "-f" => {
+                    // Explicit file execution flag
+                    execute_file(&args[2]);
+                },
+                _ => {
+                    // Show usage and exit
+                    eprintln!("Usage:");
+                    eprintln!("  {} [file.uni]           # Execute Uni file", args[0]);
+                    eprintln!("  {} -f [file.uni]        # Execute Uni file (explicit)", args[0]);
+                    eprintln!("  {} -c \"code\"            # Execute code string", args[0]);
+                    eprintln!("  {} -e \"code\"            # Execute code and print result", args[0]);
+                    eprintln!("  {}                      # Run interactive demo", args[0]);
+                    std::process::exit(1);
+                }
             }
         }
     }
+}
 
-    // If no flags, run the interactive demo
-    run_demo();
+// RUST CONCEPT: File I/O and error handling
+// Execute a Uni source file
+fn execute_file(filename: &str) {
+    use std::fs;
+    use evaluator::execute_string;
+
+    // RUST CONCEPT: Reading files with proper error handling
+    let file_contents = match fs::read_to_string(filename) {
+        Ok(contents) => contents,
+        Err(e) => {
+            eprintln!("Error reading file '{}': {}", filename, e);
+            std::process::exit(1);
+        }
+    };
+
+    // RUST CONCEPT: Handling shebang lines
+    // Skip the first line if it starts with #! (shebang)
+    let code = if file_contents.starts_with("#!") {
+        // Find the first newline and skip everything before it
+        if let Some(newline_pos) = file_contents.find('\n') {
+            &file_contents[newline_pos + 1..]
+        } else {
+            // File is only a shebang line with no code
+            ""
+        }
+    } else {
+        // No shebang, use entire file
+        &file_contents
+    };
+
+    // RUST CONCEPT: Automatic initialization
+    let mut interp = Interpreter::new();
+
+    match execute_string(code, &mut interp) {
+        Ok(()) => {
+            // File executed successfully
+            // For files, we don't automatically print anything (unlike -e flag)
+            // The file should use 'pr' if it wants to print output
+        },
+        Err(e) => {
+            eprintln!("Error executing '{}': {:?}", filename, e);
+            std::process::exit(1);
+        }
+    }
 }
 
 // RUST CONCEPT: Function extraction for code organization
