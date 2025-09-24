@@ -8,8 +8,6 @@ mod stdlib;
 
 use interpreter::Interpreter;
 use value::{Value, RuntimeError};
-use builtins::register_builtins;
-use stdlib::load_stdlib;
 use std::env;
 
 fn main() {
@@ -49,14 +47,9 @@ fn main() {
 // Execute a single line of Uni code
 // auto_print: if true, automatically prints the top stack value after execution
 fn execute_code(code: &str, auto_print: bool) {
+    // RUST CONCEPT: Automatic initialization
+    // Interpreter::new() now automatically loads builtins and stdlib
     let mut interp = Interpreter::new();
-    register_builtins(&mut interp);
-
-    // RUST CONCEPT: Error handling during initialization
-    if let Err(e) = load_stdlib(&mut interp) {
-        eprintln!("Error loading standard library: {:?}", e);
-        std::process::exit(1);
-    }
 
     use evaluator::execute_string;
     use builtins::print_builtin;
@@ -93,14 +86,9 @@ fn execute_code(code: &str, auto_print: bool) {
 fn run_demo() {
     println!("Uni interpreter starting...");
 
+    // RUST CONCEPT: Automatic initialization
+    // Interpreter::new() now automatically loads builtins and stdlib
     let mut interp = Interpreter::new();
-    register_builtins(&mut interp);
-
-    // RUST CONCEPT: Load standard library for demo
-    if let Err(e) = load_stdlib(&mut interp) {
-        println!("Error loading standard library: {:?}", e);
-        return;
-    }
 
     interp.push(Value::Number(42.0));
     println!("Pushed number: 42.0");

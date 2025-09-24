@@ -122,14 +122,14 @@ pub fn execute_string(code: &str, interp: &mut Interpreter) -> Result<(), Runtim
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::builtins::register_builtins;
+    // use crate::builtins::register_builtins;  // No longer needed
 
     // RUST CONCEPT: Test helper function
     // DRY principle - Don't Repeat Yourself
     fn setup_interpreter() -> Interpreter {
-        let mut interp = Interpreter::new();
-        register_builtins(&mut interp);
-        interp
+        // RUST CONCEPT: Automatic initialization
+        // Interpreter::new() now automatically loads builtins and stdlib
+        Interpreter::new()
     }
 
     #[test]

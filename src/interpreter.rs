@@ -10,11 +10,25 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self {
+        let mut interpreter = Self {
             stack: Vec::new(),
             dictionary: HashMap::new(),
             atoms: HashMap::new(),
-        }
+        };
+
+        // RUST CONCEPT: Automatic initialization
+        // Load builtins first (primitives and core operations)
+        crate::builtins::register_builtins(&mut interpreter);
+
+        // Then load stdlib (higher-level operations built on primitives)
+        // Disabled until we design stdlib feature properly
+        // if let Err(_e) = crate::stdlib::load_stdlib(&mut interpreter) {
+        //     // In a constructor, we can't easily return errors
+        //     // For now, just continue without stdlib
+        //     // TODO: Better error handling for stdlib loading
+        // }
+
+        interpreter
     }
 
     pub fn intern_atom(&mut self, text: &str) -> Rc<str> {
