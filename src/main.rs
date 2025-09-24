@@ -1,6 +1,7 @@
 mod value;
 mod interpreter;
 mod builtins;
+mod tokenizer;
 
 use interpreter::Interpreter;
 use value::{Value, RuntimeError};
@@ -61,5 +62,16 @@ fn main() {
         Ok(n) => println!("Unexpected number: {}", n),
         Err(RuntimeError::TypeError(msg)) => println!("Caught type error: {}", msg),
         Err(e) => println!("Unexpected error: {:?}", e),
+    }
+
+    // Test string handling
+    use std::rc::Rc;
+    let string_val: Rc<str> = "Hello, Uni!".into();
+    interp.push(Value::String(string_val));
+    println!("Pushed string: \"Hello, Uni!\"");
+
+    match interp.pop_string() {
+        Ok(s) => println!("Retrieved string: \"{}\"", s),
+        Err(e) => println!("Error retrieving string: {:?}", e),
     }
 }

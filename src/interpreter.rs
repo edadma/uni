@@ -48,6 +48,14 @@ impl Interpreter {
             Value::Pair(Rc::new(item), Rc::new(acc))
         })
     }
+
+    pub fn pop_string(&mut self) -> Result<Rc<str>, RuntimeError> {
+        let value = self.pop()?;
+        match value {
+            Value::String(s) => Ok(s),
+            _ => Err(RuntimeError::TypeError("Expected string".to_string())),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -190,5 +198,54 @@ mod tests {
         // Verify the actual content
         assert_eq!(&*atom1, "hello");
         assert_eq!(&*atom2, "world");
+    }
+
+    #[test]
+    fn test_pop_string() {
+        let mut interp = Interpreter::new();
+
+        // Test successful pop_string
+        let string_val: Rc<str> = "hello world".into();
+        interp.push(Value::String(string_val));
+        let s = interp.pop_string().unwrap();
+        assert_eq!(&*s, "hello world");
+
+        // Test type error when popping non-string
+        interp.push(Value::Number(42.0));
+        assert!(matches!(
+            interp.pop_string(),
+            Err(RuntimeError::TypeError(msg)) if msg == "Expected string"
+        ));
+
+        // Test stack underflow
+        assert!(matches!(
+            interp.pop_string(),
+            Err(RuntimeError::StackUnderflow)
+        ));
+    }
+
+    #[test]
+    fn test_string_vs_atom_distinction() {
+        let mut interp = Interpreter::new();
+
+        // Strings are not interned - each is separate
+        let string1 = Value::String("hello".into());
+        let string2 = Value::String("hello".into());
+
+        // Atoms are interned - same text gives same Rc
+        let atom1 = Value::Atom(interp.intern_atom("hello"));
+        let atom2 = Value::Atom(interp.intern_atom("hello"));
+
+        // Strings with same content are different Rc objects (not interned)
+        if let (Value::String(s1), Value::String(s2)) = (&string1, &string2) {
+            assert_eq!(s1, s2); // Same content
+            assert!(!Rc::ptr_eq(s1, s2)); // Different Rc objects
+        }
+
+        // Atoms with same content share the same object
+        if let (Value::Atom(a1), Value::Atom(a2)) = (&atom1, &atom2) {
+            assert_eq!(a1, a2); // Same content
+            assert!(Rc::ptr_eq(a1, a2)); // Same object
+        }
     }
 }
