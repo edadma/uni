@@ -9,44 +9,23 @@ use crate::value::RuntimeError;
 // RUST CONCEPT: Standard library initialization
 // This function loads all standard library definitions into the interpreter
 pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Array of (name, definition) pairs
-    // Each entry defines a word in terms of primitives or other words
-    let stdlib_definitions = [
-        // RUST CONCEPT: Stack manipulation operations built on primitives
-        // These follow ANS Forth semantics using roll and pick primitives
+    // RUST CONCEPT: Define stdlib words using actual Uni code
+    // This is much more natural than building def commands from string pairs
+    // Each line is real Uni code that defines a word
+    // RUST CONCEPT: Multi-line string for multiple definitions
+    // Each definition is actual Uni code that uses def naturally
+    let stdlib_code = "
+        'swap [1 roll] def
+        'dup [0 pick] def
+        'over [1 pick] def
+        'rot [2 roll] def
+        'nip [swap drop] def
+        'tuck [swap over] def
+    ";
 
-        // dup: ( a -- a a ) - Duplicate top of stack
-        // Equivalent to: 0 pick
-        ("dup", "0 pick"),
-
-        // swap: ( a b -- b a ) - Exchange top two stack items
-        // Equivalent to: 1 roll
-        ("swap", "1 roll"),
-
-        // over: ( a b -- a b a ) - Copy second stack item to top
-        // Equivalent to: 1 pick
-        ("over", "1 pick"),
-
-        // rot: ( a b c -- b c a ) - Rotate top three items
-        // Equivalent to: 2 roll
-        ("rot", "2 roll"),
-
-        // nip: ( a b -- b ) - Remove second stack item
-        // Equivalent to: 1 roll drop
-        ("nip", "1 roll drop"),
-    ];
-
-    // RUST CONCEPT: Iterating over definitions and loading them
-    for (name, definition) in stdlib_definitions.iter() {
-        // RUST CONCEPT: String formatting for def command
-        // We build a def command that defines the word as executable code
-        // This creates a composite definition that executes immediately
-        let def_command = format!("'{} [{}] def", name, definition);
-
-        // RUST CONCEPT: Error propagation with ?
-        // If any definition fails, we propagate the error up
-        execute_string(&def_command, interp)?;
-    }
+    // RUST CONCEPT: Execute the stdlib code directly
+    // This uses the normal execution path - no special handling needed
+    execute_string(stdlib_code, interp)?;
 
     Ok(())
 }
@@ -67,65 +46,101 @@ mod tests {
         interp
     }
 
-    // #[test]
-    // fn test_stdlib_dup() {
-    //     let mut interp = setup_interpreter_with_stdlib();
-    //
-    //     // Test: 42 dup should give us 42 42
-    //     execute_string("42 dup", &mut interp).unwrap();
-    //
-    //     let top = interp.pop().unwrap();
-    //     let second = interp.pop().unwrap();
-    //
-    //     assert!(matches!(top, Value::Number(n) if n == 42.0));
-    //     assert!(matches!(second, Value::Number(n) if n == 42.0));
-    // }
+    #[test]
+    fn test_stdlib_dup() {
+        let mut interp = setup_interpreter_with_stdlib();
 
-    // #[test]
-    // fn test_stdlib_swap() {
-    //     let mut interp = setup_interpreter_with_stdlib();
-    //
-    //     // Test: 1 2 swap should give us 2 1
-    //     execute_string("1 2 swap", &mut interp).unwrap();
-    //
-    //     let top = interp.pop().unwrap();
-    //     let second = interp.pop().unwrap();
-    //
-    //     assert!(matches!(top, Value::Number(n) if n == 1.0));
-    //     assert!(matches!(second, Value::Number(n) if n == 2.0));
-    // }
+        // Test: 42 dup should give us 42 42
+        execute_string("42 dup", &mut interp).unwrap();
 
-    // #[test]
-    // fn test_stdlib_over() {
-    //     let mut interp = setup_interpreter_with_stdlib();
-    //
-    //     // Test: 1 2 over should give us 1 2 1
-    //     execute_string("1 2 over", &mut interp).unwrap();
-    //
-    //     let top = interp.pop().unwrap();
-    //     let second = interp.pop().unwrap();
-    //     let third = interp.pop().unwrap();
-    //
-    //     assert!(matches!(top, Value::Number(n) if n == 1.0));
-    //     assert!(matches!(second, Value::Number(n) if n == 2.0));
-    //     assert!(matches!(third, Value::Number(n) if n == 1.0));
-    // }
+        let top = interp.pop().unwrap();
+        let second = interp.pop().unwrap();
 
-    // #[test]
-    // fn test_stdlib_rot() {
-    //     let mut interp = setup_interpreter_with_stdlib();
-    //
-    //     // Test: 1 2 3 rot should give us 2 3 1
-    //     execute_string("1 2 3 rot", &mut interp).unwrap();
-    //
-    //     let top = interp.pop().unwrap();
-    //     let second = interp.pop().unwrap();
-    //     let third = interp.pop().unwrap();
-    //
-    //     assert!(matches!(top, Value::Number(n) if n == 1.0));
-    //     assert!(matches!(second, Value::Number(n) if n == 3.0));
-    //     assert!(matches!(third, Value::Number(n) if n == 2.0));
-    // }
+        assert!(matches!(top, Value::Number(n) if n == 42.0));
+        assert!(matches!(second, Value::Number(n) if n == 42.0));
+    }
+
+    #[test]
+    fn test_stdlib_swap() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: 1 2 swap should give us 2 1
+        execute_string("1 2 swap", &mut interp).unwrap();
+
+        let top = interp.pop().unwrap();
+        let second = interp.pop().unwrap();
+
+        assert!(matches!(top, Value::Number(n) if n == 1.0));
+        assert!(matches!(second, Value::Number(n) if n == 2.0));
+    }
+
+    #[test]
+    fn test_stdlib_over() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: 1 2 over should give us 1 2 1
+        execute_string("1 2 over", &mut interp).unwrap();
+
+        let top = interp.pop().unwrap();
+        let second = interp.pop().unwrap();
+        let third = interp.pop().unwrap();
+
+        assert!(matches!(top, Value::Number(n) if n == 1.0));
+        assert!(matches!(second, Value::Number(n) if n == 2.0));
+        assert!(matches!(third, Value::Number(n) if n == 1.0));
+    }
+
+    #[test]
+    fn test_stdlib_rot() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: 1 2 3 rot should give us 2 3 1
+        execute_string("1 2 3 rot", &mut interp).unwrap();
+
+        let top = interp.pop().unwrap();
+        let second = interp.pop().unwrap();
+        let third = interp.pop().unwrap();
+
+        assert!(matches!(top, Value::Number(n) if n == 1.0));
+        assert!(matches!(second, Value::Number(n) if n == 3.0));
+        assert!(matches!(third, Value::Number(n) if n == 2.0));
+    }
+
+    #[test]
+    fn test_stdlib_nip() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: 1 2 3 nip should give us 1 3 (removes second item)
+        execute_string("1 2 3 nip", &mut interp).unwrap();
+
+        let top = interp.pop().unwrap();
+        let second = interp.pop().unwrap();
+
+        assert!(matches!(top, Value::Number(n) if n == 3.0));
+        assert!(matches!(second, Value::Number(n) if n == 1.0));
+
+        // Stack should be empty now
+        assert!(interp.pop().is_err());
+    }
+
+    #[test]
+    fn test_stdlib_tuck() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: 5 6 tuck should give us 6 5 6 (insert copy of top below second)
+        execute_string("5 6 tuck", &mut interp).unwrap();
+
+        let top = interp.pop().unwrap();
+        let second = interp.pop().unwrap();
+        let third = interp.pop().unwrap();
+
+        assert!(matches!(top, Value::Number(n) if n == 6.0));
+        assert!(matches!(second, Value::Number(n) if n == 5.0));
+        assert!(matches!(third, Value::Number(n) if n == 6.0));
+
+        // Stack should be empty now
+        assert!(interp.pop().is_err());
+    }
 
     // #[test]
     // fn test_stdlib_complex_operations() {

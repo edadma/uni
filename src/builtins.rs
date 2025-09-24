@@ -45,19 +45,6 @@ pub fn drop_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     Ok(())
 }
 
-// RUST CONCEPT: Basic stack primitive - dup
-// dup: ( a -- a a ) - Duplicate top of stack
-pub fn dup_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Stack manipulation with bounds checking
-    if interp.stack.is_empty() {
-        return Err(RuntimeError::StackUnderflow);
-    }
-    let top = interp.stack[interp.stack.len() - 1].clone();
-    interp.stack.push(top);
-    Ok(())
-}
-
-// NOTE: swap and other operations will be defined in stdlib.rs using roll and pick primitives
 
 // RUST CONCEPT: The crucial eval builtin - executes lists as code
 pub fn eval_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
@@ -374,13 +361,6 @@ pub fn register_builtins(interp: &mut Interpreter) {
         is_executable: true,
     });
 
-    let dup_atom = interp.intern_atom("dup");
-    interp.dictionary.insert(dup_atom, DictEntry {
-        value: Value::Builtin(dup_builtin),
-        is_executable: true,
-    });
-
-    // NOTE: swap and other operations will be defined in stdlib.rs using the primitives above
 
     // The crucial eval builtin
     let eval_atom = interp.intern_atom("eval");
@@ -610,8 +590,7 @@ mod tests {
         let mut interp = setup_interpreter();
 
         // RUST CONCEPT: Testing that all expected builtins are in the dictionary
-        // NOTE: dup is back as builtin; swap and others will be in stdlib; if is temporarily disabled
-        let expected_builtins = ["+", "-", "*", "/", "roll", "pick", "drop", "dup", "eval", "def", "val", "pr"];
+        let expected_builtins = ["+", "-", "*", "/", "roll", "pick", "drop", "eval", "def", "val", "pr"];
 
         for builtin_name in expected_builtins.iter() {
             let atom = interp.intern_atom(builtin_name);
