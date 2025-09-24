@@ -1,8 +1,8 @@
 # Uni Programming Language
 
-A homoiconic stack-based programming language that unifies code and data, combining Forth's immediate execution model with Lisp's powerful cons cell data structures.
+A homoiconic stack-based programming language that unifies code and data, featuring immediate execution and powerful list-based data structures.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Clone the repository
@@ -14,13 +14,13 @@ cargo build --release
 ./target/release/uni hello.uni
 ```
 
-## 📖 Language Overview
+## Language Overview
 
 **Uni** is designed around three core principles:
 
-- **🔄 Homoiconic**: Code and data have identical representation - no special syntax that can't be represented as data
-- **📚 Stack-based**: Operations manipulate a central computation stack, like Forth
-- **⚡ Immediate execution**: Atoms execute when encountered unless explicitly quoted
+- **Homoiconic**: Code and data have identical representation - no special syntax that can't be represented as data
+- **Stack-based**: Operations manipulate a central computation stack
+- **Immediate execution**: Atoms execute when encountered unless explicitly quoted
 
 ### Data Types
 
@@ -31,7 +31,7 @@ Uni has just four fundamental types that compose to create everything:
 | **Numbers** | `42`, `3.14` | 64-bit floating point |
 | **Atoms** | `hello`, `+`, `print` | Interned symbols that execute when encountered |
 | **Strings** | `"Hello, World!"` | Reference-counted UTF-8 text |
-| **Lists** | `[1 2 3]`, `[a . b]` | Lisp-style cons cells (pairs + nil) |
+| **Lists** | `[1 2 3]`, `[a . b]` | Cons cells (pairs + nil) for list structures |
 
 ### Basic Syntax
 
@@ -51,7 +51,7 @@ hello           \ Atoms execute (look up definition)
 [a . b]         \ Improper list (just a pair)
 ```
 
-## 💻 Command Line Usage
+## Command Line Usage
 
 ```bash
 # Execute a Uni file
@@ -90,7 +90,7 @@ chmod +x fibonacci.uni
 ./fibonacci.uni
 ```
 
-## 🔨 Built-in Operations
+## Built-in Operations
 
 ### Arithmetic
 ```uni
@@ -142,7 +142,7 @@ The standard library provides common stack manipulation words:
 'tuck [swap over] def  \ Insert copy of top below second
 ```
 
-## 📝 Example Programs
+## Example Programs
 
 ### Hello World
 ```uni
@@ -197,7 +197,7 @@ calculate
 5 factorial pr             \ Prints 120
 ```
 
-## 🛠️ Installation
+## Installation
 
 ### From Source
 
@@ -224,7 +224,7 @@ uni -e "6 7 * pr"          # Should print 42
 cargo test
 ```
 
-## 🏗️ Architecture & Implementation
+## Architecture & Implementation
 
 Uni is implemented in **Rust** with extensive educational comments explaining both the language design and Rust concepts. Key architectural decisions:
 
@@ -247,7 +247,7 @@ src/
 └── stdlib.rs        # Standard library definitions
 ```
 
-## 🧪 Development
+## Development
 
 ```bash
 # Run tests
@@ -285,40 +285,10 @@ interp.dictionary.insert(your_atom, DictEntry {
 });
 ```
 
-## 🎯 Design Philosophy
-
-### Why Uni?
-
-1. **Simplicity**: Only four data types, but unlimited expressiveness
-2. **Homoiconicity**: Code is data - enables powerful metaprogramming
-3. **Performance**: Stack-based execution with minimal overhead
-4. **Memory Safety**: Rust's ownership system prevents common bugs
-5. **Educational**: Extensive comments explain both language and implementation
-
-### Influences
-
-- **Forth**: Stack-based execution, immediate mode, simplicity
-- **Lisp**: Cons cells, homoiconicity, code-as-data
-- **PostScript**: Stack manipulation, quote/eval duality
-- **Factor**: Modern stack language design patterns
-
-## 📚 Further Reading
-
-- [design.md](design.md) - Detailed language design and implementation notes
-- [Language Specification](docs/spec.md) - Formal syntax and semantics
-- [Implementation Guide](docs/implementation.md) - Deep dive into the codebase
-
-## 🤝 Contributing
-
-Contributions are welcome! Please see:
-- Issues for bugs and feature requests
-- Pull requests for code contributions
-- Discussions for language design questions
-
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-*Uni: Where code meets data in perfect harmony* 🎵
+*Uni: Where code meets data in perfect harmony*
