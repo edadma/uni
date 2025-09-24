@@ -1,0 +1,30 @@
+# Rust build artifacts
+/target
+# Note: Cargo.lock should be committed for binary projects (like this interpreter)
+# Only ignore it for libraries
+**/*.rs.bk
+*.pdb
+
+# IDE and editor files
+.idea/
+*.swp
+*.swo
+*~
+.vscode/
+*.iml
+.DS_Store
+
+# Debug artifacts
+*.dSYM/
+
+# Backup files
+*.orig
+*.bak
+
+# Test coverage
+*.profraw
+*.profdata
+/coverage/
+
+# Benchmark results
+/benches/target/
