@@ -37,6 +37,65 @@ pub fn div_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     Ok(())
 }
 
+pub fn mod_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    let b = interp.pop_number()?;
+    let a = interp.pop_number()?;
+    if b == 0.0 {
+        return Err(RuntimeError::TypeError("Modulo by zero".to_string()));
+    }
+    interp.push(Value::Number(a % b));
+    Ok(())
+}
+
+pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    let b = interp.pop()?;
+    let a = interp.pop()?;
+
+    // RUST CONCEPT: Pattern matching for equality comparison
+    // Compare values based on their types
+    let are_equal = match (&a, &b) {
+        (Value::Number(n1), Value::Number(n2)) => n1 == n2,
+        (Value::Atom(a1), Value::Atom(a2)) => a1 == a2,
+        (Value::QuotedAtom(a1), Value::QuotedAtom(a2)) => a1 == a2,
+        (Value::String(s1), Value::String(s2)) => s1 == s2,
+        (Value::Nil, Value::Nil) => true,
+        (Value::Pair(car1, cdr1), Value::Pair(car2, cdr2)) => {
+            // Recursive structural equality for pairs
+            values_equal(car1, car2) && values_equal(cdr1, cdr2)
+        },
+        (Value::Builtin(_), Value::Builtin(_)) => {
+            // Builtins can't be compared for equality (function pointers)
+            // We consider them unequal for safety
+            false
+        },
+        // Different types are never equal
+        _ => false,
+    };
+
+    // RUST CONCEPT: Boolean to number conversion (Forth-style)
+    // True = 1.0, False = 0.0
+    let result = if are_equal { 1.0 } else { 0.0 };
+    interp.push(Value::Number(result));
+    Ok(())
+}
+
+// RUST CONCEPT: Helper function for recursive equality checking
+// This avoids the need to derive PartialEq on Value (which fails due to function pointers)
+fn values_equal(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        (Value::Number(n1), Value::Number(n2)) => n1 == n2,
+        (Value::Atom(a1), Value::Atom(a2)) => a1 == a2,
+        (Value::QuotedAtom(a1), Value::QuotedAtom(a2)) => a1 == a2,
+        (Value::String(s1), Value::String(s2)) => s1 == s2,
+        (Value::Nil, Value::Nil) => true,
+        (Value::Pair(car1, cdr1), Value::Pair(car2, cdr2)) => {
+            values_equal(car1, car2) && values_equal(cdr1, cdr2)
+        },
+        (Value::Builtin(_), Value::Builtin(_)) => false,  // Can't compare function pointers
+        _ => false,  // Different types
+    }
+}
+
 // RUST CONCEPT: Basic stack operations that can't be built from primitives
 pub fn drop_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // RUST CONCEPT: Discarding values
@@ -341,6 +400,18 @@ pub fn register_builtins(interp: &mut Interpreter) {
         is_executable: true,
     });
 
+    let mod_atom = interp.intern_atom("mod");
+    interp.dictionary.insert(mod_atom, DictEntry {
+        value: Value::Builtin(mod_builtin),
+        is_executable: true,
+    });
+
+    let eq_atom = interp.intern_atom("=");
+    interp.dictionary.insert(eq_atom, DictEntry {
+        value: Value::Builtin(eq_builtin),
+        is_executable: true,
+    });
+
     // Stack operations - primitives
     let roll_atom = interp.intern_atom("roll");
     interp.dictionary.insert(roll_atom, DictEntry {
@@ -455,6 +526,112 @@ mod tests {
         let result = div_builtin(&mut interp);
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("Division by zero")));
+    }
+
+    #[test]
+    fn test_mod_builtin() {
+        let mut interp = setup_interpreter();
+
+        // Test basic modulo: 7 mod 3 = 1
+        interp.push(Value::Number(7.0));
+        interp.push(Value::Number(3.0));
+        mod_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 1.0));
+
+        // Test modulo with remainder 0: 6 mod 3 = 0
+        interp.push(Value::Number(6.0));
+        interp.push(Value::Number(3.0));
+        mod_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 0.0));
+
+        // Test modulo with negative numbers: -7 mod 3 = -1
+        interp.push(Value::Number(-7.0));
+        interp.push(Value::Number(3.0));
+        mod_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == -1.0));
+    }
+
+    #[test]
+    fn test_mod_by_zero() {
+        let mut interp = setup_interpreter();
+
+        interp.push(Value::Number(5.0));
+        interp.push(Value::Number(0.0));
+
+        let result = mod_builtin(&mut interp);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), RuntimeError::TypeError(msg) if msg.contains("Modulo by zero")));
+    }
+
+    #[test]
+    fn test_eq_builtin() {
+        let mut interp = setup_interpreter();
+
+        // Test equal numbers: 5.0 = 5.0 -> 1.0 (true)
+        interp.push(Value::Number(5.0));
+        interp.push(Value::Number(5.0));
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 1.0));
+
+        // Test unequal numbers: 5.0 = 3.0 -> 0.0 (false)
+        interp.push(Value::Number(5.0));
+        interp.push(Value::Number(3.0));
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 0.0));
+
+        // Test equal atoms
+        let atom1 = interp.intern_atom("hello");
+        let atom2 = interp.intern_atom("hello");
+        interp.push(Value::Atom(atom1));
+        interp.push(Value::Atom(atom2));
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 1.0));
+
+        // Test unequal atoms
+        let atom1 = interp.intern_atom("hello");
+        let atom2 = interp.intern_atom("world");
+        interp.push(Value::Atom(atom1));
+        interp.push(Value::Atom(atom2));
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 0.0));
+
+        // Test equal strings
+        interp.push(Value::String("hello".into()));
+        interp.push(Value::String("hello".into()));
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 1.0));
+
+        // Test nil equality
+        interp.push(Value::Nil);
+        interp.push(Value::Nil);
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 1.0));
+
+        // Test mixed types (should be false)
+        interp.push(Value::Number(42.0));
+        interp.push(Value::String("42".into()));
+        eq_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 0.0));
     }
 
     #[test]
@@ -614,7 +791,7 @@ mod tests {
         let mut interp = setup_interpreter();
 
         // RUST CONCEPT: Testing that all expected builtins are in the dictionary
-        let expected_builtins = ["+", "-", "*", "/", "roll", "pick", "drop", "eval", "if", "def", "val", "pr"];
+        let expected_builtins = ["+", "-", "*", "/", "mod", "=", "roll", "pick", "drop", "eval", "if", "def", "val", "pr"];
 
         for builtin_name in expected_builtins.iter() {
             let atom = interp.intern_atom(builtin_name);
