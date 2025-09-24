@@ -122,7 +122,7 @@ fn execute_code(code: &str, auto_print: bool) {
     let mut interp = Interpreter::new();
 
     use evaluator::execute_string;
-    use builtins::print_builtin;
+    use primitives::print_builtin;
 
     match execute_string(code, &mut interp) {
         Ok(()) => {
