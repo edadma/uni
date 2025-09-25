@@ -19,7 +19,7 @@ use crate::primitives::{
     // Shift operations
     shl_builtin, shr_builtin,
     // Stack operations
-    drop_builtin, eval_builtin, roll_builtin, pick_builtin,
+    drop_builtin, roll_builtin, pick_builtin,
     // Return stack operations
     to_r_builtin, from_r_builtin, r_fetch_builtin,
     // List operations
@@ -94,12 +94,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         is_executable: true,
     });
 
-    // The crucial eval builtin
-    let eval_atom = interp.intern_atom("eval");
-    interp.dictionary.insert(eval_atom, DictEntry {
-        value: Value::Builtin(eval_builtin),
-        is_executable: true,
-    });
+    // NOTE: eval is now handled specially in the evaluator, not as a builtin
 
     // Control flow
     let if_atom = interp.intern_atom("if");
@@ -372,7 +367,7 @@ mod tests {
             // Return stack operations
             ">r", "r>", "r@",
             // Control flow & meta
-            "eval", "if", "def", "val",
+            "if", "def", "val",  // eval is now special in evaluator
             // I/O operations
             "pr",
             // List operations

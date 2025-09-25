@@ -81,8 +81,8 @@ pub fn execute(value: &Value, interp: &mut Interpreter) -> Result<(), RuntimeErr
 }
 
 // RUST CONCEPT: Helper function to execute a list as code
-// This is used by execute_atom for executable definitions
-fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {
+// This is used by execute_atom for executable definitions, eval, and if
+pub fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // RUST CONCEPT: Converting list to vector of values
     let mut current = list.clone();
     let mut items = Vec::new();
@@ -96,7 +96,9 @@ fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), RuntimeErr
             },
             Value::Nil => break,
             _ => {
-                return Err(RuntimeError::TypeError("Cannot execute improper list".to_string()));
+                // RUST CONCEPT: Single values can be "executed" too (for eval)
+                // If it's not a proper list, just execute the single value
+                return execute(&current, interp);
             }
         }
     }
@@ -112,6 +114,16 @@ fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), RuntimeErr
 // RUST CONCEPT: Helper functions for code organization
 // This handles the specific logic for executing atoms (looking them up in dictionary)
 fn execute_atom(atom_name: &Rc<str>, interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    // RUST CONCEPT: Special handling for eval
+    // eval is now a special form, not a primitive
+    if &**atom_name == "eval" {
+        // Pop value from stack and execute it
+        let value = interp.pop()?;
+        // For lists, execute_list handles both proper lists and single values
+        // For non-lists, execute handles them directly
+        return execute_list(&value, interp);
+    }
+
     // RUST CONCEPT: HashMap lookups return Option<T>
     // We use match to handle both found and not-found cases
     match interp.dictionary.get(atom_name) {

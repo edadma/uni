@@ -49,7 +49,7 @@ pub mod shr;
 
 // Stack operations
 pub mod drop;
-pub mod eval;
+// eval is now handled specially in the evaluator, not as a primitive
 pub mod roll;
 pub mod pick;
 pub mod return_stack;
@@ -124,7 +124,7 @@ pub use shr::shr_builtin;
 
 // Stack operations
 pub use drop::drop_builtin;
-pub use eval::eval_builtin;
+// eval is now handled specially in the evaluator
 pub use roll::roll_builtin;
 pub use pick::pick_builtin;
 

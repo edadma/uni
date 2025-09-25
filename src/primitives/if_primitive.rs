@@ -2,7 +2,7 @@
 // Each primitive gets its own file with implementation and tests
 use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
-use crate::primitives::eval_builtin;
+use crate::evaluator::{execute, execute_list};
 
 // RUST CONCEPT: Conditional execution builtin
 // if ( condition true-branch false-branch -- ... )
@@ -34,10 +34,19 @@ pub fn if_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // RUST CONCEPT: Conditional execution
     let branch_to_execute = if is_true { true_branch } else { false_branch };
 
-    // RUST CONCEPT: Execute the chosen branch like eval does
-    // We can use eval_builtin which handles both lists and single values
-    interp.push(branch_to_execute);
-    eval_builtin(interp)
+    // RUST CONCEPT: Execute the chosen branch
+    // For lists, we need special handling to execute them as code
+    // For non-lists, we can execute directly
+    match branch_to_execute {
+        Value::Pair(_, _) | Value::Nil => {
+            // Execute as a list (sequence of operations)
+            execute_list(&branch_to_execute, interp)
+        },
+        _ => {
+            // Execute single value directly
+            execute(&branch_to_execute, interp)
+        }
+    }
 }
 
 #[cfg(test)]
