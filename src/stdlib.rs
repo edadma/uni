@@ -14,7 +14,7 @@ pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // Each line is real Uni code that defines a word
     // RUST CONCEPT: Multi-line string for multiple definitions
     // Each definition is actual Uni code that uses def naturally
-    let stdlib_code = "
+    let stdlib_code = r#"
         'swap [1 roll] def
         'dup [0 pick] def
         'over [1 pick] def
@@ -22,7 +22,19 @@ pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         'nip [swap drop] def
         'tuck [swap over] def
         'nil? [[] =] def
-    ";
+
+        \\ List processing primitives
+        'length [
+            dup nil?
+            [drop 0]
+            [tail length 1 +]
+            if
+        ] def
+
+        'null? [null =] def
+
+
+    "#;
 
     // RUST CONCEPT: Execute the stdlib code directly
     // This uses the normal execution path - no special handling needed
@@ -143,21 +155,44 @@ mod tests {
         assert!(interp.pop().is_err());
     }
 
-    // #[test]
-    // fn test_stdlib_complex_operations() {
-    //     let mut interp = setup_interpreter_with_stdlib();
-    //
-    //     // Test more complex operation: nip (remove second item)
-    //     // 1 2 3 nip should give us 1 3
-    //     execute_string("1 2 3 nip", &mut interp).unwrap();
-    //
-    //     let top = interp.pop().unwrap();
-    //     let second = interp.pop().unwrap();
-    //
-    //     assert!(matches!(top, Value::Number(n) if n == 3.0));
-    //     assert!(matches!(second, Value::Number(n) if n == 1.0));
-    //
-    //     // Stack should be empty now
-    //     assert!(interp.pop().is_err());
-    // }
+    #[test]
+    fn test_stdlib_length() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: [1 2 3 4 5] length should give us 5
+        execute_string("[1 2 3 4 5] length", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 5.0));
+
+        // Test: [] length should give us 0
+        execute_string("[] length", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 0.0));
+    }
+
+    #[test]
+    fn test_stdlib_null_predicate() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: null null? should give us true
+        execute_string("null null?", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test: 42 null? should give us false
+        execute_string("42 null?", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+
+        // Test: [] null? should give us false (empty list is not null)
+        execute_string("[] null?", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+    }
+
 }

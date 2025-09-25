@@ -6,6 +6,7 @@ mod tokenizer;
 mod parser;
 mod evaluator;
 mod stdlib;
+mod integration_tests;
 
 use interpreter::Interpreter;
 use value::{Value, RuntimeError};

@@ -257,7 +257,6 @@ mod tests {
 
     #[test]
     fn test_shr_reversibility_with_shl() {
-        let mut interp = setup_interpreter();
 
         // Test that (x << n) >> n = x for values that don't overflow
         let value = 42.0;

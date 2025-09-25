@@ -174,7 +174,6 @@ mod tests {
 
     #[test]
     fn test_bit_not_complement_property() {
-        let mut interp = setup_interpreter();
 
         // Test that n & ~n = 0 for any n
         let test_values = [1.0, 7.0, 15.0, 42.0, 255.0];

@@ -355,7 +355,7 @@ mod tests {
             // List operations
             "head", "tail", "cons", "list",
             // Predicates
-            "null?", "truthy?"
+            "truthy?"
         ];
 
         for builtin_name in expected_builtins.iter() {

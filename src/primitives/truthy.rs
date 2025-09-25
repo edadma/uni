@@ -2,7 +2,6 @@
 // Each primitive gets its own file with implementation and tests
 use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
-use std::rc::Rc;
 
 // RUST CONCEPT: Truthiness predicate for all value types
 // Stack-based truthy?: ( value -- boolean )
@@ -37,7 +36,7 @@ mod tests {
             Value::String("false".into()),  // String "false" is truthy!
             Value::Atom(interp.intern_atom("test")),
             Value::QuotedAtom(interp.intern_atom("quoted")),
-            Value::Pair(Rc::new(Value::Number(1.0)), Rc::new(Value::Nil)),
+            Value::Pair(std::rc::Rc::new(Value::Number(1.0)), std::rc::Rc::new(Value::Nil)),
         ];
 
         for (i, test_value) in truthy_cases.into_iter().enumerate() {
