@@ -20,6 +20,8 @@ use crate::primitives::{
     shl_builtin, shr_builtin,
     // Stack operations
     drop_builtin, eval_builtin, roll_builtin, pick_builtin,
+    // Return stack operations
+    to_r_builtin, from_r_builtin, r_fetch_builtin,
     // List operations
     cons_builtin, list_builtin, head_builtin, tail_builtin,
     // Meta operations
@@ -314,6 +316,25 @@ pub fn register_builtins(interp: &mut Interpreter) {
         value: Value::Builtin(shr_builtin),
         is_executable: true,
     });
+
+    // Return stack operations
+    let to_r_atom = interp.intern_atom(">r");
+    interp.dictionary.insert(to_r_atom, DictEntry {
+        value: Value::Builtin(to_r_builtin),
+        is_executable: true,
+    });
+
+    let from_r_atom = interp.intern_atom("r>");
+    interp.dictionary.insert(from_r_atom, DictEntry {
+        value: Value::Builtin(from_r_builtin),
+        is_executable: true,
+    });
+
+    let r_fetch_atom = interp.intern_atom("r@");
+    interp.dictionary.insert(r_fetch_atom, DictEntry {
+        value: Value::Builtin(r_fetch_builtin),
+        is_executable: true,
+    });
 }
 
 #[cfg(test)]
@@ -348,6 +369,8 @@ mod tests {
             "shl", "shr",
             // Stack operations
             "roll", "pick", "drop",
+            // Return stack operations
+            ">r", "r>", "r@",
             // Control flow & meta
             "eval", "if", "def", "val",
             // I/O operations

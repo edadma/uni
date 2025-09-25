@@ -52,6 +52,7 @@ pub mod drop;
 pub mod eval;
 pub mod roll;
 pub mod pick;
+pub mod return_stack;
 
 // List operations
 pub mod cons;
@@ -126,6 +127,11 @@ pub use drop::drop_builtin;
 pub use eval::eval_builtin;
 pub use roll::roll_builtin;
 pub use pick::pick_builtin;
+
+// Return stack operations
+pub use return_stack::to_r_builtin;
+pub use return_stack::from_r_builtin;
+pub use return_stack::r_fetch_builtin;
 
 // List operations
 pub use cons::cons_builtin;

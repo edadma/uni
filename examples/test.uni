@@ -1,4 +1,4 @@
-#!/usr/bin/env uni
+#!/usr/bin/env target/debug/uni
 \ This is a test Uni program
 \ It demonstrates basic arithmetic and printing
 
@@ -20,3 +20,60 @@
 ] def
 
 5 factorial pr             \ Prints 120
+
+\ times loop: execute block n times
+'times [
+  >r                   \ move block to return stack
+  dup 0 >              \ check if counter > 0
+  [
+    r@ eval 1 - r>     \ execute block, decrement counter, restore block
+    times              \ recursive call
+  ]
+  [ drop r> drop ]     \ cleanup: drop counter and block
+  if
+] def
+
+5 [ "hello" pr ] times
+
+\ while loop: [ cond ] [ body ] while
+'while [
+    >r >r                         \ move body and condition to return stack
+    r@ eval                       \ execute condition (copy from R-stack)
+    [
+        r> r> dup rot swap >r >r  \ get body and move body and condition back to return stack
+        eval                      \ execute body
+        r> r> while               \ recursive call
+    ]
+    [ r> r> drop drop ]
+    if
+] def
+
+\ Count from 1 to 5
+1                      \ initial counter
+[ dup 5 <= ]           \ condition: counter <= 5
+[ dup pr 1 + ]         \ body: print counter and increment
+while
+drop                   \ clean up final counter
+
+\ Sum all numbers in a list
+'sum-helper [
+  \ Stack: [acc list]
+  dup nil? [
+    \ List is empty: [acc []]
+    drop            \ Drop the empty list, leave acc: [acc]
+  ] [
+    \ List not empty: [acc [head|tail]]
+    dup head        \ [acc list head]
+    rot +           \ [list (acc+head)]  - add head to acc
+    swap            \ [(acc+head) list]
+    dup tail        \ [(acc+head) list tail]
+    nip             \ [(acc+head) tail] - remove original list
+    sum-helper      \ recurse with new acc and tail
+  ] if
+] def
+
+'sum [
+  0 swap sum-helper
+] def
+
+[1 2 3 4 5] sum pr         \ Should print 15

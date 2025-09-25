@@ -12,6 +12,7 @@ pub struct DictEntry {
 
 pub struct Interpreter {
     pub stack: Vec<Value>,
+    pub return_stack: Vec<Value>,  // RUST CONCEPT: Return stack for Forth-like operations
     pub dictionary: HashMap<Rc<str>, DictEntry>,
     pub atoms: HashMap<String, Rc<str>>,
 }
@@ -20,6 +21,7 @@ impl Interpreter {
     pub fn new() -> Self {
         let mut interpreter = Self {
             stack: Vec::new(),
+            return_stack: Vec::new(),  // RUST CONCEPT: Initialize empty return stack
             dictionary: HashMap::new(),
             atoms: HashMap::new(),
         };
@@ -102,6 +104,21 @@ impl Interpreter {
             Value::Pair(_, _) => true,
             Value::Builtin(_) => true,
         }
+    }
+
+    // RUST CONCEPT: Return stack operations for Forth-like control structures
+    // These operations enable temporary storage of values outside the main computation stack
+
+    pub fn push_return(&mut self, value: Value) {
+        self.return_stack.push(value);
+    }
+
+    pub fn pop_return(&mut self) -> Result<Value, RuntimeError> {
+        self.return_stack.pop().ok_or(RuntimeError::StackUnderflow)
+    }
+
+    pub fn peek_return(&self) -> Result<&Value, RuntimeError> {
+        self.return_stack.last().ok_or(RuntimeError::StackUnderflow)
     }
 }
 
