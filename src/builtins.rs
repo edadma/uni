@@ -93,7 +93,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         is_executable: true,
     });
 
-    // NOTE: eval and if are now handled specially in the evaluator, not as builtins
+    // NOTE: exec and if are now handled specially in the evaluator, not as builtins
 
     // Dictionary operations
     let def_atom = interp.intern_atom("def");
@@ -359,7 +359,7 @@ mod tests {
             // Return stack operations
             ">r", "r>", "r@",
             // Control flow & meta
-            "def", "val",  // eval and if are now special in evaluator
+            "def", "val",  // exec and if are now special in evaluator
             // I/O operations
             "pr",
             // List operations

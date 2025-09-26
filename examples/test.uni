@@ -26,7 +26,7 @@
   >r                   \ move block to return stack
   dup 0 >              \ check if counter > 0
   [
-    r@ eval 1 - r>     \ execute block, decrement counter, restore block
+    r@ exec 1 - r>     \ execute block, decrement counter, restore block
     times              \ recursive call
   ]
   [ drop r> drop ]     \ cleanup: drop counter and block
@@ -38,10 +38,10 @@
 \ while loop: [ cond ] [ body ] while
 'while [
     >r >r                         \ move body and condition to return stack
-    r@ eval                       \ execute condition (copy from R-stack)
+    r@ exec                       \ execute condition (copy from R-stack)
     [
         r> r> dup rot swap >r >r  \ get body and move body and condition back to return stack
-        eval                      \ execute body
+        exec                      \ execute body
         r> r> while               \ recursive call
     ]
     [ r> r> drop drop ]

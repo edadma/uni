@@ -6,7 +6,7 @@
 // - Lists ([1 2 +]): Push themselves onto the stack as data (code-as-data)
 // - Atoms (hello, +): Execute by looking up in dictionary
 // - Quoted Atoms ('hello): Push the atom onto the stack without executing
-// - To execute a list: [1 2 +] eval  (push list, then eval executes it)
+// - To execute a list: [1 2 +] exec  (push list, then exec executes it)
 //
 // RUST LEARNING NOTES:
 // - We use 'use' statements to import types from other modules

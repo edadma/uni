@@ -295,9 +295,9 @@ fn run_demo() {
         Err(e) => println!("Execution error: {:?}", e),
     }
 
-    // Demo 3: Execute list as data, then eval it
-    println!("\nExecuting: [10 2 /] eval");
-    match execute_string("[10 2 /] eval", &mut interp) {
+    // Demo 3: Execute list as data, then exec it
+    println!("\nExecuting: [10 2 /] exec");
+    match execute_string("[10 2 /] exec", &mut interp) {
         Ok(()) => {
             match interp.pop() {
                 Ok(Value::Number(n)) => println!("Result: {}", n),
@@ -335,9 +335,9 @@ fn run_demo() {
         Err(e) => println!("Error defining square: {:?}", e),
     }
 
-    // Use the procedure - lists are data by default, so we need eval
-    println!("Using procedure: 7 square eval");
-    match execute_string("7 square eval", &mut interp) {
+    // Use the procedure - lists are data by default, so we need exec
+    println!("Using procedure: 7 square exec");
+    match execute_string("7 square exec", &mut interp) {
         Ok(()) => {
             match interp.pop() {
                 Ok(Value::Number(n)) => println!("7 squared = {}", n),
@@ -348,8 +348,8 @@ fn run_demo() {
         Err(e) => println!("Error executing square: {:?}", e),
     }
 
-    // Demo 6: Show the difference - square pushes the list, eval executes it
-    println!("\nJust calling square (without eval): 9 square");
+    // Demo 6: Show the difference - square pushes the list, exec executes it
+    println!("\nJust calling square (without exec): 9 square");
     match execute_string("9 square", &mut interp) {
         Ok(()) => {
             // Should have 9 and the list [dup *] on stack

@@ -21,6 +21,7 @@ cargo build --release
 - **Homoiconic**: Code and data have identical representation - no special syntax that can't be represented as data
 - **Stack-based**: Operations manipulate a central computation stack
 - **Immediate execution**: Atoms execute when encountered unless explicitly quoted
+- **Tail-call optimized**: Continuation-based evaluator enables proper tail-call optimization, preventing stack overflow in recursive functions
 
 ### Data Types
 
@@ -42,7 +43,7 @@ Uni has just four fundamental types that compose to create everything:
 hello           \ Atoms execute (look up definition)
 'hello          \ Quoted atoms push without executing
 [1 2 +]         \ Lists are data (quotation/code-as-data)
-[1 2 +] eval    \ Execute the list: pushes 1, 2, then adds
+[1 2 +] exec    \ Execute the list: pushes 1, 2, then adds
 "text"          \ Strings push themselves onto stack
 
 \ List structures (cons cells)
@@ -160,7 +161,7 @@ The standard library provides common stack manipulation words:
 
   \ For demo, we'll use predefined values
   15 4    \ Two numbers
-  '+ eval \ Operator (could be +, -, *, /, mod)
+  '+ exec \ Operator (could be +, -, *, /, mod)
 
   "Result: " pr pr
 ] def
@@ -178,7 +179,7 @@ calculate
       dup head swap tail    \ Get head and tail
       rot + swap sum        \ Add head to accumulator, recurse on tail
     ] if
-  ] eval
+  ] exec
 ] def
 
 [1 2 3 4 5] sum pr         \ Prints 15
@@ -232,6 +233,7 @@ Uni is implemented in **Rust** with extensive educational comments explaining bo
 - **Atom Interning**: Identical symbols share memory for efficiency
 - **Error Handling**: Comprehensive `Result<T, E>` based error propagation
 - **Zero-Copy Parsing**: Efficient tokenization and parsing with minimal allocations
+- **Tail-Call Optimization**: Continuation-based evaluator using explicit continuation stack instead of recursion, enabling infinite tail recursion without stack overflow
 
 ### Project Structure
 

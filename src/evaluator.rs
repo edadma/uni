@@ -4,7 +4,7 @@
 // 1. Numbers, strings, lists: Push themselves onto the stack (they are data)
 // 2. Atoms: Look up in dictionary and execute the definition
 // 3. Quoted atoms: Already parsed as (quote atom), quote builtin handles them
-// 4. Lists are data by default, use 'eval' builtin to execute them
+// 4. Lists are data by default, use 'exec' builtin to execute them
 //
 // RUST LEARNING NOTES:
 // - This demonstrates recursive function calls and pattern matching
@@ -38,8 +38,8 @@ enum Continuation {
         false_branch: Value
     },
 
-    // Execute an eval'd expression
-    ExecuteEval(Value),
+    // Execute an exec'd expression
+    ExecuteExec(Value),
 
     // Execute a defined word's body
     ExecuteDefinition(Value),
@@ -93,7 +93,7 @@ pub fn execute_with_continuations(initial_value: &Value, interp: &mut Interprete
                 }
             },
 
-            Continuation::ExecuteEval(value) => {
+            Continuation::ExecuteExec(value) => {
                 // Convert list to continuation or execute single value directly
                 match &value {
                     Value::Pair(_, _) => {
@@ -192,10 +192,10 @@ fn list_to_vec(list: &Value) -> Result<Vec<Value>, RuntimeError> {
 
 // RUST CONCEPT: Atom execution with continuation support
 fn execute_atom_with_continuations(atom_name: &Rc<str>, interp: &mut Interpreter, continuation_stack: &mut Vec<Continuation>) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Special handling for eval and if
-    if &**atom_name == "eval" {
+    // RUST CONCEPT: Special handling for exec and if
+    if &**atom_name == "exec" {
         let value = interp.pop()?;
-        continuation_stack.push(Continuation::ExecuteEval(value));
+        continuation_stack.push(Continuation::ExecuteExec(value));
         return Ok(());
     }
 
@@ -241,7 +241,7 @@ pub fn execute(value: &Value, interp: &mut Interpreter) -> Result<(), RuntimeErr
 }
 
 // RUST CONCEPT: Helper function to execute a list as code
-// This is used by execute_atom for executable definitions, eval, and if
+// This is used by execute_atom for executable definitions, exec, and if
 // Now uses continuation-based execution for tail-call optimization
 #[allow(dead_code)]  // Kept as public API, may be used by external code
 pub fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {

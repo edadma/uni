@@ -33,7 +33,18 @@ pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
         'null? [null =] def
 
-
+        \\ Control flow primitives
+        'while [
+            >r >r                         \\ move body and condition to return stack
+            r@ exec                       \\ execute condition (copy from R-stack)
+            [
+                r> r> dup rot swap >r >r  \\ get body and move body and condition back to return stack
+                exec                      \\ execute body
+                r> r> while               \\ recursive call
+            ]
+            [ r> r> drop drop ]
+            if
+        ] def
     "#;
 
     // RUST CONCEPT: Execute the stdlib code directly
@@ -193,6 +204,76 @@ mod tests {
 
         let result = interp.pop().unwrap();
         assert!(matches!(result, Value::Boolean(false)));
+    }
+
+    #[test]
+    fn test_stdlib_while_loop_counter() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: while loop that counts from 1 and leaves 5 on the stack
+        // Start with 1, condition checks if counter < 5, body increments counter
+        // Final result should leave 5 on the stack when condition becomes false
+        let code = r#"
+            1
+            [ dup 5 < ]
+            [ 1 + ]
+            while
+        "#;
+
+        execute_string(code, &mut interp).unwrap();
+
+        // Should have 5 on stack (started at 1, incremented while < 5)
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 5.0));
+
+        // Stack should be empty now
+        assert!(interp.pop().is_err());
+    }
+
+    #[test]
+    fn test_stdlib_while_sum_accumulator() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: while loop that sums numbers 1+2+3+4+5 = 15
+        // Stack: [counter sum]
+        let code = r#"
+            1 0
+            [ over 5 <= ]
+            [ over + swap 1 + swap ]
+            while
+            nip
+        "#;
+
+        execute_string(code, &mut interp).unwrap();
+
+        // Should have 15 on stack (sum of 1+2+3+4+5)
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 15.0));
+
+        // Stack should be empty now
+        assert!(interp.pop().is_err());
+    }
+
+    #[test]
+    fn test_stdlib_while_empty_body() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: while loop with false condition - body should never execute
+        let code = r#"
+            42
+            [ 0 ]
+            [ 99 ]
+            while
+        "#;
+
+        execute_string(code, &mut interp).unwrap();
+
+        // Should still have 42 on stack (body never executed)
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 42.0));
+
+        // Stack should be empty now
+        assert!(interp.pop().is_err());
     }
 
 }
