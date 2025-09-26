@@ -39,14 +39,14 @@ impl std::fmt::Display for RuntimeError {
 }
 
 // RUST CONCEPT: Implementing Display for Value types
-// This allows Values to be printed in a readable format
+// This is the "data display" mode - strings WITH quotes for data structures
 impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Number(n) => write!(f, "{}", n),
             Value::Atom(a) => write!(f, "{}", a),
             Value::QuotedAtom(a) => write!(f, "'{}", a),
-            Value::String(s) => write!(f, "\"{}\"", s),
+            Value::String(s) => write!(f, "\"{}\"", s),  // Strings WITH quotes
             Value::Boolean(b) => write!(f, "{}", if *b { "true" } else { "false" }),
             Value::Null => write!(f, "null"),
             Value::Pair(head, tail) => {

@@ -9,58 +9,21 @@ use crate::interpreter::Interpreter;
 pub fn print_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let value = interp.pop()?;
 
-    // RUST CONCEPT: No duplication - use shared print_value function
-    print_value(&value);
-    println!(); // Add newline after printing
+    // RUST CONCEPT: User-friendly printing - strings without quotes for readability
+    match &value {
+        Value::String(s) => {
+            // For pr primitive, show strings without quotes for user output
+            println!("{}", s);
+        },
+        _ => {
+            // For non-strings, use the standard Display format (with quotes for strings in data structures)
+            println!("{}", value);
+        }
+    }
 
     Ok(())
 }
 
-// RUST CONCEPT: Helper function to print any Value type
-// Eliminates code duplication by handling all Value printing in one place
-fn print_value(value: &Value) {
-    match value {
-        Value::Number(n) => print!("{}", n),
-        Value::String(s) => print!("\"{}\"", s),
-        Value::Boolean(b) => print!("{}", if *b { "true" } else { "false" }),
-        Value::Null => print!("null"),
-        Value::Atom(atom) => print!("{}", atom),
-        Value::QuotedAtom(atom) => print!("'{}", atom),
-        Value::Nil => print!("[]"),
-        Value::Pair(_, _) => print_list(value),
-        Value::Builtin(_) => print!("[builtin]"),
-    }
-}
-
-fn print_list(value: &Value) {
-    print!("[");
-    print_list_contents(value, true);
-    print!("]");
-}
-
-fn print_list_contents(value: &Value, first: bool) {
-    match value {
-        Value::Nil => {
-            // End of list - don't print anything
-        },
-        Value::Pair(car, cdr) => {
-            if !first {
-                print!(" ");
-            }
-
-            // Print the car (first element) - no duplication!
-            print_value(car.as_ref());
-
-            // Recursively print the cdr (rest of list)
-            print_list_contents(cdr.as_ref(), false);
-        },
-        _ => {
-            // Improper list (dotted pair) - show the dot notation
-            print!(" . ");
-            print_value(value);
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
