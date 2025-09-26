@@ -33,6 +33,40 @@ pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
         'null? [null =] def
 
+        \\ Conditional duplication from Forth
+        '?dup [
+            dup truthy? [dup] [] if
+        ] def
+
+        \\ Short-circuiting logical operations
+        'and [
+            swap                          \\ Move first quotation to top
+            exec                          \\ Execute first quotation
+            dup                           \\ Always duplicate the result
+            [
+                drop                      \\ Drop the duplicate, keep original
+                exec                      \\ Execute second quotation
+            ]
+            [
+                swap drop                 \\ If falsy, drop second quotation, keep falsy result
+            ]
+            if
+        ] def
+
+        'or [
+            swap                          \\ Move first quotation to top
+            exec                          \\ Execute first quotation
+            dup                           \\ Always duplicate the result
+            [
+                swap drop                 \\ If truthy, drop second quotation, keep result
+            ]
+            [
+                drop                      \\ Drop the duplicate
+                exec                      \\ If falsy, execute second quotation
+            ]
+            if
+        ] def
+
         \\ Control flow primitives
         'while [
             >r >r                         \\ move body and condition to return stack
@@ -274,6 +308,109 @@ mod tests {
 
         // Stack should be empty now
         assert!(interp.pop().is_err());
+    }
+
+    #[test]
+    fn test_stdlib_question_dup() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: truthy value should be duplicated
+        execute_string("42 ?dup", &mut interp).unwrap();
+
+        let top = interp.pop().unwrap();
+        let second = interp.pop().unwrap();
+        assert!(matches!(top, Value::Number(n) if n == 42.0));
+        assert!(matches!(second, Value::Number(n) if n == 42.0));
+
+        // Test: falsy value (0) should not be duplicated
+        execute_string("0 ?dup", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 0.0));
+        // Should be empty now - no duplication occurred
+        assert!(interp.pop().is_err());
+
+        // Test: false should not be duplicated
+        execute_string("false ?dup", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+        assert!(interp.pop().is_err());
+    }
+
+    #[test]
+    fn test_stdlib_and_short_circuit() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: true and true -> returns second value
+        execute_string("[5] [10] and", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 10.0));
+
+        // Test: false and anything -> returns false, doesn't execute second
+        execute_string("[0] [99] and", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 0.0));
+
+        // Test: short-circuiting - second quotation should not execute
+        // This pushes a marker, then does false and [marker-remover]
+        // If short-circuiting works, marker should still be there
+        execute_string("999 [0] [drop] and", &mut interp).unwrap();
+
+        let and_result = interp.pop().unwrap();
+        let marker = interp.pop().unwrap();
+        assert!(matches!(and_result, Value::Number(n) if n == 0.0));
+        assert!(matches!(marker, Value::Number(n) if n == 999.0)); // Marker should still be there
+    }
+
+    #[test]
+    fn test_stdlib_or_short_circuit() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: false or true -> returns second value
+        execute_string("[0] [42] or", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 42.0));
+
+        // Test: true or anything -> returns first value, doesn't execute second
+        execute_string("[5] [99] or", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 5.0));
+
+        // Test: short-circuiting - second quotation should not execute
+        execute_string("888 [7] [drop] or", &mut interp).unwrap();
+
+        let or_result = interp.pop().unwrap();
+        let marker = interp.pop().unwrap();
+        assert!(matches!(or_result, Value::Number(n) if n == 7.0));
+        assert!(matches!(marker, Value::Number(n) if n == 888.0)); // Marker should still be there
+    }
+
+    #[test]
+    fn test_stdlib_and_or_chaining() {
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: chaining and operations - all true
+        execute_string("[1] [2] and [3] and", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 3.0));
+
+        // Test: chaining or operations - first true
+        execute_string("[1] [2] or [3] or", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 1.0));
+
+        // Test: mixed and/or
+        execute_string("[0] [5] or [10] and", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 10.0));
     }
 
 }

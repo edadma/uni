@@ -50,7 +50,7 @@ impl std::fmt::Display for Value {
             Value::Boolean(b) => write!(f, "{}", if *b { "true" } else { "false" }),
             Value::Null => write!(f, "null"),
             Value::Pair(head, tail) => {
-                write!(f, "(")?;
+                write!(f, "[")?;
                 write!(f, "{}", head)?;
                 let mut current = tail;
                 loop {
@@ -66,9 +66,9 @@ impl std::fmt::Display for Value {
                         }
                     }
                 }
-                write!(f, ")")
+                write!(f, "]")
             }
-            Value::Nil => write!(f, "nil"),
+            Value::Nil => write!(f, "[]"),
             Value::Builtin(_) => write!(f, "<builtin>"),
         }
     }
