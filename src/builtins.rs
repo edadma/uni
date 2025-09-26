@@ -29,6 +29,8 @@ use crate::primitives::{
     // Control flow - if is now special in evaluator
     // I/O operations
     print_builtin,
+    // String operations
+    to_string_builtin,
     // Predicate operations
     truthy_predicate_builtin, null_predicate_builtin
 };
@@ -112,6 +114,13 @@ pub fn register_builtins(interp: &mut Interpreter) {
     let print_atom = interp.intern_atom("pr");
     interp.dictionary.insert(print_atom, DictEntry {
         value: Value::Builtin(print_builtin),
+        is_executable: true,
+    });
+
+    // String operations
+    let to_string_atom = interp.intern_atom("->string");
+    interp.dictionary.insert(to_string_atom, DictEntry {
+        value: Value::Builtin(to_string_builtin),
         is_executable: true,
     });
 
@@ -362,6 +371,8 @@ mod tests {
             "def", "val",  // exec and if are now special in evaluator
             // I/O operations
             "pr",
+            // String operations
+            "->string",
             // List operations
             "head", "tail", "cons", "list",
             // Predicates
