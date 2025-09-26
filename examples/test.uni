@@ -35,19 +35,6 @@
 
 5 [ "hello" pr ] times
 
-\ while loop: [ cond ] [ body ] while
-'while [
-    >r >r                         \ move body and condition to return stack
-    r@ exec                       \ execute condition (copy from R-stack)
-    [
-        r> r> dup rot swap >r >r  \ get body and move body and condition back to return stack
-        exec                      \ execute body
-        r> r> while               \ recursive call
-    ]
-    [ r> r> drop drop ]
-    if
-] def
-
 \ Count from 1 to 5
 1                      \ initial counter
 [ dup 5 <= ]           \ condition: counter <= 5
