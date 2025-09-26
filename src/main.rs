@@ -185,6 +185,12 @@ fn run_repl() {
                 // RUST CONCEPT: String trimming to remove whitespace
                 let line = line.trim();
 
+                // RUST CONCEPT: Add non-empty lines to history before processing
+                // This ensures REPL commands are also saved in history
+                if !line.is_empty() {
+                    let _ = rl.add_history_entry(line);
+                }
+
                 // Check for special REPL commands
                 match line {
                     "quit" => {
@@ -194,32 +200,24 @@ fn run_repl() {
                     "stack" => {
                         // Display the current stack
                         print_stack(&interp);
-                        continue;
                     },
                     "clear" => {
                         // Clear the stack
                         interp.stack.clear();
                         println!("Stack cleared");
-                        continue;
                     },
                     "words" => {
                         // Display all defined words
                         print_words(&interp);
-                        continue;
                     },
                     "" => {
                         // Empty line, just continue
-                        continue;
                     },
                     _ => {
                         // Execute the line as Uni code
                         execute_repl_line(line, &mut interp);
                     }
                 }
-
-                // RUST CONCEPT: Adding to history for recall
-                // Ignore errors from add_history (not critical)
-                let _ = rl.add_history_entry(line);
             },
             Err(ReadlineError::Interrupted) => {
                 // RUST CONCEPT: Handling Ctrl-C

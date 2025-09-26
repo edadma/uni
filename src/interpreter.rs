@@ -72,6 +72,7 @@ impl Interpreter {
         })
     }
 
+    #[allow(dead_code)]
     pub fn pop_string(&mut self) -> Result<Rc<str>, RuntimeError> {
         let value = self.pop()?;
         match value {
@@ -80,6 +81,7 @@ impl Interpreter {
         }
     }
 
+    #[allow(dead_code)]
     pub fn pop_boolean(&mut self) -> Result<bool, RuntimeError> {
         let value = self.pop()?;
         match value {
