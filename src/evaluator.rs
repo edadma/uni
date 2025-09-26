@@ -16,78 +16,162 @@ use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
 use std::rc::Rc;
 
-// RUST CONCEPT: Public functions that other modules can use
-// This is the main entry point for executing Uni values
-pub fn execute(value: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Pattern matching on enum variants
-    // Each Value type has different execution behavior
+// RUST CONCEPT: Continuation-based evaluation for tail-call optimization
+// Instead of using recursion, we use an explicit continuation stack
+// This enables proper tail-call optimization and prevents stack overflow
+#[derive(Debug, Clone)]
+enum Continuation {
+    // Execute a single value (push data or execute atom)
+    ExecuteValue(Value),
+
+    // Execute a list of values sequentially with index tracking
+    // When index == items.len()-1, we can do tail-call optimization
+    ExecuteList {
+        items: Vec<Value>,
+        index: usize
+    },
+
+    // Execute an if statement (condition already evaluated)
+    ExecuteIf {
+        condition_result: bool,
+        true_branch: Value,
+        false_branch: Value
+    },
+
+    // Execute an eval'd expression
+    ExecuteEval(Value),
+
+    // Execute a defined word's body
+    ExecuteDefinition(Value),
+}
+
+// RUST CONCEPT: Continuation-based execution loop
+// This replaces recursion with an explicit continuation stack for tail-call optimization
+pub fn execute_with_continuations(initial_value: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    let mut continuation_stack: Vec<Continuation> = Vec::new();
+    continuation_stack.push(Continuation::ExecuteValue(initial_value.clone()));
+
+    while let Some(continuation) = continuation_stack.pop() {
+        match continuation {
+            Continuation::ExecuteValue(value) => {
+                execute_value_direct(&value, interp, &mut continuation_stack)?;
+            },
+
+            Continuation::ExecuteList { items, index } => {
+                if index >= items.len() {
+                    continue; // Empty list or finished
+                }
+
+                let item = &items[index];
+                let is_tail_call = index == items.len() - 1;
+
+                if is_tail_call {
+                    // TAIL-CALL OPTIMIZATION: Don't push continuation for last item
+                    // This reuses the current "stack frame" enabling proper TCO
+                    continuation_stack.push(Continuation::ExecuteValue(item.clone()));
+                } else {
+                    // Push continuation for next item, then execute current
+                    continuation_stack.push(Continuation::ExecuteList {
+                        items: items.clone(),
+                        index: index + 1
+                    });
+                    continuation_stack.push(Continuation::ExecuteValue(item.clone()));
+                }
+            },
+
+            Continuation::ExecuteIf { condition_result, true_branch, false_branch } => {
+                let branch = if condition_result { true_branch } else { false_branch };
+                // TAIL-CALL OPTIMIZATION: Execute branch directly without adding continuation
+                match &branch {
+                    Value::Pair(_, _) | Value::Nil => {
+                        let items = list_to_vec(&branch)?;
+                        continuation_stack.push(Continuation::ExecuteList { items, index: 0 });
+                    },
+                    _ => {
+                        continuation_stack.push(Continuation::ExecuteValue(branch));
+                    }
+                }
+            },
+
+            Continuation::ExecuteEval(value) => {
+                // Convert list to continuation or execute single value directly
+                match &value {
+                    Value::Pair(_, _) => {
+                        let items = list_to_vec(&value)?;
+                        continuation_stack.push(Continuation::ExecuteList { items, index: 0 });
+                    },
+                    Value::Nil => {
+                        // Empty list - do nothing
+                    },
+                    _ => {
+                        // Single value - execute directly (tail-call optimized)
+                        continuation_stack.push(Continuation::ExecuteValue(value));
+                    }
+                }
+            },
+
+            Continuation::ExecuteDefinition(definition) => {
+                match &definition {
+                    Value::Pair(_, _) | Value::Nil => {
+                        // Execute list as code (tail-call optimized)
+                        let items = list_to_vec(&definition)?;
+                        continuation_stack.push(Continuation::ExecuteList { items, index: 0 });
+                    },
+                    _ => {
+                        // Execute single value directly (tail-call optimized)
+                        continuation_stack.push(Continuation::ExecuteValue(definition));
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+// RUST CONCEPT: Helper function to execute a value directly and manage continuations
+// This is where atoms are looked up and special forms are handled
+fn execute_value_direct(value: &Value, interp: &mut Interpreter, continuation_stack: &mut Vec<Continuation>) -> Result<(), RuntimeError> {
     match value {
-        // RUST CONCEPT: Dereferencing and cloning
-        // Numbers are Copy, so we can dereference and create a new Value
+        // RUST CONCEPT: Simple values just push themselves onto the stack
         Value::Number(n) => {
             interp.push(Value::Number(*n));
             Ok(())
         },
-
-        // RUST CONCEPT: Cloning reference-counted data
-        // Strings are Rc<str>, so .clone() just increments the reference count (cheap!)
         Value::String(s) => {
             interp.push(Value::String(s.clone()));
             Ok(())
         },
-
-        // RUST CONCEPT: Boolean and Null values are data
-        // They push themselves onto the stack like numbers and strings
         Value::Boolean(b) => {
             interp.push(Value::Boolean(*b));
             Ok(())
         },
-
         Value::Null => {
             interp.push(Value::Null);
             Ok(())
         },
-
-        // RUST CONCEPT: Pattern matching with complex data
-        // Lists (Pairs and Nil) are data - they push themselves onto the stack
         Value::Pair(_, _) | Value::Nil => {
-            // RUST CONCEPT: Cloning entire Value structures
-            // This clones the whole list structure, but since we use Rc everywhere,
-            // it's just incrementing reference counts - no deep copying!
             interp.push(value.clone());
             Ok(())
         },
-
-        // RUST CONCEPT: Dictionary lookups and execution
-        // Atoms are the only things that execute by default
-        Value::Atom(atom_name) => {
-            execute_atom(atom_name, interp)
-        },
-
-        // RUST CONCEPT: Quoted atoms push themselves without executing
-        // This is the key difference from regular atoms
         Value::QuotedAtom(atom_name) => {
-            // Convert quoted atom back to regular atom and push it
             interp.push(Value::Atom(atom_name.clone()));
             Ok(())
         },
-
-        // RUST CONCEPT: Function pointers and direct calls
-        // Builtins are function pointers - call them directly
         Value::Builtin(func) => {
             func(interp)
         },
+        Value::Atom(atom_name) => {
+            execute_atom_with_continuations(atom_name, interp, continuation_stack)
+        }
     }
 }
 
-// RUST CONCEPT: Helper function to execute a list as code
-// This is used by execute_atom for executable definitions, eval, and if
-pub fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Converting list to vector of values
+// RUST CONCEPT: Convert list structure to vector for sequential processing
+fn list_to_vec(list: &Value) -> Result<Vec<Value>, RuntimeError> {
     let mut current = list.clone();
     let mut items = Vec::new();
 
-    // RUST CONCEPT: Traversing cons cell lists
     loop {
         match current {
             Value::Pair(car, cdr) => {
@@ -96,87 +180,76 @@ pub fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), Runtim
             },
             Value::Nil => break,
             _ => {
-                // RUST CONCEPT: Single values can be "executed" too (for eval)
-                // If it's not a proper list, just execute the single value
-                return execute(&current, interp);
+                // Single value (improper list) - just return it as single item
+                items.push(current);
+                break;
             }
         }
     }
 
-    // RUST CONCEPT: Execute each element in sequence
-    for item in items {
-        execute(&item, interp)?;
-    }
-
-    Ok(())
+    Ok(items)
 }
 
-// RUST CONCEPT: Helper functions for code organization
-// This handles the specific logic for executing atoms (looking them up in dictionary)
-fn execute_atom(atom_name: &Rc<str>, interp: &mut Interpreter) -> Result<(), RuntimeError> {
+// RUST CONCEPT: Atom execution with continuation support
+fn execute_atom_with_continuations(atom_name: &Rc<str>, interp: &mut Interpreter, continuation_stack: &mut Vec<Continuation>) -> Result<(), RuntimeError> {
     // RUST CONCEPT: Special handling for eval and if
-    // These are now special forms, not primitives
     if &**atom_name == "eval" {
-        // Pop value from stack and execute it
         let value = interp.pop()?;
-        // For lists, execute_list handles both proper lists and single values
-        // For non-lists, execute handles them directly
-        return execute_list(&value, interp);
+        continuation_stack.push(Continuation::ExecuteEval(value));
+        return Ok(());
     }
 
     if &**atom_name == "if" {
-        // if ( condition true-branch false-branch -- ... )
-        // Pop in reverse order: false-branch, true-branch, condition
         let false_branch = interp.pop()?;
         let true_branch = interp.pop()?;
         let condition = interp.pop()?;
 
-        // Use the interpreter's is_truthy method for consistency
-        let is_true = interp.is_truthy(&condition);
-        let branch_to_execute = if is_true { true_branch } else { false_branch };
-
-        // Execute the chosen branch
-        return execute_list(&branch_to_execute, interp);
+        let condition_result = interp.is_truthy(&condition);
+        continuation_stack.push(Continuation::ExecuteIf {
+            condition_result,
+            true_branch,
+            false_branch
+        });
+        return Ok(());
     }
 
-    // RUST CONCEPT: HashMap lookups return Option<T>
-    // We use match to handle both found and not-found cases
+    // RUST CONCEPT: Dictionary lookup with continuation support
     match interp.dictionary.get(atom_name) {
-        // RUST CONCEPT: Dictionary entries with metadata
         Some(entry) => {
-            // RUST CONCEPT: Cloning to avoid borrow checker issues
             let entry_copy = entry.clone();
 
-            // RUST CONCEPT: Execution behavior based on metadata
             if entry_copy.is_executable {
-                // Entry was created with def - execute lists, others execute normally
-                match &entry_copy.value {
-                    Value::Pair(_, _) | Value::Nil => {
-                        // Execute the list as code
-                        execute_list(&entry_copy.value, interp)
-                    },
-                    _ => {
-                        // Execute builtins, atoms, etc normally
-                        execute(&entry_copy.value, interp)
-                    }
-                }
+                // Push definition execution continuation
+                continuation_stack.push(Continuation::ExecuteDefinition(entry_copy.value));
             } else {
-                // Entry was created with val - always push as constant
+                // Non-executable entry - just push as constant
                 interp.push(entry_copy.value);
-                Ok(())
             }
+            Ok(())
         },
-
-        // RUST CONCEPT: Custom error types
-        // If the atom isn't in the dictionary, it's an undefined word error
         None => {
-            // RUST CONCEPT: Converting Rc<str> to String for error messages
-            // &**atom_name dereferences the Rc, then the str, then takes a reference
-            // .to_string() converts &str to owned String
             Err(RuntimeError::UndefinedWord((&**atom_name).to_string()))
         }
     }
 }
+
+// RUST CONCEPT: Public functions that other modules can use
+// This is the main entry point for executing Uni values
+// Now uses continuation-based execution for tail-call optimization
+pub fn execute(value: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    execute_with_continuations(value, interp)
+}
+
+// RUST CONCEPT: Helper function to execute a list as code
+// This is used by execute_atom for executable definitions, eval, and if
+// Now uses continuation-based execution for tail-call optimization
+#[allow(dead_code)]  // Kept as public API, may be used by external code
+pub fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    // Forward to the main continuation-based executor
+    execute_with_continuations(list, interp)
+}
+
+// NOTE: Old execute_atom function removed - now using execute_atom_with_continuations
 
 // RUST CONCEPT: Top-level execution function
 // This parses and executes a string of Uni code
@@ -319,6 +392,66 @@ mod tests {
 
         // Stack should be empty
         assert!(interp.pop().is_err());
+    }
+
+    // RUST CONCEPT: Tail-call optimization tests
+    // These tests demonstrate that the continuation-based evaluator
+    // provides proper tail-call optimization for recursive functions
+
+    #[test]
+    fn test_tail_recursive_factorial() {
+        let mut interp = setup_interpreter();
+
+        // Define simple tail-recursive countdown
+        execute_string("'count-down [dup 1 <= [drop 999] [1 - count-down] if] def", &mut interp).unwrap();
+
+        // Test with small value
+        execute_string("5 count-down", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 999.0));
+    }
+
+    #[test]
+    fn test_deep_tail_recursion() {
+        let mut interp = setup_interpreter();
+
+        // Define a tail-recursive countdown that would overflow regular recursion
+        execute_string("'countdown [dup 0 <= [drop 42] [1 - countdown] if] def", &mut interp).unwrap();
+
+        // Test with moderately deep recursion (this would cause stack overflow without TCO)
+        execute_string("1000 countdown", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 42.0));
+    }
+
+    #[test]
+    fn test_mutually_tail_recursive_functions() {
+        let mut interp = setup_interpreter();
+
+        // Define mutually recursive even/odd functions using available primitives
+        execute_string("'even [dup 0 = [drop true] [1 - odd] if] def", &mut interp).unwrap();
+        execute_string("'odd [dup 0 = [drop false] [1 - even] if] def", &mut interp).unwrap();
+
+        // Test even/odd with moderate numbers
+        execute_string("10 even", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        execute_string("11 odd", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+    }
+
+    #[test]
+    fn test_tail_call_in_if_branches() {
+        let mut interp = setup_interpreter();
+
+        // Test that both branches of if are tail-call optimized
+        execute_string("'branch-test [dup 10 > [drop 99] [1 + branch-test] if] def", &mut interp).unwrap();
+
+        execute_string("5 branch-test", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 99.0));
     }
 
     #[test]

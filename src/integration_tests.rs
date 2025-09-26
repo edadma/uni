@@ -2,13 +2,13 @@
 // These tests verify that the interpreter correctly executes non-trivial programs
 // by parsing and evaluating hardcoded code strings rather than files
 
-use crate::interpreter::Interpreter;
-use crate::value::{Value, RuntimeError};
-use crate::evaluator::execute_string;
+// Imports are only needed in test module
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::interpreter::Interpreter;
+    use crate::value::{Value, RuntimeError};
+    use crate::evaluator::execute_string;
 
     fn setup_interpreter() -> Interpreter {
         Interpreter::new()
