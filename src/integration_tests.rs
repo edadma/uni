@@ -96,4 +96,61 @@ mod tests {
         assert!(matches!(result, Value::Number(6.0)),
                 "Expected length operations result = 6, got {:?}", result);
     }
+
+    #[test]
+    fn test_mutually_recursive_tail_call_optimization() {
+        // RUST CONCEPT: Testing mutual tail recursion with large iteration count
+        // This verifies that the continuation-based evaluator properly handles
+        // tail-call optimization across different functions calling each other
+        // Without TCO, this would cause stack overflow at deep recursion levels
+        let mutual_recursion_code = r#"
+            \ Define two functions that call each other recursively
+            \ This creates a "bounce" effect that tests cross-function TCO
+            'mutual-a [
+                dup 0 =                \ ( n -- n bool ) check if n == 0
+                [drop 42]              \ base case: return 42 when done
+                [1 - mutual-b]         \ recursive case: decrement and call mutual-b
+                if
+            ] def
+
+            'mutual-b [
+                dup 0 =                \ ( n -- n bool ) check if n == 0
+                [drop 42]              \ base case: return 42 when done
+                [1 - mutual-a]         \ recursive case: decrement and call mutual-a
+                if
+            ] def
+
+            \ Test with a large number that would cause stack overflow
+            \ without proper tail-call optimization
+            \ This bounces between the two functions 1000 times
+            5000 mutual-a
+        "#;
+
+        let result = execute_and_get_top(mutual_recursion_code).unwrap();
+        assert!(matches!(result, Value::Number(42.0)),
+                "Expected mutual recursion result = 42, got {:?}", result);
+    }
+
+    #[test]
+    fn test_deep_single_tail_recursion() {
+        // RUST CONCEPT: Testing deep tail recursion in a single function
+        // This verifies that tail-call optimization works for self-recursive functions
+        let deep_recursion_code = r#"
+            \ Define a function that recursively counts down to zero
+            \ This tests single-function tail-call optimization
+            'countdown [
+                dup 0 =                \ ( n -- n bool ) check if n == 0
+                [drop 99]              \ base case: return 99 when done
+                [1 - countdown]        \ tail-recursive case: decrement and recurse
+                if
+            ] def
+
+            \ Test with large number that would overflow without TCO
+            2000 countdown
+        "#;
+
+        let result = execute_and_get_top(deep_recursion_code).unwrap();
+        assert!(matches!(result, Value::Number(99.0)),
+                "Expected deep recursion result = 99, got {:?}", result);
+    }
 }
