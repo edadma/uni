@@ -9,8 +9,10 @@ mod stdlib;
 mod integration_tests;
 
 use interpreter::Interpreter;
-use value::{Value, RuntimeError};
+use value::RuntimeError;
 use std::env;
+use rustyline::DefaultEditor;
+use rustyline::error::ReadlineError;
 
 fn main() {
     // RUST CONCEPT: Command-line argument parsing with std::env::args()
@@ -19,8 +21,8 @@ fn main() {
 
     // RUST CONCEPT: Pattern matching on argument count and content
     match args.len() {
-        // No arguments - run demo
-        1 => run_demo(),
+        // No arguments - run REPL
+        1 => run_repl(),
 
         // One argument - execute file or show help
         2 => {
@@ -31,7 +33,7 @@ fn main() {
                 eprintln!("  {} -f [file.uni]        # Execute Uni file (explicit)", args[0]);
                 eprintln!("  {} -c \"code\"            # Execute code string", args[0]);
                 eprintln!("  {} -e \"code\"            # Execute code and print result", args[0]);
-                eprintln!("  {}                      # Run interactive demo", args[0]);
+                eprintln!("  {}                      # Run interactive REPL", args[0]);
                 std::process::exit(1);
             } else {
                 execute_file(&args[1]);
@@ -60,7 +62,7 @@ fn main() {
                     eprintln!("  {} -f [file.uni]        # Execute Uni file (explicit)", args[0]);
                     eprintln!("  {} -c \"code\"            # Execute code string", args[0]);
                     eprintln!("  {} -e \"code\"            # Execute code and print result", args[0]);
-                    eprintln!("  {}                      # Run interactive demo", args[0]);
+                    eprintln!("  {}                      # Run interactive REPL", args[0]);
                     std::process::exit(1);
                 }
             }
@@ -153,293 +155,147 @@ fn execute_code(code: &str, auto_print: bool) {
 }
 
 // RUST CONCEPT: Function extraction for code organization
-// Run the interactive demo (original main() code)
-fn run_demo() {
-    println!("Uni interpreter starting...");
+// Run the interactive REPL (Read-Eval-Print Loop)
+fn run_repl() {
+    println!("Uni Language v0.0.1");
+    println!("Type 'quit' or press Ctrl-D to exit");
+    println!("Type 'stack' to see the current stack");
+    println!("Type 'clear' to clear the stack");
+    println!("Type 'words' to see defined words\n");
+
+    // RUST CONCEPT: Result type for error handling in Rust
+    // rustyline provides readline functionality with history and editing
+    let mut rl = match DefaultEditor::new() {
+        Ok(editor) => editor,
+        Err(e) => {
+            eprintln!("Failed to initialize readline: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     // RUST CONCEPT: Automatic initialization
-    // Interpreter::new() now automatically loads builtins and stdlib
+    // Interpreter::new() automatically loads builtins and stdlib
     let mut interp = Interpreter::new();
 
-    interp.push(Value::Number(42.0));
-    println!("Pushed number: 42.0");
+    // RUST CONCEPT: Infinite loop with break
+    loop {
+        // RUST CONCEPT: Match expression for comprehensive error handling
+        match rl.readline("uni> ") {
+            Ok(line) => {
+                // RUST CONCEPT: String trimming to remove whitespace
+                let line = line.trim();
 
-    let hello_atom = interp.intern_atom("hello");
-    interp.push(Value::Atom(hello_atom));
-    println!("Pushed atom: hello");
+                // Check for special REPL commands
+                match line {
+                    "quit" => {
+                        println!("Goodbye!");
+                        break;
+                    },
+                    "stack" => {
+                        // Display the current stack
+                        print_stack(&interp);
+                        continue;
+                    },
+                    "clear" => {
+                        // Clear the stack
+                        interp.stack.clear();
+                        println!("Stack cleared");
+                        continue;
+                    },
+                    "words" => {
+                        // Display all defined words
+                        print_words(&interp);
+                        continue;
+                    },
+                    "" => {
+                        // Empty line, just continue
+                        continue;
+                    },
+                    _ => {
+                        // Execute the line as Uni code
+                        execute_repl_line(line, &mut interp);
+                    }
+                }
 
-    let list = interp.make_list(vec![
-        Value::Number(1.0),
-        Value::Number(2.0),
-        Value::Number(3.0)
-    ]);
-    interp.push(list);
-    println!("Pushed list: [1 2 3] (as cons cells)");
-
-    println!("Defined builtin: +");
-
-    interp.push(Value::Number(5.0));
-    interp.push(Value::Number(3.0));
-
-    let plus_atom = interp.intern_atom("+");
-    if let Some(entry) = interp.dictionary.get(&plus_atom) {
-        if let Value::Builtin(func) = &entry.value {
-            match func(&mut interp) {
-                Ok(()) => println!("Successfully called + builtin"),
-                Err(e) => println!("Error calling +: {:?}", e),
+                // RUST CONCEPT: Adding to history for recall
+                // Ignore errors from add_history (not critical)
+                let _ = rl.add_history_entry(line);
+            },
+            Err(ReadlineError::Interrupted) => {
+                // RUST CONCEPT: Handling Ctrl-C
+                println!("\nInterrupted. Use 'quit' or Ctrl-D to exit.");
+            },
+            Err(ReadlineError::Eof) => {
+                // RUST CONCEPT: Handling Ctrl-D (EOF)
+                println!("\nGoodbye!");
+                break;
+            },
+            Err(err) => {
+                // RUST CONCEPT: Other readline errors
+                eprintln!("Error reading line: {}", err);
+                break;
             }
         }
     }
+}
 
-    match interp.pop() {
-        Ok(Value::Number(n)) => println!("Result: {}", n),
-        Ok(other) => println!("Got non-number: {:?}", other),
-        Err(e) => println!("Error: {:?}", e),
-    }
-
-    match interp.pop() {
-        Ok(val) => println!("Unexpected value: {:?}", val),
-        Err(RuntimeError::StackUnderflow) => println!("Caught stack underflow as expected"),
-        Err(e) => println!("Unexpected error: {:?}", e),
-    }
-
-    interp.push(Value::Nil);
-    println!("Pushed empty list (Nil)");
-
-    let not_number_atom = interp.intern_atom("not-a-number");
-    interp.push(Value::Atom(not_number_atom));
-    match interp.pop_number() {
-        Ok(n) => println!("Unexpected number: {}", n),
-        Err(RuntimeError::TypeError(msg)) => println!("Caught type error: {}", msg),
-        Err(e) => println!("Unexpected error: {:?}", e),
-    }
-
-    // Test string handling
-    use std::rc::Rc;
-    let string_val: Rc<str> = "Hello, Uni!".into();
-    interp.push(Value::String(string_val));
-    println!("Pushed string: \"Hello, Uni!\"");
-
-    match interp.pop_string() {
-        Ok(s) => println!("Retrieved string: \"{}\"", s),
-        Err(e) => println!("Error retrieving string: {:?}", e),
-    }
-
-    // Test boolean handling
-    interp.push(Value::Boolean(true));
-    println!("Pushed boolean: true");
-
-    match interp.pop_boolean() {
-        Ok(b) => println!("Retrieved boolean: {}", b),
-        Err(e) => println!("Error retrieving boolean: {:?}", e),
-    }
-
-    interp.push(Value::Boolean(false));
-    println!("Pushed boolean: false");
-
-    // Test null handling
-    interp.push(Value::Null);
-    println!("Pushed null value");
-
-    match interp.pop() {
-        Ok(Value::Null) => println!("Retrieved null value"),
-        Ok(other) => println!("Got unexpected value: {:?}", other),
-        Err(e) => println!("Error retrieving value: {:?}", e),
-    }
-
-    // Test parser functionality
-    use parser::parse;
-    println!("\n--- Parser Demo ---");
-
-    // Parse some Uni code
-    let code = "[1 2 +] 'hello \"world\" [a . b]";
-    println!("Parsing: {}", code);
-
-    match parse(code, &mut interp) {
-        Ok(values) => {
-            println!("Parsed {} values:", values.len());
-            for (i, value) in values.iter().enumerate() {
-                println!("  {}: {:?}", i, value);
-            }
-        },
-        Err(e) => println!("Parse error: {:?}", e),
-    }
-
-    // Test execution functionality
+// RUST CONCEPT: Helper function for REPL line execution
+fn execute_repl_line(line: &str, interp: &mut Interpreter) {
     use evaluator::execute_string;
-    println!("\n--- Execution Demo ---");
 
-    // Demo 1: Execute simple arithmetic
-    println!("Executing: 5 3 +");
-    match execute_string("5 3 +", &mut interp) {
+    // RUST CONCEPT: Match for error handling
+    match execute_string(line, interp) {
         Ok(()) => {
-            match interp.pop() {
-                Ok(Value::Number(n)) => println!("Result: {}", n),
-                Ok(other) => println!("Got non-number: {:?}", other),
-                Err(e) => println!("Error popping result: {:?}", e),
-            }
-        },
-        Err(e) => println!("Execution error: {:?}", e),
-    }
-
-    // Demo 2: Execute quoted atoms (should just push the atom)
-    println!("\nExecuting: 'hello");
-    match execute_string("'hello", &mut interp) {
-        Ok(()) => {
-            match interp.pop() {
-                Ok(Value::Atom(atom)) => println!("Result: atom '{}'", atom),
-                Ok(other) => println!("Got unexpected: {:?}", other),
-                Err(e) => println!("Error popping result: {:?}", e),
-            }
-        },
-        Err(e) => println!("Execution error: {:?}", e),
-    }
-
-    // Demo 3: Execute list as data, then exec it
-    println!("\nExecuting: [10 2 /] exec");
-    match execute_string("[10 2 /] exec", &mut interp) {
-        Ok(()) => {
-            match interp.pop() {
-                Ok(Value::Number(n)) => println!("Result: {}", n),
-                Ok(other) => println!("Got non-number: {:?}", other),
-                Err(e) => println!("Error popping result: {:?}", e),
-            }
-        },
-        Err(e) => println!("Execution error: {:?}", e),
-    }
-
-    // Demo 4: Define and use constants with val
-    println!("\nDefining constant with val: 'pi 3.14159 val");
-    match execute_string("'pi 3.14159 val", &mut interp) {
-        Ok(()) => println!("Defined pi as constant"),
-        Err(e) => println!("Error defining pi: {:?}", e),
-    }
-
-    // Use the constant - it executes by pushing its value
-    println!("Using constant: pi");
-    match execute_string("pi", &mut interp) {
-        Ok(()) => {
-            match interp.pop() {
-                Ok(Value::Number(n)) => println!("pi = {}", n),
-                Ok(other) => println!("Got unexpected: {:?}", other),
-                Err(e) => println!("Error popping pi: {:?}", e),
-            }
-        },
-        Err(e) => println!("Error executing pi: {:?}", e),
-    }
-
-    // Demo 5: Define procedures with def
-    println!("\nDefining procedure with def: 'square [dup *] def");
-    match execute_string("'square [dup *] def", &mut interp) {
-        Ok(()) => println!("Defined square procedure"),
-        Err(e) => println!("Error defining square: {:?}", e),
-    }
-
-    // Use the procedure - lists are data by default, so we need exec
-    println!("Using procedure: 7 square exec");
-    match execute_string("7 square exec", &mut interp) {
-        Ok(()) => {
-            match interp.pop() {
-                Ok(Value::Number(n)) => println!("7 squared = {}", n),
-                Ok(other) => println!("Got unexpected: {:?}", other),
-                Err(e) => println!("Error popping result: {:?}", e),
-            }
-        },
-        Err(e) => println!("Error executing square: {:?}", e),
-    }
-
-    // Demo 6: Show the difference - square pushes the list, exec executes it
-    println!("\nJust calling square (without exec): 9 square");
-    match execute_string("9 square", &mut interp) {
-        Ok(()) => {
-            // Should have 9 and the list [dup *] on stack
-            if let Ok(list_val) = interp.pop() {
-                if let Ok(num_val) = interp.pop() {
-                    println!("Got number: {:?} and procedure: {:?}", num_val, list_val);
-                } else {
-                    println!("Got procedure: {:?}", list_val);
+            // Execution succeeded, show top of stack if non-empty
+            if !interp.stack.is_empty() {
+                // RUST CONCEPT: Getting the last element without removing it
+                if let Some(top) = interp.stack.last() {
+                    println!(" => {}", top);
                 }
             }
         },
-        Err(e) => println!("Error: {:?}", e),
+        Err(e) => {
+            // RUST CONCEPT: Error formatting with Display trait
+            eprintln!("Error: {:?}", e);
+        }
     }
+}
 
-    // Demo 7: Show that def works for constants too (like Scheme's define)
-    println!("\nUsing def for constants: 'answer 42 def");
-    match execute_string("'answer 42 def", &mut interp) {
-        Ok(()) => println!("Defined answer as constant with def"),
-        Err(e) => println!("Error: {:?}", e),
-    }
-
-    println!("Using def-defined constant: answer");
-    match execute_string("answer", &mut interp) {
-        Ok(()) => {
-            match interp.pop() {
-                Ok(Value::Number(n)) => println!("answer = {}", n),
-                Ok(other) => println!("Got: {:?}", other),
-                Err(e) => println!("Error: {:?}", e),
+// RUST CONCEPT: Helper function to display the stack
+fn print_stack(interp: &Interpreter) {
+    if interp.stack.is_empty() {
+        println!("Stack is empty");
+    } else {
+        println!("Stack ({} items):", interp.stack.len());
+        // RUST CONCEPT: Iterating in reverse to show top first
+        for (i, value) in interp.stack.iter().rev().enumerate() {
+            if i >= 10 {
+                println!("  ... and {} more", interp.stack.len() - 10);
+                break;
             }
-        },
-        Err(e) => println!("Error: {:?}", e),
+            println!("  {}: {}", i, value);
+        }
     }
+}
 
-    // Demo 8: List construction with cons
-    println!("\n--- List Construction Demo ---");
-    println!("Using cons primitive: 1 [2 3] cons");
-    match execute_string("1 [2 3] cons", &mut interp) {
-        Ok(()) => {
-            match interp.pop() {
-                Ok(list) => println!("Result: {}", list),
-                Err(e) => println!("Error popping result: {:?}", e),
+// RUST CONCEPT: Helper function to display defined words
+fn print_words(interp: &Interpreter) {
+    if interp.dictionary.is_empty() {
+        println!("No words defined");
+    } else {
+        // RUST CONCEPT: Collecting and sorting for display
+        let mut words: Vec<_> = interp.dictionary.keys()
+            .map(|k| k.as_ref())
+            .collect();
+        words.sort();
+
+        println!("Defined words ({}):", words.len());
+        // RUST CONCEPT: Chunking for columnar display
+        for chunk in words.chunks(5) {
+            for word in chunk {
+                print!("{:15} ", word);
             }
-        },
-        Err(e) => println!("Error: {:?}", e),
+            println!();
+        }
     }
-
-    println!("Building list step by step: 'hello [] cons 42 swap cons");
-    match execute_string("'hello [] cons 42 swap cons", &mut interp) {
-        Ok(()) => {
-            match interp.pop() {
-                Ok(list) => println!("Result: {}", list),
-                Err(e) => println!("Error popping result: {:?}", e),
-            }
-        },
-        Err(e) => println!("Error: {:?}", e),
-    }
-
-    // Demo 9: List construction with list builtin
-    println!("\nUsing list primitive: 1 2 3 3 list");
-    match execute_string("1 2 3 3 list", &mut interp) {
-        Ok(()) => {
-            match interp.pop() {
-                Ok(list) => println!("Result: {}", list),
-                Err(e) => println!("Error popping result: {:?}", e),
-            }
-        },
-        Err(e) => println!("Error: {:?}", e),
-    }
-
-    println!("Creating empty list: 0 list");
-    match execute_string("0 list", &mut interp) {
-        Ok(()) => {
-            match interp.pop() {
-                Ok(list) => println!("Result: {}", list),
-                Err(e) => println!("Error popping result: {:?}", e),
-            }
-        },
-        Err(e) => println!("Error: {:?}", e),
-    }
-
-    println!("Mixed types in list: 'hello 42 true 3 list");
-    match execute_string("'hello 42 true 3 list", &mut interp) {
-        Ok(()) => {
-            match interp.pop() {
-                Ok(list) => println!("Result: {}", list),
-                Err(e) => println!("Error popping result: {:?}", e),
-            }
-        },
-        Err(e) => println!("Error: {:?}", e),
-    }
-
-    println!("\nUni interpreter with cons and list primitives demo complete!");
 }
