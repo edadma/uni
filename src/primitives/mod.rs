@@ -64,8 +64,7 @@ pub mod tail;
 pub mod def;
 pub mod val;
 
-// Control flow
-pub mod if_primitive;
+// Control flow - if is now handled specially in the evaluator
 
 // I/O operations
 pub mod print;
@@ -143,8 +142,7 @@ pub use tail::tail_builtin;
 pub use def::def_builtin;
 pub use val::val_builtin;
 
-// Control flow
-pub use if_primitive::if_builtin;
+// Control flow - if is now handled specially in the evaluator
 
 // I/O operations
 pub use print::print_builtin;

@@ -26,8 +26,7 @@ use crate::primitives::{
     cons_builtin, list_builtin, head_builtin, tail_builtin,
     // Meta operations
     def_builtin, val_builtin,
-    // Control flow
-    if_builtin,
+    // Control flow - if is now special in evaluator
     // I/O operations
     print_builtin,
     // Predicate operations
@@ -94,14 +93,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         is_executable: true,
     });
 
-    // NOTE: eval is now handled specially in the evaluator, not as a builtin
-
-    // Control flow
-    let if_atom = interp.intern_atom("if");
-    interp.dictionary.insert(if_atom, DictEntry {
-        value: Value::Builtin(if_builtin),
-        is_executable: true,
-    });
+    // NOTE: eval and if are now handled specially in the evaluator, not as builtins
 
     // Dictionary operations
     let def_atom = interp.intern_atom("def");
@@ -367,7 +359,7 @@ mod tests {
             // Return stack operations
             ">r", "r>", "r@",
             // Control flow & meta
-            "if", "def", "val",  // eval is now special in evaluator
+            "def", "val",  // eval and if are now special in evaluator
             // I/O operations
             "pr",
             // List operations

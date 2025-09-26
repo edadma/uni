@@ -94,15 +94,15 @@ impl Interpreter {
 
     pub fn is_truthy(&self, value: &Value) -> bool {
         match value {
-            Value::Boolean(b) => *b,
-            Value::Null => false,
-            Value::Nil => false,
-            Value::Number(n) => *n != 0.0,
-            Value::String(s) => !s.is_empty(),
-            Value::Atom(_) => true,
-            Value::QuotedAtom(_) => true,
-            Value::Pair(_, _) => true,
-            Value::Builtin(_) => true,
+            Value::Boolean(b) => *b,        // false is falsy, true is truthy
+            Value::Null => false,           // null is falsy (like JS)
+            Value::Nil => true,             // empty list is truthy (like [] in JS)
+            Value::Number(n) => *n != 0.0,  // 0 is falsy, everything else truthy (like JS)
+            Value::String(s) => !s.is_empty(), // "" is falsy, non-empty is truthy (like JS)
+            Value::Atom(_) => true,         // atoms are truthy
+            Value::QuotedAtom(_) => true,   // quoted atoms are truthy
+            Value::Pair(_, _) => true,      // non-empty lists are truthy
+            Value::Builtin(_) => true,      // builtins are truthy
         }
     }
 
@@ -366,9 +366,9 @@ mod tests {
         assert!(interp.is_truthy(&Value::Boolean(true)));
         assert!(!interp.is_truthy(&Value::Boolean(false)));
 
-        // Null and Nil are falsy
+        // Null is falsy, Nil (empty list) is truthy (like JS)
         assert!(!interp.is_truthy(&Value::Null));
-        assert!(!interp.is_truthy(&Value::Nil));
+        assert!(interp.is_truthy(&Value::Nil));
 
         // Numbers: 0 is falsy, everything else is truthy
         assert!(!interp.is_truthy(&Value::Number(0.0)));

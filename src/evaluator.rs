@@ -114,14 +114,29 @@ pub fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), Runtim
 // RUST CONCEPT: Helper functions for code organization
 // This handles the specific logic for executing atoms (looking them up in dictionary)
 fn execute_atom(atom_name: &Rc<str>, interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Special handling for eval
-    // eval is now a special form, not a primitive
+    // RUST CONCEPT: Special handling for eval and if
+    // These are now special forms, not primitives
     if &**atom_name == "eval" {
         // Pop value from stack and execute it
         let value = interp.pop()?;
         // For lists, execute_list handles both proper lists and single values
         // For non-lists, execute handles them directly
         return execute_list(&value, interp);
+    }
+
+    if &**atom_name == "if" {
+        // if ( condition true-branch false-branch -- ... )
+        // Pop in reverse order: false-branch, true-branch, condition
+        let false_branch = interp.pop()?;
+        let true_branch = interp.pop()?;
+        let condition = interp.pop()?;
+
+        // Use the interpreter's is_truthy method for consistency
+        let is_true = interp.is_truthy(&condition);
+        let branch_to_execute = if is_true { true_branch } else { false_branch };
+
+        // Execute the chosen branch
+        return execute_list(&branch_to_execute, interp);
     }
 
     // RUST CONCEPT: HashMap lookups return Option<T>

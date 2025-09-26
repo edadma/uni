@@ -34,6 +34,7 @@ mod tests {
             Value::Number(42.0),
             Value::String("hello".into()),
             Value::String("false".into()),  // String "false" is truthy!
+            Value::Nil,  // empty list is truthy (like [] in JS)
             Value::Atom(interp.intern_atom("test")),
             Value::QuotedAtom(interp.intern_atom("quoted")),
             Value::Pair(std::rc::Rc::new(Value::Number(1.0)), std::rc::Rc::new(Value::Nil)),
@@ -53,7 +54,7 @@ mod tests {
             Value::Number(0.0),
             Value::String("".into()),
             Value::Null,
-            Value::Nil,
+            // Note: Nil is truthy (like [] in JS), so it's not in this list
         ];
 
         for (i, test_value) in falsy_cases.into_iter().enumerate() {
