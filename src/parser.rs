@@ -24,28 +24,26 @@ use crate::interpreter::Interpreter;
 // #[derive(Debug)] automatically implements Debug trait so we can print errors
 // This is separate from RuntimeError because parsing happens before execution
 #[derive(Debug)]
-#[allow(dead_code)]  // Field usage in tests not recognized by dead_code analysis
 pub enum ParseError {
-    UnexpectedToken(String),        // Got a token we didn't expect (used via message() method)
+    UnexpectedToken(String),        // Got a token we didn't expect
     UnexpectedEndOfInput,           // Ran out of tokens when we needed more
     MismatchedBrackets,             // [ without matching ] or vice versa
     InvalidDotNotation,             // Malformed [a . b] pair syntax
 }
 
-impl ParseError {
-    // RUST CONCEPT: Accessing enum fields to silence dead_code warning
-    // This method explicitly uses the String field in UnexpectedToken
-    // Note: Used in tests, but compiler doesn't recognize test-only usage
-    #[allow(dead_code)]
-    pub fn message(&self) -> String {
+// RUST CONCEPT: Display trait implementation for better error messages
+// This ensures the String field in UnexpectedToken is actually used
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParseError::UnexpectedToken(msg) => msg.clone(),
-            ParseError::UnexpectedEndOfInput => "Unexpected end of input".to_string(),
-            ParseError::MismatchedBrackets => "Mismatched brackets".to_string(),
-            ParseError::InvalidDotNotation => "Invalid dot notation".to_string(),
+            ParseError::UnexpectedToken(msg) => write!(f, "{}", msg),
+            ParseError::UnexpectedEndOfInput => write!(f, "Unexpected end of input"),
+            ParseError::MismatchedBrackets => write!(f, "Mismatched brackets"),
+            ParseError::InvalidDotNotation => write!(f, "Invalid dot notation"),
         }
     }
 }
+
 
 // RUST CONCEPT: From trait
 // This lets us convert ParseError into RuntimeError when needed
@@ -309,6 +307,18 @@ fn parse_list(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) -> 
 #[cfg(test)]
 mod tests {
     use super::*;  // RUST CONCEPT: Import everything from parent module
+
+    // Test-only helper method for ParseError
+    impl ParseError {
+        fn message(&self) -> String {
+            match self {
+                ParseError::UnexpectedToken(msg) => msg.clone(),
+                ParseError::UnexpectedEndOfInput => "Unexpected end of input".to_string(),
+                ParseError::MismatchedBrackets => "Mismatched brackets".to_string(),
+                ParseError::InvalidDotNotation => "Invalid dot notation".to_string(),
+            }
+        }
+    }
     use super::ParseError;  // RUST CONCEPT: Explicit import to help compiler see usage
 
     // RUST CONCEPT: Test functions

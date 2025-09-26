@@ -72,23 +72,6 @@ impl Interpreter {
         })
     }
 
-    #[allow(dead_code)]
-    pub fn pop_string(&mut self) -> Result<Rc<str>, RuntimeError> {
-        let value = self.pop()?;
-        match value {
-            Value::String(s) => Ok(s),
-            _ => Err(RuntimeError::TypeError("Expected string".to_string())),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn pop_boolean(&mut self) -> Result<bool, RuntimeError> {
-        let value = self.pop()?;
-        match value {
-            Value::Boolean(b) => Ok(b),
-            _ => Err(RuntimeError::TypeError("Expected boolean".to_string())),
-        }
-    }
 
     pub fn is_null(&self, value: &Value) -> bool {
         matches!(value, Value::Null)
@@ -127,6 +110,25 @@ impl Interpreter {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Test-only helper methods
+    impl Interpreter {
+        fn pop_string(&mut self) -> Result<Rc<str>, RuntimeError> {
+            let value = self.pop()?;
+            match value {
+                Value::String(s) => Ok(s),
+                _ => Err(RuntimeError::TypeError("Expected string".to_string())),
+            }
+        }
+
+        fn pop_boolean(&mut self) -> Result<bool, RuntimeError> {
+            let value = self.pop()?;
+            match value {
+                Value::Boolean(b) => Ok(b),
+                _ => Err(RuntimeError::TypeError("Expected boolean".to_string())),
+            }
+        }
+    }
 
     #[test]
     fn test_atom_interning() {

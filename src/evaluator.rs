@@ -240,15 +240,6 @@ pub fn execute(value: &Value, interp: &mut Interpreter) -> Result<(), RuntimeErr
     execute_with_continuations(value, interp)
 }
 
-// RUST CONCEPT: Helper function to execute a list as code
-// This is used by execute_atom for executable definitions, exec, and if
-// Now uses continuation-based execution for tail-call optimization
-#[allow(dead_code)]  // Kept as public API, may be used by external code
-pub fn execute_list(list: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // Forward to the main continuation-based executor
-    execute_with_continuations(list, interp)
-}
-
 // NOTE: Old execute_atom function removed - now using execute_atom_with_continuations
 
 // RUST CONCEPT: Top-level execution function
