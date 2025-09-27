@@ -6,9 +6,9 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::interpreter::Interpreter;
-    use crate::value::{Value, RuntimeError};
     use crate::evaluator::execute_string;
+    use crate::interpreter::Interpreter;
+    use crate::value::{RuntimeError, Value};
 
     fn setup_interpreter() -> Interpreter {
         Interpreter::new()
@@ -44,8 +44,11 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(factorial_code).unwrap();
-        assert!(matches!(result, Value::Number(120.0)),
-                "Expected factorial(5) = 120, got {:?}", result);
+        assert!(
+            matches!(result, Value::Number(120.0)),
+            "Expected factorial(5) = 120, got {:?}",
+            result
+        );
     }
 
     #[test]
@@ -71,8 +74,11 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(fibonacci_code).unwrap();
-        assert!(matches!(result, Value::Number(13.0)),
-                "Expected fibonacci(7) = 13, got {:?}", result);
+        assert!(
+            matches!(result, Value::Number(13.0)),
+            "Expected fibonacci(7) = 13, got {:?}",
+            result
+        );
     }
 
     #[test]
@@ -93,8 +99,11 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(list_processing_code).unwrap();
-        assert!(matches!(result, Value::Number(6.0)),
-                "Expected length operations result = 6, got {:?}", result);
+        assert!(
+            matches!(result, Value::Number(6.0)),
+            "Expected length operations result = 6, got {:?}",
+            result
+        );
     }
 
     #[test]
@@ -127,8 +136,11 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(mutual_recursion_code).unwrap();
-        assert!(matches!(result, Value::Number(42.0)),
-                "Expected mutual recursion result = 42, got {:?}", result);
+        assert!(
+            matches!(result, Value::Number(42.0)),
+            "Expected mutual recursion result = 42, got {:?}",
+            result
+        );
     }
 
     #[test]
@@ -150,7 +162,10 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(deep_recursion_code).unwrap();
-        assert!(matches!(result, Value::Number(99.0)),
-                "Expected deep recursion result = 99, got {:?}", result);
+        assert!(
+            matches!(result, Value::Number(99.0)),
+            "Expected deep recursion result = 99, got {:?}",
+            result
+        );
     }
 }

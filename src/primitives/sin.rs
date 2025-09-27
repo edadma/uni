@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn sin_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let n = interp.pop_number()?;
@@ -88,7 +88,7 @@ mod tests {
         let mut interp = setup_interpreter();
 
         let test_cases = [
-            (PI / 6.0, 0.5),           // sin(30°) = 0.5
+            (PI / 6.0, 0.5),                  // sin(30°) = 0.5
             (PI / 4.0, 2.0_f64.sqrt() / 2.0), // sin(45°) = √2/2
             (PI / 3.0, 3.0_f64.sqrt() / 2.0), // sin(60°) = √3/2
         ];
@@ -97,8 +97,13 @@ mod tests {
             interp.push(Value::Number(input));
             sin_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if (n - expected).abs() < 1e-15),
-                   "sin({}) should be approximately {}, got {:?}", input, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if (n - expected).abs() < 1e-15),
+                "sin({}) should be approximately {}, got {:?}",
+                input,
+                expected,
+                result
+            );
         }
     }
 

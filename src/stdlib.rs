@@ -2,8 +2,8 @@
 // This module contains Uni's standard library definitions
 // Following the Forth tradition, we define higher-level operations in terms of primitives
 
-use crate::interpreter::Interpreter;
 use crate::evaluator::execute_string;
+use crate::interpreter::Interpreter;
 use crate::value::RuntimeError;
 
 // RUST CONCEPT: Standard library initialization
@@ -412,5 +412,4 @@ mod tests {
         let result = interp.pop().unwrap();
         assert!(matches!(result, Value::Number(n) if n == 10.0));
     }
-
 }

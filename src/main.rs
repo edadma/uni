@@ -1,18 +1,18 @@
-mod value;
-mod interpreter;
 mod builtins;
-mod primitives;  // RUST CONCEPT: New modular primitives organization
-mod tokenizer;
-mod parser;
 mod evaluator;
-mod stdlib;
 mod integration_tests;
+mod interpreter;
+mod parser;
+mod primitives; // RUST CONCEPT: New modular primitives organization
+mod stdlib;
+mod tokenizer;
+mod value;
 
 use interpreter::Interpreter;
-use value::RuntimeError;
-use std::env;
 use rustyline::DefaultEditor;
 use rustyline::error::ReadlineError;
+use std::env;
+use value::RuntimeError;
 
 fn main() {
     // RUST CONCEPT: Command-line argument parsing with std::env::args()
@@ -30,15 +30,21 @@ fn main() {
                 // Treat flags without arguments as help request
                 eprintln!("Usage:");
                 eprintln!("  {} [file.uni]           # Execute Uni file", args[0]);
-                eprintln!("  {} -f [file.uni]        # Execute Uni file (explicit)", args[0]);
+                eprintln!(
+                    "  {} -f [file.uni]        # Execute Uni file (explicit)",
+                    args[0]
+                );
                 eprintln!("  {} -c \"code\"            # Execute code string", args[0]);
-                eprintln!("  {} -e \"code\"            # Execute code and print result", args[0]);
+                eprintln!(
+                    "  {} -e \"code\"            # Execute code and print result",
+                    args[0]
+                );
                 eprintln!("  {}                      # Run interactive REPL", args[0]);
                 std::process::exit(1);
             } else {
                 execute_file(&args[1]);
             }
-        },
+        }
 
         // Two or more arguments - check for flags
         _ => {
@@ -46,22 +52,28 @@ fn main() {
                 "-c" => {
                     // Execute code without automatic printing
                     execute_code(&args[2], false);
-                },
+                }
                 "-e" => {
                     // Execute code with automatic printing of stack top
                     execute_code(&args[2], true);
-                },
+                }
                 "-f" => {
                     // Explicit file execution flag
                     execute_file(&args[2]);
-                },
+                }
                 _ => {
                     // Show usage and exit
                     eprintln!("Usage:");
                     eprintln!("  {} [file.uni]           # Execute Uni file", args[0]);
-                    eprintln!("  {} -f [file.uni]        # Execute Uni file (explicit)", args[0]);
+                    eprintln!(
+                        "  {} -f [file.uni]        # Execute Uni file (explicit)",
+                        args[0]
+                    );
                     eprintln!("  {} -c \"code\"            # Execute code string", args[0]);
-                    eprintln!("  {} -e \"code\"            # Execute code and print result", args[0]);
+                    eprintln!(
+                        "  {} -e \"code\"            # Execute code and print result",
+                        args[0]
+                    );
                     eprintln!("  {}                      # Run interactive REPL", args[0]);
                     std::process::exit(1);
                 }
@@ -73,8 +85,8 @@ fn main() {
 // RUST CONCEPT: File I/O and error handling
 // Execute a Uni source file
 fn execute_file(filename: &str) {
-    use std::fs;
     use evaluator::execute_string;
+    use std::fs;
 
     // RUST CONCEPT: Reading files with proper error handling
     let file_contents = match fs::read_to_string(filename) {
@@ -108,7 +120,7 @@ fn execute_file(filename: &str) {
             // File executed successfully
             // For files, we don't automatically print anything (unlike -e flag)
             // The file should use 'pr' if it wants to print output
-        },
+        }
         Err(e) => {
             eprintln!("Error executing '{}': {:?}", filename, e);
             std::process::exit(1);
@@ -136,17 +148,17 @@ fn execute_code(code: &str, auto_print: bool) {
                 match print_builtin(&mut interp) {
                     Ok(()) => {
                         // Successfully printed the top value
-                    },
+                    }
                     Err(RuntimeError::StackUnderflow) => {
                         // Empty stack is okay - just don't print anything
-                    },
+                    }
                     Err(e) => {
                         eprintln!("Error printing result: {:?}", e);
                         std::process::exit(1);
                     }
                 }
             }
-        },
+        }
         Err(e) => {
             eprintln!("Error: {:?}", e);
             std::process::exit(1);
@@ -196,38 +208,38 @@ fn run_repl() {
                     "quit" => {
                         println!("Goodbye!");
                         break;
-                    },
+                    }
                     "stack" => {
                         // Display the current stack
                         print_stack(&interp);
-                    },
+                    }
                     "clear" => {
                         // Clear the stack
                         interp.stack.clear();
                         println!("Stack cleared");
-                    },
+                    }
                     "words" => {
                         // Display all defined words
                         print_words(&interp);
-                    },
+                    }
                     "" => {
                         // Empty line, just continue
-                    },
+                    }
                     _ => {
                         // Execute the line as Uni code
                         execute_repl_line(line, &mut interp);
                     }
                 }
-            },
+            }
             Err(ReadlineError::Interrupted) => {
                 // RUST CONCEPT: Handling Ctrl-C
                 println!("\nInterrupted. Use 'quit' or Ctrl-D to exit.");
-            },
+            }
             Err(ReadlineError::Eof) => {
                 // RUST CONCEPT: Handling Ctrl-D (EOF)
                 println!("\nGoodbye!");
                 break;
-            },
+            }
             Err(err) => {
                 // RUST CONCEPT: Other readline errors
                 eprintln!("Error reading line: {}", err);
@@ -251,7 +263,7 @@ fn execute_repl_line(line: &str, interp: &mut Interpreter) {
                     println!(" => {}", top);
                 }
             }
-        },
+        }
         Err(e) => {
             // RUST CONCEPT: Error formatting with Display trait
             eprintln!("Error: {:?}", e);
@@ -282,9 +294,7 @@ fn print_words(interp: &Interpreter) {
         println!("No words defined");
     } else {
         // RUST CONCEPT: Collecting and sorting for display
-        let mut words: Vec<_> = interp.dictionary.keys()
-            .map(|k| k.as_ref())
-            .collect();
+        let mut words: Vec<_> = interp.dictionary.keys().map(|k| k.as_ref()).collect();
         words.sort();
 
         println!("Defined words ({}):", words.len());

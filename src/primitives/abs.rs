@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn abs_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let n = interp.pop_number()?;

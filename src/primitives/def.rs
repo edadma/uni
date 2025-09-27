@@ -1,7 +1,7 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 // RUST CONCEPT: The def builtin - defines new words in the dictionary
 // Usage: 'word-name definition def
@@ -14,8 +14,8 @@ pub fn def_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // 1. The definition (top of stack) - can be any Value
     // 2. The word name (second on stack) - must be an Atom
 
-    let definition = interp.pop()?;  // What to define the word as
-    let name_value = interp.pop()?;  // Name of the word to define
+    let definition = interp.pop()?; // What to define the word as
+    let name_value = interp.pop()?; // Name of the word to define
 
     // RUST CONCEPT: Pattern matching for type checking
     // The word name must be an Atom (interned string)
@@ -25,25 +25,25 @@ pub fn def_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             use crate::interpreter::DictEntry;
             let entry = DictEntry {
                 value: definition,
-                is_executable: true,  // def marks entries as executable
+                is_executable: true, // def marks entries as executable
             };
             interp.dictionary.insert(atom_name, entry);
             Ok(())
-        },
+        }
 
         // RUST CONCEPT: Descriptive error messages
         // If the name isn't an atom, we can't use it as a dictionary key
         _ => Err(RuntimeError::TypeError(
-            "def expects an atom as the word name (use 'word-name definition def)".to_string()
-        ))
+            "def expects an atom as the word name (use 'word-name definition def)".to_string(),
+        )),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::value::Value;
     use crate::interpreter::DictEntry;
+    use crate::value::Value;
 
     fn setup_interpreter() -> Interpreter {
         Interpreter::new()
@@ -56,8 +56,8 @@ mod tests {
         // RUST CONCEPT: Testing constant definition
         // Define pi as 3.14159: 'pi 3.14159 def
         let pi_atom = interp.intern_atom("pi");
-        interp.push(Value::Atom(pi_atom.clone()));      // Word name
-        interp.push(Value::Number(3.14159));    // Definition
+        interp.push(Value::Atom(pi_atom.clone())); // Word name
+        interp.push(Value::Number(3.14159)); // Definition
         def_builtin(&mut interp).unwrap();
 
         // Verify it was stored in dictionary
@@ -66,7 +66,10 @@ mod tests {
 
         // Verify we can retrieve the constant
         match interp.dictionary.get(&pi_lookup) {
-            Some(DictEntry { value: Value::Number(n), .. }) => assert!((n - 3.14159).abs() < 1e-10),
+            Some(DictEntry {
+                value: Value::Number(n),
+                ..
+            }) => assert!((n - 3.14159).abs() < 1e-10),
             _ => panic!("Expected pi to be defined as a number"),
         }
 
@@ -85,13 +88,10 @@ mod tests {
         let mul_atom = interp.intern_atom("*");
 
         // Create the procedure list [dup *]
-        let square_proc = interp.make_list(vec![
-            Value::Atom(dup_atom),
-            Value::Atom(mul_atom),
-        ]);
+        let square_proc = interp.make_list(vec![Value::Atom(dup_atom), Value::Atom(mul_atom)]);
 
-        interp.push(Value::Atom(square_atom.clone()));  // Word name
-        interp.push(square_proc);               // Definition
+        interp.push(Value::Atom(square_atom.clone())); // Word name
+        interp.push(square_proc); // Definition
         def_builtin(&mut interp).unwrap();
 
         // Verify it was stored in dictionary
@@ -100,7 +100,10 @@ mod tests {
 
         // Verify we can retrieve the procedure
         match interp.dictionary.get(&square_lookup) {
-            Some(DictEntry { value: Value::Pair(_, _), .. }) => (), // It's a list (procedure)
+            Some(DictEntry {
+                value: Value::Pair(_, _),
+                ..
+            }) => (), // It's a list (procedure)
             _ => panic!("Expected square to be defined as a list"),
         }
 
@@ -117,14 +120,17 @@ mod tests {
         let greeting_atom = interp.intern_atom("greeting");
         let greeting_string: std::rc::Rc<str> = "Hello, Uni!".into();
 
-        interp.push(Value::Atom(greeting_atom.clone()));           // Word name
-        interp.push(Value::String(greeting_string));       // Definition
+        interp.push(Value::Atom(greeting_atom.clone())); // Word name
+        interp.push(Value::String(greeting_string)); // Definition
         def_builtin(&mut interp).unwrap();
 
         // Verify it was stored
         let greeting_lookup = interp.intern_atom("greeting");
         match interp.dictionary.get(&greeting_lookup) {
-            Some(DictEntry { value: Value::String(s), .. }) => assert_eq!(s.as_ref(), "Hello, Uni!"),
+            Some(DictEntry {
+                value: Value::String(s),
+                ..
+            }) => assert_eq!(s.as_ref(), "Hello, Uni!"),
             _ => panic!("Expected greeting to be defined as a string"),
         }
 
@@ -145,11 +151,16 @@ mod tests {
 
         // RUST CONCEPT: Testing type safety
         // First argument (word name) must be an Atom
-        interp.push(Value::Number(42.0));        // Invalid name (not atom)
-        interp.push(Value::Number(123.0));       // Definition
+        interp.push(Value::Number(42.0)); // Invalid name (not atom)
+        interp.push(Value::Number(123.0)); // Definition
         let result = def_builtin(&mut interp);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("def expects an atom"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("def expects an atom")
+        );
 
         // Clear stack
         while interp.pop().is_ok() {}
@@ -168,7 +179,10 @@ mod tests {
 
         // Verify first definition
         match interp.dictionary.get(&foo_atom) {
-            Some(DictEntry { value: Value::Number(n), .. }) => assert_eq!(*n, 123.0),
+            Some(DictEntry {
+                value: Value::Number(n),
+                ..
+            }) => assert_eq!(*n, 123.0),
             _ => panic!("Expected foo to be 123"),
         }
 
@@ -179,7 +193,10 @@ mod tests {
 
         // Verify redefinition worked
         match interp.dictionary.get(&foo_atom) {
-            Some(DictEntry { value: Value::Number(n), .. }) => assert_eq!(*n, 456.0),
+            Some(DictEntry {
+                value: Value::Number(n),
+                ..
+            }) => assert_eq!(*n, 456.0),
             _ => panic!("Expected foo to be redefined as 456"),
         }
 
@@ -199,7 +216,9 @@ mod tests {
 
         // Verify nil definition
         match interp.dictionary.get(&empty_atom) {
-            Some(DictEntry { value: Value::Nil, .. }) => (),
+            Some(DictEntry {
+                value: Value::Nil, ..
+            }) => (),
             _ => panic!("Expected empty to be defined as Nil"),
         }
 
@@ -247,7 +266,10 @@ mod tests {
             // Verify it was stored
             assert!(interp.dictionary.contains_key(&name_atom));
             match interp.dictionary.get(&name_atom) {
-                Some(DictEntry { value: stored_value, .. }) => {
+                Some(DictEntry {
+                    value: stored_value,
+                    ..
+                }) => {
                     // Basic type check - more detailed equality would need custom implementation
                     match (&value, stored_value) {
                         (Value::Boolean(b1), Value::Boolean(b2)) => assert_eq!(b1, b2),
@@ -255,7 +277,7 @@ mod tests {
                         (Value::Atom(a1), Value::Atom(a2)) => assert_eq!(a1, a2),
                         _ => panic!("Value type mismatch for {}", name),
                     }
-                },
+                }
                 _ => panic!("Expected {} to be defined", name),
             }
         }

@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn bit_not_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let n = interp.pop_number()?;
@@ -48,19 +48,24 @@ mod tests {
         let mut interp = setup_interpreter();
 
         let test_cases = [
-            (1.0, -2.0),   // ~1 = -2
-            (2.0, -3.0),   // ~2 = -3
-            (3.0, -4.0),   // ~3 = -4
-            (4.0, -5.0),   // ~4 = -5
-            (5.0, -6.0),   // ~5 = -6
+            (1.0, -2.0), // ~1 = -2
+            (2.0, -3.0), // ~2 = -3
+            (3.0, -4.0), // ~3 = -4
+            (4.0, -5.0), // ~4 = -5
+            (5.0, -6.0), // ~5 = -6
         ];
 
         for (input, expected) in test_cases {
             interp.push(Value::Number(input));
             bit_not_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "~{} should be {}, got {:?}", input, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "~{} should be {}, got {:?}",
+                input,
+                expected,
+                result
+            );
         }
     }
 
@@ -69,18 +74,23 @@ mod tests {
         let mut interp = setup_interpreter();
 
         let test_cases = [
-            (8.0, -9.0),     // ~1000 = ...11110111 = -9
-            (16.0, -17.0),   // ~10000 = ...11101111 = -17
-            (32.0, -33.0),   // ~100000 = ...11011111 = -33
-            (64.0, -65.0),   // ~1000000 = ...10111111 = -65
+            (8.0, -9.0),   // ~1000 = ...11110111 = -9
+            (16.0, -17.0), // ~10000 = ...11101111 = -17
+            (32.0, -33.0), // ~100000 = ...11011111 = -33
+            (64.0, -65.0), // ~1000000 = ...10111111 = -65
         ];
 
         for (input, expected) in test_cases {
             interp.push(Value::Number(input));
             bit_not_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "~{} should be {}, got {:?}", input, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "~{} should be {}, got {:?}",
+                input,
+                expected,
+                result
+            );
         }
     }
 
@@ -100,8 +110,13 @@ mod tests {
             interp.push(Value::Number(input));
             bit_not_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "~{} should be {}, got {:?}", input, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "~{} should be {}, got {:?}",
+                input,
+                expected,
+                result
+            );
         }
     }
 
@@ -110,18 +125,23 @@ mod tests {
         let mut interp = setup_interpreter();
 
         let test_cases = [
-            (-2.0, 1.0),   // ~(-2) = 1
-            (-3.0, 2.0),   // ~(-3) = 2
-            (-4.0, 3.0),   // ~(-4) = 3
-            (-10.0, 9.0),  // ~(-10) = 9
+            (-2.0, 1.0),  // ~(-2) = 1
+            (-3.0, 2.0),  // ~(-3) = 2
+            (-4.0, 3.0),  // ~(-4) = 3
+            (-10.0, 9.0), // ~(-10) = 9
         ];
 
         for (input, expected) in test_cases {
             interp.push(Value::Number(input));
             bit_not_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "~{} should be {}, got {:?}", input, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "~{} should be {}, got {:?}",
+                input,
+                expected,
+                result
+            );
         }
     }
 
@@ -167,14 +187,18 @@ mod tests {
             bit_not_builtin(&mut interp).unwrap();
             let double_not = interp.pop().unwrap();
 
-            assert!(matches!(double_not, Value::Number(n) if n == value),
-                   "~~{} should equal {}, got {:?}", value, value, double_not);
+            assert!(
+                matches!(double_not, Value::Number(n) if n == value),
+                "~~{} should equal {}, got {:?}",
+                value,
+                value,
+                double_not
+            );
         }
     }
 
     #[test]
     fn test_bit_not_complement_property() {
-
         // Test that n & ~n = 0 for any n
         let test_values = [1.0, 7.0, 15.0, 42.0, 255.0];
 
@@ -201,8 +225,14 @@ mod tests {
 
             if let Value::Number(not_n) = not_result {
                 let expected = -value - 1.0;
-                assert!((not_n - expected).abs() < f64::EPSILON,
-                       "~{} should equal {} - 1 = {}, got {}", value, -value, expected, not_n);
+                assert!(
+                    (not_n - expected).abs() < f64::EPSILON,
+                    "~{} should equal {} - 1 = {}, got {}",
+                    value,
+                    -value,
+                    expected,
+                    not_n
+                );
             }
         }
     }

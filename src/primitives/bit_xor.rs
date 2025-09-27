@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn bit_xor_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let b = interp.pop_number()?;
@@ -26,8 +26,8 @@ mod tests {
     #[test]
     fn test_bit_xor_basic() {
         let mut interp = setup_interpreter();
-        interp.push(Value::Number(5.0));  // 101 in binary
-        interp.push(Value::Number(3.0));  // 011 in binary
+        interp.push(Value::Number(5.0)); // 101 in binary
+        interp.push(Value::Number(3.0)); // 011 in binary
 
         bit_xor_builtin(&mut interp).unwrap();
 
@@ -75,7 +75,7 @@ mod tests {
     fn test_bit_xor_alternating_patterns() {
         let mut interp = setup_interpreter();
         interp.push(Value::Number(170.0)); // 10101010 in binary
-        interp.push(Value::Number(85.0));  // 01010101 in binary
+        interp.push(Value::Number(85.0)); // 01010101 in binary
 
         bit_xor_builtin(&mut interp).unwrap();
 
@@ -88,10 +88,10 @@ mod tests {
         let mut interp = setup_interpreter();
 
         let test_cases = [
-            (1.0, 2.0, 3.0),     // 01 ^ 10 = 11
-            (4.0, 8.0, 12.0),    // 0100 ^ 1000 = 1100
-            (1.0, 1.0, 0.0),     // 01 ^ 01 = 00
-            (15.0, 8.0, 7.0),    // 1111 ^ 1000 = 0111
+            (1.0, 2.0, 3.0),  // 01 ^ 10 = 11
+            (4.0, 8.0, 12.0), // 0100 ^ 1000 = 1100
+            (1.0, 1.0, 0.0),  // 01 ^ 01 = 00
+            (15.0, 8.0, 7.0), // 1111 ^ 1000 = 0111
         ];
 
         for (a, b, expected) in test_cases {
@@ -99,8 +99,14 @@ mod tests {
             interp.push(Value::Number(b));
             bit_xor_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "{} ^ {} should be {}, got {:?}", a, b, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "{} ^ {} should be {}, got {:?}",
+                a,
+                b,
+                expected,
+                result
+            );
         }
     }
 
@@ -108,7 +114,7 @@ mod tests {
     fn test_bit_xor_large_numbers() {
         let mut interp = setup_interpreter();
         interp.push(Value::Number(1023.0)); // 1111111111 in binary (10 bits)
-        interp.push(Value::Number(512.0));  // 1000000000 in binary
+        interp.push(Value::Number(512.0)); // 1000000000 in binary
 
         bit_xor_builtin(&mut interp).unwrap();
 
@@ -187,8 +193,14 @@ mod tests {
         bit_xor_builtin(&mut interp).unwrap();
         let final_result = interp.pop().unwrap();
 
-        assert!(matches!(final_result, Value::Number(n) if n == a),
-               "({} ^ {}) ^ {} should equal {}", a, b, b, a);
+        assert!(
+            matches!(final_result, Value::Number(n) if n == a),
+            "({} ^ {}) ^ {} should equal {}",
+            a,
+            b,
+            b,
+            a
+        );
     }
 
     #[test]
@@ -196,8 +208,8 @@ mod tests {
         let mut interp = setup_interpreter();
 
         // Test bit toggling with mask
-        let value = 15.0;  // 1111 in binary
-        let mask = 5.0;    // 0101 in binary
+        let value = 15.0; // 1111 in binary
+        let mask = 5.0; // 0101 in binary
 
         interp.push(Value::Number(value));
         interp.push(Value::Number(mask));
@@ -227,8 +239,10 @@ mod tests {
         bit_xor_builtin(&mut interp).unwrap();
         let decrypted = interp.pop().unwrap();
 
-        assert!(matches!(decrypted, Value::Number(n) if n == plaintext),
-               "XOR encryption should be reversible");
+        assert!(
+            matches!(decrypted, Value::Number(n) if n == plaintext),
+            "XOR encryption should be reversible"
+        );
     }
 
     #[test]

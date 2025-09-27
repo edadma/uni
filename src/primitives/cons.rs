@@ -1,15 +1,15 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 use std::rc::Rc;
 
 // RUST CONCEPT: Cons cell construction (fundamental list operation)
 // Stack-based cons: ( element list -- new-list )
 // Prepends element to the front of list, creating a new cons cell
 pub fn cons_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let cdr = interp.pop()?;  // The list (or tail)
-    let car = interp.pop()?;  // The element (or head)
+    let cdr = interp.pop()?; // The list (or tail)
+    let car = interp.pop()?; // The element (or head)
 
     // RUST CONCEPT: Creating new Pair with Rc for shared ownership
     let new_pair = Value::Pair(Rc::new(car), Rc::new(cdr));
@@ -40,7 +40,7 @@ mod tests {
             Value::Pair(car, cdr) => {
                 assert!(matches!(car.as_ref(), Value::Number(n) if *n == 1.0));
                 assert!(matches!(cdr.as_ref(), Value::Nil));
-            },
+            }
             _ => panic!("Expected Pair"),
         }
     }
@@ -71,13 +71,13 @@ mod tests {
                             Value::Pair(car3, cdr3) => {
                                 assert!(matches!(car3.as_ref(), Value::Number(n) if *n == 3.0));
                                 assert!(matches!(cdr3.as_ref(), Value::Nil));
-                            },
+                            }
                             _ => panic!("Expected third element"),
                         }
-                    },
+                    }
                     _ => panic!("Expected second element"),
                 }
-            },
+            }
             _ => panic!("Expected Pair"),
         }
     }
@@ -87,10 +87,7 @@ mod tests {
         let mut interp = setup_interpreter();
 
         // Test: "hello" [42, true] cons -> ["hello", 42, true]
-        let mixed_list = interp.make_list(vec![
-            Value::Number(42.0),
-            Value::Boolean(true),
-        ]);
+        let mixed_list = interp.make_list(vec![Value::Number(42.0), Value::Boolean(true)]);
 
         interp.push(Value::String("hello".into()));
         interp.push(mixed_list);
@@ -110,13 +107,13 @@ mod tests {
                             Value::Pair(car3, cdr3) => {
                                 assert!(matches!(car3.as_ref(), Value::Boolean(true)));
                                 assert!(matches!(cdr3.as_ref(), Value::Nil));
-                            },
+                            }
                             _ => panic!("Expected third element"),
                         }
-                    },
+                    }
                     _ => panic!("Expected second element"),
                 }
-            },
+            }
             _ => panic!("Expected Pair"),
         }
     }
@@ -135,7 +132,7 @@ mod tests {
             Value::Pair(car, cdr) => {
                 assert!(matches!(car.as_ref(), Value::Number(n) if *n == 1.0));
                 assert!(matches!(cdr.as_ref(), Value::Number(n) if *n == 42.0));
-            },
+            }
             _ => panic!("Expected Pair"),
         }
     }
@@ -154,7 +151,7 @@ mod tests {
             Value::Pair(car, cdr) => {
                 assert!(matches!(car.as_ref(), Value::Null));
                 assert!(matches!(cdr.as_ref(), Value::Number(n) if *n == 1.0));
-            },
+            }
             _ => panic!("Expected Pair"),
         }
     }

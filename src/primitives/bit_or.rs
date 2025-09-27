@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn bit_or_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let b = interp.pop_number()?;
@@ -26,8 +26,8 @@ mod tests {
     #[test]
     fn test_bit_or_basic() {
         let mut interp = setup_interpreter();
-        interp.push(Value::Number(5.0));  // 101 in binary
-        interp.push(Value::Number(3.0));  // 011 in binary
+        interp.push(Value::Number(5.0)); // 101 in binary
+        interp.push(Value::Number(3.0)); // 011 in binary
 
         bit_or_builtin(&mut interp).unwrap();
 
@@ -38,8 +38,8 @@ mod tests {
     #[test]
     fn test_bit_or_no_overlap() {
         let mut interp = setup_interpreter();
-        interp.push(Value::Number(8.0));  // 1000 in binary
-        interp.push(Value::Number(4.0));  // 0100 in binary
+        interp.push(Value::Number(8.0)); // 1000 in binary
+        interp.push(Value::Number(4.0)); // 0100 in binary
 
         bit_or_builtin(&mut interp).unwrap();
 
@@ -76,10 +76,10 @@ mod tests {
         let mut interp = setup_interpreter();
 
         let test_cases = [
-            (1.0, 2.0, 3.0),     // 01 | 10 = 11
-            (4.0, 8.0, 12.0),    // 0100 | 1000 = 1100
-            (1.0, 4.0, 5.0),     // 0001 | 0100 = 0101
-            (2.0, 8.0, 10.0),    // 0010 | 1000 = 1010
+            (1.0, 2.0, 3.0),  // 01 | 10 = 11
+            (4.0, 8.0, 12.0), // 0100 | 1000 = 1100
+            (1.0, 4.0, 5.0),  // 0001 | 0100 = 0101
+            (2.0, 8.0, 10.0), // 0010 | 1000 = 1010
         ];
 
         for (a, b, expected) in test_cases {
@@ -87,8 +87,14 @@ mod tests {
             interp.push(Value::Number(b));
             bit_or_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "{} | {} should be {}, got {:?}", a, b, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "{} | {} should be {}, got {:?}",
+                a,
+                b,
+                expected,
+                result
+            );
         }
     }
 
@@ -96,7 +102,7 @@ mod tests {
     fn test_bit_or_alternating_patterns() {
         let mut interp = setup_interpreter();
         interp.push(Value::Number(170.0)); // 10101010 in binary
-        interp.push(Value::Number(85.0));  // 01010101 in binary
+        interp.push(Value::Number(85.0)); // 01010101 in binary
 
         bit_or_builtin(&mut interp).unwrap();
 
@@ -192,8 +198,13 @@ mod tests {
             interp.push(Value::Number(0.0));
             bit_or_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == value),
-                   "{} | 0 should be {}, got {:?}", value, value, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == value),
+                "{} | 0 should be {}, got {:?}",
+                value,
+                value,
+                result
+            );
         }
     }
 

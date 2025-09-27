@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use crate::tokenizer::SourcePos;
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -16,6 +17,7 @@ pub enum Value {
 #[derive(Debug)]
 pub enum RuntimeError {
     StackUnderflow,
+    StackUnderflowAt { pos: SourcePos, context: String },
     TypeError(String),
     UndefinedWord(String),
     DivisionByZero,
@@ -29,6 +31,10 @@ impl std::fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RuntimeError::StackUnderflow => write!(f, "Stack underflow"),
+            RuntimeError::StackUnderflowAt { pos, context } => {
+                write!(f, "Stack underflow at line {}, column {}: {}",
+                       pos.line, pos.column, context)
+            }
             RuntimeError::TypeError(msg) => write!(f, "Type error: {}", msg),
             RuntimeError::UndefinedWord(word) => write!(f, "Undefined word: {}", word),
             RuntimeError::DivisionByZero => write!(f, "Division by zero"),

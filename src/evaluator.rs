@@ -12,8 +12,8 @@
 // - Mutable references (&mut) allow us to modify the interpreter state
 // - The ? operator propagates errors up the call stack automatically
 
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 use std::rc::Rc;
 
 // RUST CONCEPT: Continuation-based evaluation for tail-call optimization
@@ -28,14 +28,14 @@ enum Continuation {
     // When index == items.len()-1, we can do tail-call optimization
     ExecuteList {
         items: Vec<Value>,
-        index: usize
+        index: usize,
     },
 
     // Execute an if statement (condition already evaluated)
     ExecuteIf {
         condition_result: bool,
         true_branch: Value,
-        false_branch: Value
+        false_branch: Value,
     },
 
     // Execute an exec'd expression
@@ -47,7 +47,10 @@ enum Continuation {
 
 // RUST CONCEPT: Continuation-based execution loop
 // This replaces recursion with an explicit continuation stack for tail-call optimization
-pub fn execute_with_continuations(initial_value: &Value, interp: &mut Interpreter) -> Result<(), RuntimeError> {
+pub fn execute_with_continuations(
+    initial_value: &Value,
+    interp: &mut Interpreter,
+) -> Result<(), RuntimeError> {
     let mut continuation_stack: Vec<Continuation> = Vec::new();
     continuation_stack.push(Continuation::ExecuteValue(initial_value.clone()));
 
@@ -55,7 +58,7 @@ pub fn execute_with_continuations(initial_value: &Value, interp: &mut Interprete
         match continuation {
             Continuation::ExecuteValue(value) => {
                 execute_value_direct(&value, interp, &mut continuation_stack)?;
-            },
+            }
 
             Continuation::ExecuteList { items, index } => {
                 if index >= items.len() {
@@ -73,25 +76,33 @@ pub fn execute_with_continuations(initial_value: &Value, interp: &mut Interprete
                     // Push continuation for next item, then execute current
                     continuation_stack.push(Continuation::ExecuteList {
                         items: items.clone(),
-                        index: index + 1
+                        index: index + 1,
                     });
                     continuation_stack.push(Continuation::ExecuteValue(item.clone()));
                 }
-            },
+            }
 
-            Continuation::ExecuteIf { condition_result, true_branch, false_branch } => {
-                let branch = if condition_result { true_branch } else { false_branch };
+            Continuation::ExecuteIf {
+                condition_result,
+                true_branch,
+                false_branch,
+            } => {
+                let branch = if condition_result {
+                    true_branch
+                } else {
+                    false_branch
+                };
                 // TAIL-CALL OPTIMIZATION: Execute branch directly without adding continuation
                 match &branch {
                     Value::Pair(_, _) | Value::Nil => {
                         let items = list_to_vec(&branch)?;
                         continuation_stack.push(Continuation::ExecuteList { items, index: 0 });
-                    },
+                    }
                     _ => {
                         continuation_stack.push(Continuation::ExecuteValue(branch));
                     }
                 }
-            },
+            }
 
             Continuation::ExecuteExec(value) => {
                 // Convert list to continuation or execute single value directly
@@ -99,16 +110,16 @@ pub fn execute_with_continuations(initial_value: &Value, interp: &mut Interprete
                     Value::Pair(_, _) => {
                         let items = list_to_vec(&value)?;
                         continuation_stack.push(Continuation::ExecuteList { items, index: 0 });
-                    },
+                    }
                     Value::Nil => {
                         // Empty list - do nothing
-                    },
+                    }
                     _ => {
                         // Single value - execute directly (tail-call optimized)
                         continuation_stack.push(Continuation::ExecuteValue(value));
                     }
                 }
-            },
+            }
 
             Continuation::ExecuteDefinition(definition) => {
                 match &definition {
@@ -116,7 +127,7 @@ pub fn execute_with_continuations(initial_value: &Value, interp: &mut Interprete
                         // Execute list as code (tail-call optimized)
                         let items = list_to_vec(&definition)?;
                         continuation_stack.push(Continuation::ExecuteList { items, index: 0 });
-                    },
+                    }
                     _ => {
                         // Execute single value directly (tail-call optimized)
                         continuation_stack.push(Continuation::ExecuteValue(definition));
@@ -131,36 +142,38 @@ pub fn execute_with_continuations(initial_value: &Value, interp: &mut Interprete
 
 // RUST CONCEPT: Helper function to execute a value directly and manage continuations
 // This is where atoms are looked up and special forms are handled
-fn execute_value_direct(value: &Value, interp: &mut Interpreter, continuation_stack: &mut Vec<Continuation>) -> Result<(), RuntimeError> {
+fn execute_value_direct(
+    value: &Value,
+    interp: &mut Interpreter,
+    continuation_stack: &mut Vec<Continuation>,
+) -> Result<(), RuntimeError> {
     match value {
         // RUST CONCEPT: Simple values just push themselves onto the stack
         Value::Number(n) => {
             interp.push(Value::Number(*n));
             Ok(())
-        },
+        }
         Value::String(s) => {
             interp.push(Value::String(s.clone()));
             Ok(())
-        },
+        }
         Value::Boolean(b) => {
             interp.push(Value::Boolean(*b));
             Ok(())
-        },
+        }
         Value::Null => {
             interp.push(Value::Null);
             Ok(())
-        },
+        }
         Value::Pair(_, _) | Value::Nil => {
             interp.push(value.clone());
             Ok(())
-        },
+        }
         Value::QuotedAtom(atom_name) => {
             interp.push(Value::Atom(atom_name.clone()));
             Ok(())
-        },
-        Value::Builtin(func) => {
-            func(interp)
-        },
+        }
+        Value::Builtin(func) => func(interp),
         Value::Atom(atom_name) => {
             execute_atom_with_continuations(atom_name, interp, continuation_stack)
         }
@@ -177,7 +190,7 @@ fn list_to_vec(list: &Value) -> Result<Vec<Value>, RuntimeError> {
             Value::Pair(car, cdr) => {
                 items.push((*car).clone());
                 current = (*cdr).clone();
-            },
+            }
             Value::Nil => break,
             _ => {
                 // Single value (improper list) - just return it as single item
@@ -191,7 +204,11 @@ fn list_to_vec(list: &Value) -> Result<Vec<Value>, RuntimeError> {
 }
 
 // RUST CONCEPT: Atom execution with continuation support
-fn execute_atom_with_continuations(atom_name: &Rc<str>, interp: &mut Interpreter, continuation_stack: &mut Vec<Continuation>) -> Result<(), RuntimeError> {
+fn execute_atom_with_continuations(
+    atom_name: &Rc<str>,
+    interp: &mut Interpreter,
+    continuation_stack: &mut Vec<Continuation>,
+) -> Result<(), RuntimeError> {
     // RUST CONCEPT: Special handling for exec and if
     if &**atom_name == "exec" {
         let value = interp.pop()?;
@@ -208,7 +225,7 @@ fn execute_atom_with_continuations(atom_name: &Rc<str>, interp: &mut Interpreter
         continuation_stack.push(Continuation::ExecuteIf {
             condition_result,
             true_branch,
-            false_branch
+            false_branch,
         });
         return Ok(());
     }
@@ -226,10 +243,8 @@ fn execute_atom_with_continuations(atom_name: &Rc<str>, interp: &mut Interpreter
                 interp.push(entry_copy.value);
             }
             Ok(())
-        },
-        None => {
-            Err(RuntimeError::UndefinedWord((&**atom_name).to_string()))
         }
+        None => Err(RuntimeError::UndefinedWord((**atom_name).to_string())),
     }
 }
 
@@ -352,7 +367,9 @@ mod tests {
         let result = execute(&Value::Atom(undefined_atom), &mut interp);
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RuntimeError::UndefinedWord(s) if s == "nonexistent"));
+        assert!(
+            matches!(result.unwrap_err(), RuntimeError::UndefinedWord(s) if s == "nonexistent")
+        );
     }
 
     #[test]
@@ -394,7 +411,11 @@ mod tests {
         let mut interp = setup_interpreter();
 
         // Define simple tail-recursive countdown
-        execute_string("'count-down [dup 1 <= [drop 999] [1 - count-down] if] def", &mut interp).unwrap();
+        execute_string(
+            "'count-down [dup 1 <= [drop 999] [1 - count-down] if] def",
+            &mut interp,
+        )
+        .unwrap();
 
         // Test with small value
         execute_string("5 count-down", &mut interp).unwrap();
@@ -407,7 +428,11 @@ mod tests {
         let mut interp = setup_interpreter();
 
         // Define a tail-recursive countdown that would overflow regular recursion
-        execute_string("'countdown [dup 0 <= [drop 42] [1 - countdown] if] def", &mut interp).unwrap();
+        execute_string(
+            "'countdown [dup 0 <= [drop 42] [1 - countdown] if] def",
+            &mut interp,
+        )
+        .unwrap();
 
         // Test with moderately deep recursion (this would cause stack overflow without TCO)
         execute_string("1000 countdown", &mut interp).unwrap();
@@ -438,7 +463,11 @@ mod tests {
         let mut interp = setup_interpreter();
 
         // Test that both branches of if are tail-call optimized
-        execute_string("'branch-test [dup 10 > [drop 99] [1 + branch-test] if] def", &mut interp).unwrap();
+        execute_string(
+            "'branch-test [dup 10 > [drop 99] [1 + branch-test] if] def",
+            &mut interp,
+        )
+        .unwrap();
 
         execute_string("5 branch-test", &mut interp).unwrap();
         let result = interp.pop().unwrap();
@@ -477,8 +506,8 @@ mod tests {
             Rc::new(Value::Atom(quote_atom)),
             Rc::new(Value::Pair(
                 Rc::new(Value::Atom(hello_atom)),
-                Rc::new(Value::Nil)
-            ))
+                Rc::new(Value::Nil),
+            )),
         );
 
         // This should push the quoted structure as data (since it's a list)
@@ -493,10 +522,10 @@ mod tests {
         let mut interp = setup_interpreter();
 
         // RUST CONCEPT: Testing error propagation from parser
-        let result = execute_string("[1 2", &mut interp);  // Unclosed bracket
+        let result = execute_string("[1 2", &mut interp); // Unclosed bracket
         assert!(result.is_err());
 
-        let result = execute_string("'[1 2]", &mut interp);  // Invalid quote
+        let result = execute_string("'[1 2]", &mut interp); // Invalid quote
         assert!(result.is_err());
     }
 }

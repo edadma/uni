@@ -1,7 +1,7 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 // RUST CONCEPT: List head extraction (car in Lisp terminology)
 // Stack-based head: ( list -- first-element )
@@ -14,13 +14,11 @@ pub fn head_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             // RUST CONCEPT: Cloning Rc just increments reference count
             interp.push((*car).clone());
             Ok(())
-        },
-        Value::Nil => {
-            Err(RuntimeError::TypeError("Cannot take head of empty list".to_string()))
-        },
-        _ => {
-            Err(RuntimeError::TypeError("head requires a list".to_string()))
         }
+        Value::Nil => Err(RuntimeError::TypeError(
+            "Cannot take head of empty list".to_string(),
+        )),
+        _ => Err(RuntimeError::TypeError("head requires a list".to_string())),
     }
 }
 
@@ -103,10 +101,10 @@ mod tests {
                     Value::Pair(car2, cdr2) => {
                         assert!(matches!(car2.as_ref(), Value::Number(n) if *n == 2.0));
                         assert!(matches!(cdr2.as_ref(), Value::Nil));
-                    },
+                    }
                     _ => panic!("Expected second element in inner list"),
                 }
-            },
+            }
             _ => panic!("Expected inner list as head"),
         }
     }
@@ -137,7 +135,9 @@ mod tests {
         for test_value in test_cases {
             interp.push(test_value);
             let result = head_builtin(&mut interp);
-            assert!(matches!(result, Err(RuntimeError::TypeError(msg)) if msg.contains("requires a list")));
+            assert!(
+                matches!(result, Err(RuntimeError::TypeError(msg)) if msg.contains("requires a list"))
+            );
 
             // Clean up stack for next test
             let _ = interp.pop();

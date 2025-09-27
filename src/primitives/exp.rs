@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn exp_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let n = interp.pop_number()?;
@@ -7,7 +7,9 @@ pub fn exp_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
     // Check for overflow (infinite result)
     if result.is_infinite() {
-        return Err(RuntimeError::DomainError("exp result is infinite (overflow)".to_string()));
+        return Err(RuntimeError::DomainError(
+            "exp result is infinite (overflow)".to_string(),
+        ));
     }
 
     interp.push(Value::Number(result));
@@ -74,18 +76,19 @@ mod tests {
     fn test_exp_integer_values() {
         let mut interp = setup_interpreter();
 
-        let test_cases = [
-            (-2.0, 1.0 / (E * E)),
-            (0.5, E.sqrt()),
-            (3.0, E.powf(3.0)),
-        ];
+        let test_cases = [(-2.0, 1.0 / (E * E)), (0.5, E.sqrt()), (3.0, E.powf(3.0))];
 
         for (input, expected) in test_cases {
             interp.push(Value::Number(input));
             exp_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if (n - expected).abs() < 1e-14),
-                   "exp({}) should be approximately {}, got {:?}", input, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if (n - expected).abs() < 1e-14),
+                "exp({}) should be approximately {}, got {:?}",
+                input,
+                expected,
+                result
+            );
         }
     }
 
@@ -100,8 +103,13 @@ mod tests {
             exp_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
             let expected = value.exp();
-            assert!(matches!(result, Value::Number(n) if (n - expected).abs() < f64::EPSILON),
-                   "exp({}) should be {}, got {:?}", value, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if (n - expected).abs() < f64::EPSILON),
+                "exp({}) should be {}, got {:?}",
+                value,
+                expected,
+                result
+            );
         }
     }
 
@@ -164,8 +172,13 @@ mod tests {
             exp_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
 
-            assert!(matches!(result, Value::Number(n) if (n - value).abs() < 1e-14),
-                   "exp(log({})) should be approximately {}, got {:?}", value, value, result);
+            assert!(
+                matches!(result, Value::Number(n) if (n - value).abs() < 1e-14),
+                "exp(log({})) should be approximately {}, got {:?}",
+                value,
+                value,
+                result
+            );
         }
     }
 
@@ -192,10 +205,17 @@ mod tests {
         let exp_b = interp.pop().unwrap();
 
         if let (Value::Number(combined_n), Value::Number(exp_a_n), Value::Number(exp_b_n)) =
-            (combined, exp_a, exp_b) {
+            (combined, exp_a, exp_b)
+        {
             let product = exp_a_n * exp_b_n;
-            assert!((combined_n - product).abs() < 1e-14,
-                   "exp({} + {}) should equal exp({}) * exp({})", a, b, a, b);
+            assert!(
+                (combined_n - product).abs() < 1e-14,
+                "exp({} + {}) should equal exp({}) * exp({})",
+                a,
+                b,
+                a,
+                b
+            );
         }
     }
 

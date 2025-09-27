@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn round_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let n = interp.pop_number()?;
@@ -78,8 +78,13 @@ mod tests {
             interp.push(Value::Number(input));
             round_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "round({}) should be {}, got {:?}", input, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "round({}) should be {}, got {:?}",
+                input,
+                expected,
+                result
+            );
         }
     }
 
@@ -122,8 +127,13 @@ mod tests {
             interp.push(Value::Number(input));
             round_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "round({}) should be {}, got {:?}", input, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "round({}) should be {}, got {:?}",
+                input,
+                expected,
+                result
+            );
         }
     }
 
@@ -142,8 +152,13 @@ mod tests {
             interp.push(Value::Number(input));
             round_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if (n - expected).abs() < f64::EPSILON),
-                   "round({}) should be {}, got {:?}", input, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if (n - expected).abs() < f64::EPSILON),
+                "round({}) should be {}, got {:?}",
+                input,
+                expected,
+                result
+            );
         }
     }
 

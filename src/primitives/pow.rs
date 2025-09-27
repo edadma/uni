@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn pow_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let exponent = interp.pop_number()?;
@@ -12,7 +12,9 @@ pub fn pow_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         return Err(RuntimeError::DomainError("pow result is NaN".to_string()));
     }
     if result.is_infinite() {
-        return Err(RuntimeError::DomainError("pow result is infinite".to_string()));
+        return Err(RuntimeError::DomainError(
+            "pow result is infinite".to_string(),
+        ));
     }
 
     interp.push(Value::Number(result));

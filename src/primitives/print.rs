@@ -1,7 +1,7 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 // RUST CONCEPT: Print builtin - pops and displays the top stack value
 // Usage: 42 pr  (prints "42" and removes it from stack)
@@ -14,7 +14,7 @@ pub fn print_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         Value::String(s) => {
             // For pr primitive, show strings without quotes for user output
             println!("{}", s);
-        },
+        }
         _ => {
             // For non-strings, use the standard Display format (with quotes for strings in data structures)
             println!("{}", value);
@@ -23,7 +23,6 @@ pub fn print_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -136,7 +135,7 @@ mod tests {
         let list = interp.make_list(vec![
             Value::Number(1.0),
             Value::Number(2.0),
-            Value::Number(3.0)
+            Value::Number(3.0),
         ]);
         interp.push(list);
         let result = print_builtin(&mut interp);
@@ -154,7 +153,7 @@ mod tests {
         let mixed_list = interp.make_list(vec![
             Value::String("hello".into()),
             Value::Number(42.0),
-            Value::Boolean(true)
+            Value::Boolean(true),
         ]);
         interp.push(mixed_list);
         let result = print_builtin(&mut interp);

@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn bit_and_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let b = interp.pop_number()?;
@@ -26,8 +26,8 @@ mod tests {
     #[test]
     fn test_bit_and_basic() {
         let mut interp = setup_interpreter();
-        interp.push(Value::Number(5.0));  // 101 in binary
-        interp.push(Value::Number(3.0));  // 011 in binary
+        interp.push(Value::Number(5.0)); // 101 in binary
+        interp.push(Value::Number(3.0)); // 011 in binary
 
         bit_and_builtin(&mut interp).unwrap();
 
@@ -39,7 +39,7 @@ mod tests {
     fn test_bit_and_all_ones() {
         let mut interp = setup_interpreter();
         interp.push(Value::Number(15.0)); // 1111 in binary
-        interp.push(Value::Number(7.0));  // 0111 in binary
+        interp.push(Value::Number(7.0)); // 0111 in binary
 
         bit_and_builtin(&mut interp).unwrap();
 
@@ -86,8 +86,14 @@ mod tests {
             interp.push(Value::Number(b));
             bit_and_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "{} & {} should be {}, got {:?}", a, b, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "{} & {} should be {}, got {:?}",
+                a,
+                b,
+                expected,
+                result
+            );
         }
     }
 
@@ -95,7 +101,7 @@ mod tests {
     fn test_bit_and_large_numbers() {
         let mut interp = setup_interpreter();
         interp.push(Value::Number(1023.0)); // 1111111111 in binary (10 bits)
-        interp.push(Value::Number(512.0));  // 1000000000 in binary
+        interp.push(Value::Number(512.0)); // 1000000000 in binary
 
         bit_and_builtin(&mut interp).unwrap();
 
@@ -150,7 +156,7 @@ mod tests {
     fn test_bit_and_alternating_pattern() {
         let mut interp = setup_interpreter();
         interp.push(Value::Number(170.0)); // 10101010 in binary
-        interp.push(Value::Number(85.0));  // 01010101 in binary
+        interp.push(Value::Number(85.0)); // 01010101 in binary
 
         bit_and_builtin(&mut interp).unwrap();
 

@@ -1,29 +1,32 @@
-use std::rc::Rc;
+use crate::value::{RuntimeError, Value};
+use crate::tokenizer::SourcePos;
 use std::collections::HashMap;
-use crate::value::{Value, RuntimeError};
+use std::rc::Rc;
 
 // RUST CONCEPT: Dictionary entry with metadata
 // Each entry contains the value and a flag indicating execution behavior
 #[derive(Debug, Clone)]
 pub struct DictEntry {
     pub value: Value,
-    pub is_executable: bool,  // true = execute lists (def), false = push as data (val)
+    pub is_executable: bool, // true = execute lists (def), false = push as data (val)
 }
 
 pub struct Interpreter {
     pub stack: Vec<Value>,
-    pub return_stack: Vec<Value>,  // RUST CONCEPT: Return stack for Forth-like operations
+    pub return_stack: Vec<Value>, // RUST CONCEPT: Return stack for Forth-like operations
     pub dictionary: HashMap<Rc<str>, DictEntry>,
     pub atoms: HashMap<String, Rc<str>>,
+    pub current_pos: Option<SourcePos>, // Track current execution position for error messages
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         let mut interpreter = Self {
             stack: Vec::new(),
-            return_stack: Vec::new(),  // RUST CONCEPT: Initialize empty return stack
+            return_stack: Vec::new(), // RUST CONCEPT: Initialize empty return stack
             dictionary: HashMap::new(),
             atoms: HashMap::new(),
+            current_pos: None, // No position initially
         };
 
         // RUST CONCEPT: Automatic initialization
@@ -72,22 +75,21 @@ impl Interpreter {
         })
     }
 
-
     pub fn is_null(&self, value: &Value) -> bool {
         matches!(value, Value::Null)
     }
 
     pub fn is_truthy(&self, value: &Value) -> bool {
         match value {
-            Value::Boolean(b) => *b,        // false is falsy, true is truthy
-            Value::Null => false,           // null is falsy (like JS)
-            Value::Nil => true,             // empty list is truthy (like [] in JS)
-            Value::Number(n) => *n != 0.0,  // 0 is falsy, everything else truthy (like JS)
+            Value::Boolean(b) => *b,           // false is falsy, true is truthy
+            Value::Null => false,              // null is falsy (like JS)
+            Value::Nil => true,                // empty list is truthy (like [] in JS)
+            Value::Number(n) => *n != 0.0,     // 0 is falsy, everything else truthy (like JS)
             Value::String(s) => !s.is_empty(), // "" is falsy, non-empty is truthy (like JS)
-            Value::Atom(_) => true,         // atoms are truthy
-            Value::QuotedAtom(_) => true,   // quoted atoms are truthy
-            Value::Pair(_, _) => true,      // non-empty lists are truthy
-            Value::Builtin(_) => true,      // builtins are truthy
+            Value::Atom(_) => true,            // atoms are truthy
+            Value::QuotedAtom(_) => true,      // quoted atoms are truthy
+            Value::Pair(_, _) => true,         // non-empty lists are truthy
+            Value::Builtin(_) => true,         // builtins are truthy
         }
     }
 
@@ -104,6 +106,28 @@ impl Interpreter {
 
     pub fn peek_return(&self) -> Result<&Value, RuntimeError> {
         self.return_stack.last().ok_or(RuntimeError::StackUnderflow)
+    }
+
+    // TODO: Position management for error context - uncomment when connecting to execution pipeline
+    // pub fn set_position(&mut self, pos: SourcePos) {
+    //     self.current_pos = Some(pos);
+    // }
+
+    // TODO: Method for clearing position context - uncomment when needed for multi-statement execution
+    // pub fn clear_position(&mut self) {
+    //     self.current_pos = None;
+    // }
+
+    // Position-aware pop method for better error messages
+    pub fn pop_with_context(&mut self, context: &str) -> Result<Value, RuntimeError> {
+        if let Some(pos) = &self.current_pos {
+            self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflowAt {
+                pos: pos.clone(),
+                context: context.to_string(),
+            })
+        } else {
+            self.stack.pop().ok_or(RuntimeError::StackUnderflow)
+        }
     }
 }
 
@@ -167,11 +191,9 @@ mod tests {
 
         let single = interp.make_list(vec![Value::Number(42.0)]);
         match single {
-            Value::Pair(car, cdr) => {
-                match (car.as_ref(), cdr.as_ref()) {
-                    (Value::Number(n), Value::Nil) => assert_eq!(*n, 42.0),
-                    _ => panic!("Expected Pair(42, Nil)"),
-                }
+            Value::Pair(car, cdr) => match (car.as_ref(), cdr.as_ref()) {
+                (Value::Number(n), Value::Nil) => assert_eq!(*n, 42.0),
+                _ => panic!("Expected Pair(42, Nil)"),
             },
             _ => panic!("Expected Pair for single element list"),
         }
@@ -183,23 +205,21 @@ mod tests {
             Value::Number(3.0),
         ]);
         match multi {
-            Value::Pair(car1, cdr1) => {
-                match (car1.as_ref(), cdr1.as_ref()) {
-                    (Value::Number(n1), Value::Pair(car2, cdr2)) => {
-                        assert_eq!(*n1, 1.0);
-                        match (car2.as_ref(), cdr2.as_ref()) {
-                            (Value::Number(n2), Value::Pair(car3, cdr3)) => {
-                                assert_eq!(*n2, 2.0);
-                                match (car3.as_ref(), cdr3.as_ref()) {
-                                    (Value::Number(n3), Value::Nil) => assert_eq!(*n3, 3.0),
-                                    _ => panic!("Expected third element to be 3.0 followed by Nil"),
-                                }
-                            },
-                            _ => panic!("Expected second element to be 2.0"),
+            Value::Pair(car1, cdr1) => match (car1.as_ref(), cdr1.as_ref()) {
+                (Value::Number(n1), Value::Pair(car2, cdr2)) => {
+                    assert_eq!(*n1, 1.0);
+                    match (car2.as_ref(), cdr2.as_ref()) {
+                        (Value::Number(n2), Value::Pair(car3, cdr3)) => {
+                            assert_eq!(*n2, 2.0);
+                            match (car3.as_ref(), cdr3.as_ref()) {
+                                (Value::Number(n3), Value::Nil) => assert_eq!(*n3, 3.0),
+                                _ => panic!("Expected third element to be 3.0 followed by Nil"),
+                            }
                         }
-                    },
-                    _ => panic!("Expected first element to be 1.0"),
+                        _ => panic!("Expected second element to be 2.0"),
+                    }
                 }
+                _ => panic!("Expected first element to be 1.0"),
             },
             _ => panic!("Expected Pair for multi-element list"),
         }
@@ -239,7 +259,7 @@ mod tests {
         let key = interp.intern_atom("test");
         let entry = DictEntry {
             value: Value::Number(99.0),
-            is_executable: false,  // Constants are not executable
+            is_executable: false, // Constants are not executable
         };
         interp.dictionary.insert(key.clone(), entry);
 
@@ -250,7 +270,7 @@ mod tests {
                     _ => panic!("Expected to find Number(99.0) in dictionary entry"),
                 }
                 assert!(!dict_entry.is_executable);
-            },
+            }
             _ => panic!("Expected to find dictionary entry"),
         }
 

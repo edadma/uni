@@ -1,7 +1,7 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 use std::rc::Rc;
 
 // RUST CONCEPT: Equality comparison across all value types
@@ -22,7 +22,7 @@ pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         (Value::Pair(car1, cdr1), Value::Pair(car2, cdr2)) => {
             // Recursive equality check for cons cells
             eq_values(car1, car2) && eq_values(cdr1, cdr2)
-        },
+        }
         // Different types are never equal
         _ => false,
     };
@@ -44,7 +44,7 @@ fn eq_values(a: &Rc<Value>, b: &Rc<Value>) -> bool {
         (Value::Nil, Value::Nil) => true,
         (Value::Pair(car1, cdr1), Value::Pair(car2, cdr2)) => {
             eq_values(car1, car2) && eq_values(cdr1, cdr2)
-        },
+        }
         _ => false,
     }
 }

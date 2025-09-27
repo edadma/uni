@@ -1,7 +1,7 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
-use crate::value::RuntimeError;
 use crate::interpreter::Interpreter;
+use crate::value::RuntimeError;
 
 // RUST CONCEPT: ANS Forth roll primitive
 // roll ( n -- ) - Move the nth item from stack to top (destructive)

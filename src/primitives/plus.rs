@@ -1,38 +1,39 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 // RUST CONCEPT: Polymorphic addition - numbers and string concatenation
 // Stack-based addition: ( n1 n2 -- sum ) or ( str1 any -- concat ) or ( any str2 -- concat )
 pub fn add_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let b = interp.pop()?;
-    let a = interp.pop()?;
+    // RUST CONCEPT: Context-aware error messages using position-aware pop
+    let b = interp.pop_with_context("'+' requires exactly 2 values on the stack (e.g., '5 3 +')")?;
+    let a = interp.pop_with_context("'+' requires exactly 2 values on the stack (e.g., '5 3 +')")?;
 
     // RUST CONCEPT: Pattern matching for polymorphic behavior
     match (&a, &b) {
         // Both numbers - do arithmetic addition
         (Value::Number(n1), Value::Number(n2)) => {
             interp.push(Value::Number(n1 + n2));
-        },
+        }
         // At least one string - do string concatenation
         (Value::String(_), _) | (_, Value::String(_)) => {
             // For string concatenation, extract the actual string content
             let str_a = match &a {
                 Value::String(s) => s.as_ref(),
-                _ => &a.to_string()  // Convert non-strings using Display
+                _ => &a.to_string(), // Convert non-strings using Display
             };
             let str_b = match &b {
                 Value::String(s) => s.as_ref(),
-                _ => &b.to_string()  // Convert non-strings using Display
+                _ => &b.to_string(), // Convert non-strings using Display
             };
             let result = format!("{}{}", str_a, str_b);
             interp.push(Value::String(result.into()));
-        },
+        }
         // Neither number nor string - type error
         _ => {
             return Err(RuntimeError::TypeError(
-                "Addition requires numbers or at least one string".to_string()
+                "Addition requires numbers or at least one string".to_string(),
             ));
         }
     }
@@ -138,5 +139,69 @@ mod tests {
         interp.push(Value::Boolean(false));
         let result = add_builtin(&mut interp);
         assert!(matches!(result, Err(RuntimeError::TypeError(_))));
+    }
+
+    #[test]
+    fn test_add_builtin_position_aware_error() {
+        use crate::tokenizer::SourcePos;
+        let mut interp = setup_interpreter();
+
+        // Set up a source position for error context (mock for testing)
+        let pos = SourcePos::new(2, 15, 20); // Line 2, column 15, offset 20
+        interp.current_pos = Some(pos);
+
+        // Test stack underflow with position information
+        let result = add_builtin(&mut interp);
+        assert!(result.is_err());
+
+        match result.unwrap_err() {
+            RuntimeError::StackUnderflowAt { pos, context } => {
+                assert_eq!(pos.line, 2);
+                assert_eq!(pos.column, 15);
+                assert_eq!(pos.offset, 20);
+                assert!(context.contains("'+' requires exactly 2 values"));
+            }
+            _ => panic!("Expected StackUnderflowAt error"),
+        }
+
+        // Test with only one element on stack
+        interp.push(Value::Number(42.0));
+        let result = add_builtin(&mut interp);
+        assert!(result.is_err());
+
+        match result.unwrap_err() {
+            RuntimeError::StackUnderflowAt { pos, context } => {
+                assert_eq!(pos.line, 2);
+                assert_eq!(pos.column, 15);
+                assert!(context.contains("'+' requires exactly 2 values"));
+            }
+            _ => panic!("Expected StackUnderflowAt error"),
+        }
+    }
+
+    #[test]
+    fn test_demonstrate_formatted_error_output() {
+        use crate::tokenizer::SourcePos;
+        let mut interp = setup_interpreter();
+
+        // Set up a source position that represents where '+' appears in source code
+        let pos = SourcePos::new(3, 8, 45); // Line 3, column 8, offset 45
+        interp.current_pos = Some(pos);
+
+        // Try to add without enough values on stack
+        let result = add_builtin(&mut interp);
+        assert!(result.is_err());
+
+        // Show the formatted error message
+        let error = result.unwrap_err();
+        let formatted_error = format!("{}", error);
+
+        // Print to demonstrate nice formatting (won't show in normal test run)
+        println!("Demo error message: {}", formatted_error);
+
+        // Verify the error message contains expected components
+        assert!(formatted_error.contains("line 3, column 8"));
+        assert!(formatted_error.contains("'+' requires exactly 2 values"));
+        assert!(formatted_error.contains("Stack underflow"));
     }
 }

@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn not_equal_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let b = interp.pop()?;
@@ -18,7 +18,7 @@ pub fn not_equal_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             // Recursive equality for lists - would need helper function
             // For now, just check reference equality (shallow)
             std::ptr::eq(a1.as_ref(), b1.as_ref()) && std::ptr::eq(a2.as_ref(), b2.as_ref())
-        },
+        }
         _ => false, // Different types are not equal
     };
 

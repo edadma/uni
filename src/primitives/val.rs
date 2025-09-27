@@ -1,7 +1,7 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 // RUST CONCEPT: The val builtin - defines constants only (like Scheme's define for constants)
 // Usage: 'constant-name value val
@@ -12,8 +12,8 @@ use crate::interpreter::Interpreter;
 pub fn val_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // RUST CONCEPT: Same implementation as def for now
     // The distinction is semantic - val is for constants, def is for procedures
-    let definition = interp.pop()?;  // The constant value
-    let name_value = interp.pop()?;  // Name of the constant
+    let definition = interp.pop()?; // The constant value
+    let name_value = interp.pop()?; // Name of the constant
 
     match name_value {
         Value::Atom(atom_name) => {
@@ -21,22 +21,22 @@ pub fn val_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             use crate::interpreter::DictEntry;
             let entry = DictEntry {
                 value: definition,
-                is_executable: false,  // val marks entries as constants
+                is_executable: false, // val marks entries as constants
             };
             interp.dictionary.insert(atom_name, entry);
             Ok(())
-        },
+        }
         _ => Err(RuntimeError::TypeError(
-            "val expects an atom as the constant name (use 'name value val)".to_string()
-        ))
+            "val expects an atom as the constant name (use 'name value val)".to_string(),
+        )),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::value::Value;
     use crate::interpreter::DictEntry;
+    use crate::value::Value;
 
     fn setup_interpreter() -> Interpreter {
         Interpreter::new()
@@ -55,7 +55,10 @@ mod tests {
 
         // Verify it was stored
         match interp.dictionary.get(&pi_atom) {
-            Some(DictEntry { value: Value::Number(n), .. }) => assert!((n - 3.14159).abs() < 1e-10),
+            Some(DictEntry {
+                value: Value::Number(n),
+                ..
+            }) => assert!((n - 3.14159).abs() < 1e-10),
             _ => panic!("Expected pi constant"),
         }
 
@@ -68,7 +71,10 @@ mod tests {
 
         // Verify string constant
         match interp.dictionary.get(&greeting_atom) {
-            Some(DictEntry { value: Value::String(s), .. }) => assert_eq!(s.as_ref(), "Hello!"),
+            Some(DictEntry {
+                value: Value::String(s),
+                ..
+            }) => assert_eq!(s.as_ref(), "Hello!"),
             _ => panic!("Expected greeting string constant"),
         }
 
@@ -88,11 +94,16 @@ mod tests {
         assert!(val_builtin(&mut interp).is_err()); // Only one argument
 
         // Non-atom name should fail
-        interp.push(Value::Number(42.0));        // Invalid name
-        interp.push(Value::Number(123.0));       // Value
+        interp.push(Value::Number(42.0)); // Invalid name
+        interp.push(Value::Number(123.0)); // Value
         let result = val_builtin(&mut interp);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("val expects an atom"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("val expects an atom")
+        );
 
         // Clear stack
         while interp.pop().is_ok() {}
@@ -127,7 +138,10 @@ mod tests {
             ("bool_const", Value::Boolean(false)),
             ("null_const", Value::Null),
             ("string_const", Value::String("constant value".into())),
-            ("atom_const", Value::Atom(interp.intern_atom("constant_atom"))),
+            (
+                "atom_const",
+                Value::Atom(interp.intern_atom("constant_atom")),
+            ),
         ];
 
         for (name, value) in constants_to_test {
@@ -138,7 +152,10 @@ mod tests {
 
             // Verify it was stored as non-executable
             match interp.dictionary.get(&name_atom) {
-                Some(DictEntry { value: stored_value, is_executable }) => {
+                Some(DictEntry {
+                    value: stored_value,
+                    is_executable,
+                }) => {
                     assert!(!*is_executable, "Constants should not be executable");
 
                     // Basic type check
@@ -149,7 +166,7 @@ mod tests {
                         (Value::Atom(a1), Value::Atom(a2)) => assert_eq!(a1, a2),
                         _ => panic!("Value type mismatch for {}", name),
                     }
-                },
+                }
                 _ => panic!("Expected {} to be defined", name),
             }
         }
@@ -172,7 +189,10 @@ mod tests {
 
         // Verify first definition
         match interp.dictionary.get(&const_atom) {
-            Some(DictEntry { value: Value::Number(n), .. }) => assert_eq!(*n, 100.0),
+            Some(DictEntry {
+                value: Value::Number(n),
+                ..
+            }) => assert_eq!(*n, 100.0),
             _ => panic!("Expected first definition"),
         }
 
@@ -183,7 +203,10 @@ mod tests {
 
         // Verify redefinition
         match interp.dictionary.get(&const_atom) {
-            Some(DictEntry { value: Value::Number(n), .. }) => assert_eq!(*n, 200.0),
+            Some(DictEntry {
+                value: Value::Number(n),
+                ..
+            }) => assert_eq!(*n, 200.0),
             _ => panic!("Expected redefinition"),
         }
 
@@ -203,9 +226,12 @@ mod tests {
 
         // Verify nil constant
         match interp.dictionary.get(&nil_atom) {
-            Some(DictEntry { value: Value::Nil, is_executable }) => {
+            Some(DictEntry {
+                value: Value::Nil,
+                is_executable,
+            }) => {
                 assert!(!*is_executable, "Nil constant should not be executable");
-            },
+            }
             _ => panic!("Expected nil_const to be defined as Nil"),
         }
 
@@ -222,7 +248,7 @@ mod tests {
         let constant_list = interp.make_list(vec![
             Value::Number(1.0),
             Value::Number(2.0),
-            Value::Number(3.0)
+            Value::Number(3.0),
         ]);
 
         interp.push(Value::Atom(list_atom.clone()));
@@ -231,9 +257,12 @@ mod tests {
 
         // Verify list constant is non-executable
         match interp.dictionary.get(&list_atom) {
-            Some(DictEntry { value: Value::Pair(_, _), is_executable }) => {
+            Some(DictEntry {
+                value: Value::Pair(_, _),
+                is_executable,
+            }) => {
                 assert!(!*is_executable, "List constants should not be executable");
-            },
+            }
             _ => panic!("Expected list_const to be defined as a list"),
         }
 

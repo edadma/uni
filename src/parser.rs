@@ -14,10 +14,10 @@
 // - 'Result<T, E>' is Rust's way of handling errors without exceptions
 // - Pattern matching with 'match' is Rust's equivalent to switch statements but much more powerful
 
-use std::rc::Rc;
-use crate::tokenizer::{Token, tokenize};
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::tokenizer::{Token, TokenKind, tokenize};
+use crate::value::{RuntimeError, Value};
+use std::rc::Rc;
 
 // RUST CONCEPT: Error types
 // We create our own error type for parser-specific errors
@@ -25,10 +25,10 @@ use crate::interpreter::Interpreter;
 // This is separate from RuntimeError because parsing happens before execution
 #[derive(Debug)]
 pub enum ParseError {
-    UnexpectedToken(String),        // Got a token we didn't expect
-    UnexpectedEndOfInput,           // Ran out of tokens when we needed more
-    MismatchedBrackets,             // [ without matching ] or vice versa
-    InvalidDotNotation,             // Malformed [a . b] pair syntax
+    UnexpectedToken(String), // Got a token we didn't expect
+    UnexpectedEndOfInput,    // Ran out of tokens when we needed more
+    MismatchedBrackets,      // [ without matching ] or vice versa
+    InvalidDotNotation,      // Malformed [a . b] pair syntax
 }
 
 // RUST CONCEPT: Display trait implementation for better error messages
@@ -43,7 +43,6 @@ impl std::fmt::Display for ParseError {
         }
     }
 }
-
 
 // RUST CONCEPT: From trait
 // This lets us convert ParseError into RuntimeError when needed
@@ -96,7 +95,11 @@ pub fn parse(input: &str, interp: &mut Interpreter) -> Result<Vec<Value>, ParseE
 // &mut usize means we can modify the index parameter
 // The lifetime is implicit here - Rust infers that the returned Value
 // can't outlive the tokens slice (which is fine since we're cloning data)
-fn parse_value(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) -> Result<Value, ParseError> {
+fn parse_value(
+    tokens: &[Token],
+    index: &mut usize,
+    interp: &mut Interpreter,
+) -> Result<Value, ParseError> {
     // RUST CONCEPT: Bounds checking
     // .get() returns Option<T> - Some(value) if index exists, None if out of bounds
     // This is safer than direct indexing which would panic on out-of-bounds
@@ -104,108 +107,141 @@ fn parse_value(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) ->
         // RUST CONCEPT: Pattern matching on references
         // We match on &Token because .get() returns Option<&Token>
         // The & in the pattern destructures the reference
-        Some(&Token::Number(n)) => {
-            *index += 1;  // RUST CONCEPT: Dereferencing - modify the value index points to
-            Ok(Value::Number(n))
-        },
+        Some(token) if matches!(token.kind, TokenKind::Number(_)) => {
+            if let TokenKind::Number(n) = token.kind {
+                *index += 1; // RUST CONCEPT: Dereferencing - modify the value index points to
+                Ok(Value::Number(n))
+            } else {
+                unreachable!()
+            }
+        }
 
-        Some(Token::Atom(atom_text)) => {
-            *index += 1;
-            // RUST CONCEPT: Method calls and string conversion
-            // We need to intern the atom through the interpreter
-            // .clone() on a String creates a new owned string
-            let interned_atom = interp.intern_atom(&atom_text.clone());
-            Ok(Value::Atom(interned_atom))
-        },
+        Some(token) if matches!(token.kind, TokenKind::Atom(_)) => {
+            if let TokenKind::Atom(atom_text) = &token.kind {
+                *index += 1;
+                // RUST CONCEPT: Method calls and string conversion
+                // We need to intern the atom through the interpreter
+                // .clone() on a String creates a new owned string
+                let interned_atom = interp.intern_atom(atom_text);
+                Ok(Value::Atom(interned_atom))
+            } else {
+                unreachable!()
+            }
+        }
 
-        Some(Token::String(string_text)) => {
-            *index += 1;
-            // RUST CONCEPT: Converting String to Rc<str>
-            // .clone() gets an owned String, .into() converts to Rc<str>
-            // Strings are NOT interned - each one gets its own Rc
-            let string_rc: Rc<str> = string_text.clone().into();
-            Ok(Value::String(string_rc))
-        },
+        Some(token) if matches!(token.kind, TokenKind::String(_)) => {
+            if let TokenKind::String(string_text) = &token.kind {
+                *index += 1;
+                // RUST CONCEPT: Converting String to Rc<str>
+                // .clone() gets an owned String, .into() converts to Rc<str>
+                // Strings are NOT interned - each one gets its own Rc
+                let string_rc: Rc<str> = string_text.clone().into();
+                Ok(Value::String(string_rc))
+            } else {
+                unreachable!()
+            }
+        }
 
-        Some(&Token::Boolean(b)) => {
-            *index += 1;
-            // RUST CONCEPT: Boolean literals
-            // Boolean tokens directly create Boolean values
-            Ok(Value::Boolean(b))
-        },
+        Some(token) if matches!(token.kind, TokenKind::Boolean(_)) => {
+            if let TokenKind::Boolean(b) = token.kind {
+                *index += 1;
+                // RUST CONCEPT: Boolean literals
+                // Boolean tokens directly create Boolean values
+                Ok(Value::Boolean(b))
+            } else {
+                unreachable!()
+            }
+        }
 
-        Some(&Token::Null) => {
+        Some(token) if matches!(token.kind, TokenKind::Null) => {
             *index += 1;
             // RUST CONCEPT: Null literal
             // Null token creates a Null value
             Ok(Value::Null)
-        },
+        }
 
-        Some(&Token::LeftBracket) => {
+        Some(token) if matches!(token.kind, TokenKind::LeftBracket) => {
             // RUST CONCEPT: Recursive parsing
             // Lists can contain other lists, so we call parse_list which may call parse_value again
             parse_list(tokens, index, interp)
-        },
+        }
 
-        Some(&Token::Quote) => {
-            *index += 1;  // Skip the quote token
+        Some(token) if matches!(token.kind, TokenKind::Quote) => {
+            *index += 1; // Skip the quote token
 
             // RUST CONCEPT: Validating syntax rules
             // In Uni, only atoms can be quoted. Lists, numbers, and strings
             // don't need quotes because they push themselves onto the stack by default
             match tokens.get(*index) {
-                Some(Token::Atom(atom_text)) => {
-                    *index += 1;  // Consume the atom token
+                Some(token) if matches!(token.kind, TokenKind::Atom(_)) => {
+                    if let TokenKind::Atom(atom_text) = &token.kind {
+                        *index += 1; // Consume the atom token
 
-                    // RUST CONCEPT: Creating quoted atoms directly
-                    // Instead of (quote atom) structure, we create a QuotedAtom value
-                    // This directly represents the semantics: push atom without executing
-                    let interned_atom = interp.intern_atom(&atom_text.clone());
-                    Ok(Value::QuotedAtom(interned_atom))
-                },
-                Some(&Token::LeftBracket) => {
+                        // RUST CONCEPT: Creating quoted atoms directly
+                        // Instead of (quote atom) structure, we create a QuotedAtom value
+                        // This directly represents the semantics: push atom without executing
+                        let interned_atom = interp.intern_atom(atom_text);
+                        Ok(Value::QuotedAtom(interned_atom))
+                    } else {
+                        unreachable!()
+                    }
+                }
+                Some(token) if matches!(token.kind, TokenKind::LeftBracket) => {
                     // RUST CONCEPT: Custom error types for syntax validation
                     // Lists don't need quotes - they're data by default
-                    Err(ParseError::UnexpectedToken("Lists cannot be quoted - they are data by default".to_string()))
-                },
-                Some(Token::String(_)) => {
+                    Err(ParseError::UnexpectedToken(
+                        "Lists cannot be quoted - they are data by default".to_string(),
+                    ))
+                }
+                Some(token) if matches!(token.kind, TokenKind::String(_)) => {
                     // Strings don't need quotes - they push themselves onto the stack
-                    Err(ParseError::UnexpectedToken("Strings cannot be quoted - they are data by default".to_string()))
-                },
-                Some(&Token::Number(_)) => {
+                    Err(ParseError::UnexpectedToken(
+                        "Strings cannot be quoted - they are data by default".to_string(),
+                    ))
+                }
+                Some(token) if matches!(token.kind, TokenKind::Number(_)) => {
                     // Numbers don't need quotes - they push themselves onto the stack
-                    Err(ParseError::UnexpectedToken("Numbers cannot be quoted - they are data by default".to_string()))
-                },
-                Some(&Token::Boolean(_)) => {
+                    Err(ParseError::UnexpectedToken(
+                        "Numbers cannot be quoted - they are data by default".to_string(),
+                    ))
+                }
+                Some(token) if matches!(token.kind, TokenKind::Boolean(_)) => {
                     // Booleans don't need quotes - they are data by default
-                    Err(ParseError::UnexpectedToken("Booleans cannot be quoted - they are data by default".to_string()))
-                },
-                Some(&Token::Null) => {
+                    Err(ParseError::UnexpectedToken(
+                        "Booleans cannot be quoted - they are data by default".to_string(),
+                    ))
+                }
+                Some(token) if matches!(token.kind, TokenKind::Null) => {
                     // Null doesn't need quotes - it is data by default
-                    Err(ParseError::UnexpectedToken("Null cannot be quoted - it is data by default".to_string()))
-                },
+                    Err(ParseError::UnexpectedToken(
+                        "Null cannot be quoted - it is data by default".to_string(),
+                    ))
+                }
                 _ => {
                     // Quote without anything following, or followed by invalid token
                     Err(ParseError::UnexpectedEndOfInput)
                 }
             }
-        },
+        }
 
-        Some(&Token::Dot) => {
+        Some(token) if matches!(token.kind, TokenKind::Dot) => {
             // RUST CONCEPT: Error handling
             // A dot by itself is invalid - it should only appear in [a . b] notation
             Err(ParseError::InvalidDotNotation)
-        },
+        }
 
-        Some(&Token::RightBracket) => {
+        Some(token) if matches!(token.kind, TokenKind::RightBracket) => {
             // RUST CONCEPT: Error types
             // A closing bracket without a matching opening bracket is an error
             Err(ParseError::MismatchedBrackets)
-        },
+        }
 
         // RUST CONCEPT: None pattern
         // This handles the case where we've run out of tokens
         None => Err(ParseError::UnexpectedEndOfInput),
+
+        // Catch-all for any remaining token types
+        Some(_) => Err(ParseError::UnexpectedToken("Unexpected token".to_string())),
     }
 }
 
@@ -214,11 +250,15 @@ fn parse_value(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) ->
 // - [1 2 3] (proper list)
 // - [a . b] (cons pair)
 // - [] (empty list)
-fn parse_list(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) -> Result<Value, ParseError> {
+fn parse_list(
+    tokens: &[Token],
+    index: &mut usize,
+    interp: &mut Interpreter,
+) -> Result<Value, ParseError> {
     // RUST CONCEPT: Assertions and debugging
     // debug_assert! is removed in release builds but helps catch bugs during development
     // This ensures we're starting at a LeftBracket token
-    debug_assert!(matches!(tokens.get(*index), Some(&Token::LeftBracket)));
+    debug_assert!(matches!(tokens.get(*index), Some(token) if matches!(token.kind, TokenKind::LeftBracket)));
 
     *index += 1; // Skip the opening bracket
 
@@ -230,12 +270,12 @@ fn parse_list(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) -> 
     // We loop until we find the closing bracket or run out of tokens
     loop {
         match tokens.get(*index) {
-            Some(&Token::RightBracket) => {
+            Some(token) if matches!(token.kind, TokenKind::RightBracket) => {
                 *index += 1; // Skip the closing bracket
-                break;       // RUST CONCEPT: break exits the loop
-            },
+                break; // RUST CONCEPT: break exits the loop
+            }
 
-            Some(&Token::Dot) => {
+            Some(token) if matches!(token.kind, TokenKind::Dot) => {
                 // RUST CONCEPT: Complex parsing - dot notation [a . b]
                 // We need at least one element before the dot, and exactly one after
                 if elements.is_empty() {
@@ -250,14 +290,15 @@ fn parse_list(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) -> 
                 // RUST CONCEPT: Expecting specific tokens
                 // After [a . b], we MUST see a closing bracket
                 match tokens.get(*index) {
-                    Some(&Token::RightBracket) => {
+                    Some(token) if matches!(token.kind, TokenKind::RightBracket) => {
                         *index += 1; // Skip the closing bracket
 
                         // RUST CONCEPT: Building cons cells manually
                         // [a b c . d] becomes Pair(a, Pair(b, Pair(c, d)))
                         // We build this right-to-left using fold
-                        let cons_cell = elements.into_iter()
-                            .rev()  // RUST CONCEPT: Iterator adaptors - reverse the order
+                        let cons_cell = elements
+                            .into_iter()
+                            .rev() // RUST CONCEPT: Iterator adaptors - reverse the order
                             .fold(tail, |acc, elem| {
                                 // RUST CONCEPT: Closures (anonymous functions)
                                 // |acc, elem| is the closure parameter list
@@ -266,16 +307,16 @@ fn parse_list(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) -> 
                             });
 
                         return Ok(cons_cell);
-                    },
+                    }
                     _ => return Err(ParseError::MismatchedBrackets),
                 }
-            },
+            }
 
             None => {
                 // RUST CONCEPT: Error cases
                 // We ran out of tokens while looking for the closing bracket
                 return Err(ParseError::UnexpectedEndOfInput);
-            },
+            }
 
             _ => {
                 // RUST CONCEPT: Recursive parsing continues
@@ -289,8 +330,9 @@ fn parse_list(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) -> 
     // RUST CONCEPT: Converting Vec to linked list
     // If we get here, we have a proper list [1 2 3] without dot notation
     // Convert the Vec<Value> to a linked list of Pair nodes ending in Nil
-    let list = elements.into_iter()
-        .rev()  // Reverse so we build right-to-left
+    let list = elements
+        .into_iter()
+        .rev() // Reverse so we build right-to-left
         .fold(Value::Nil, |acc, elem| {
             // RUST CONCEPT: Fold (reduce) operation
             // This is like reduce in other languages
@@ -306,7 +348,7 @@ fn parse_list(tokens: &[Token], index: &mut usize, interp: &mut Interpreter) -> 
 // This keeps test code out of the release binary
 #[cfg(test)]
 mod tests {
-    use super::*;  // RUST CONCEPT: Import everything from parent module
+    use super::*; // RUST CONCEPT: Import everything from parent module
 
     // Test-only helper method for ParseError
     impl ParseError {
@@ -319,7 +361,7 @@ mod tests {
             }
         }
     }
-    use super::ParseError;  // RUST CONCEPT: Explicit import to help compiler see usage
+    use super::ParseError; // RUST CONCEPT: Explicit import to help compiler see usage
 
     // RUST CONCEPT: Test functions
     // #[test] tells Rust this function is a unit test
@@ -341,7 +383,7 @@ mod tests {
         // We destructure the result to check it's the right type
         match &result[0] {
             Value::Number(n) => assert_eq!(*n, 42.0),
-            _ => panic!("Expected number"),  // RUST CONCEPT: panic! for test failures
+            _ => panic!("Expected number"), // RUST CONCEPT: panic! for test failures
         }
 
         // Test multiple numbers
@@ -374,7 +416,7 @@ mod tests {
                     // RUST CONCEPT: Dereferencing Rc
                     // &**atom dereferences the Rc then takes a reference to the str
                     assert_eq!(&**atom, *expected);
-                },
+                }
                 _ => panic!("Expected atom at position {}", i),
             }
         }
@@ -383,7 +425,7 @@ mod tests {
         // Same atoms should share the same Rc (pointer equality)
         let result2 = parse("hello", &mut interp).unwrap();
         if let (Value::Atom(atom1), Value::Atom(atom2)) = (&result[0], &result2[0]) {
-            assert!(Rc::ptr_eq(atom1, atom2));  // Same pointer = successful interning
+            assert!(Rc::ptr_eq(atom1, atom2)); // Same pointer = successful interning
         }
     }
 
@@ -400,7 +442,7 @@ mod tests {
         }
 
         match &result[1] {
-            Value::String(s) => assert_eq!(&**s, ""),  // Empty string
+            Value::String(s) => assert_eq!(&**s, ""), // Empty string
             _ => panic!("Expected empty string"),
         }
 
@@ -408,8 +450,8 @@ mod tests {
         // Strings with same content should NOT share pointers
         let result2 = parse("\"hello world\"", &mut interp).unwrap();
         if let (Value::String(s1), Value::String(s2)) = (&result[0], &result2[0]) {
-            assert_eq!(s1, s2);  // Same content
-            assert!(!Rc::ptr_eq(s1, s2));  // Different pointers = not interned
+            assert_eq!(s1, s2); // Same content
+            assert!(!Rc::ptr_eq(s1, s2)); // Different pointers = not interned
         }
     }
 
@@ -422,7 +464,7 @@ mod tests {
 
         // RUST CONCEPT: Matching specific enum variants
         match &result[0] {
-            Value::Nil => (),  // () is the unit value - like void but it's a real value
+            Value::Nil => (), // () is the unit value - like void but it's a real value
             _ => panic!("Expected empty list (Nil)"),
         }
     }
@@ -441,7 +483,8 @@ mod tests {
                 // First element should be 1
                 assert!(matches!(**car1, Value::Number(n) if n == 1.0));
 
-                match cdr1.as_ref() {  // RUST CONCEPT: as_ref() converts &Rc<T> to &T
+                match cdr1.as_ref() {
+                    // RUST CONCEPT: as_ref() converts &Rc<T> to &T
                     Value::Pair(car2, cdr2) => {
                         // Second element should be 2
                         assert!(matches!(**car2, Value::Number(n) if n == 2.0));
@@ -452,13 +495,13 @@ mod tests {
                                 assert!(matches!(**car3, Value::Number(n) if n == 3.0));
                                 // End should be Nil
                                 assert!(matches!(**cdr3, Value::Nil));
-                            },
+                            }
                             _ => panic!("Expected third pair"),
                         }
-                    },
+                    }
                     _ => panic!("Expected second pair"),
                 }
-            },
+            }
             _ => panic!("Expected list pair"),
         }
     }
@@ -475,7 +518,7 @@ mod tests {
             Value::Pair(car, cdr) => {
                 assert!(matches!(**car, Value::Number(n) if n == 1.0));
                 assert!(matches!(**cdr, Value::Number(n) if n == 2.0));
-            },
+            }
             _ => panic!("Expected pair"),
         }
 
@@ -488,10 +531,10 @@ mod tests {
                     Value::Pair(car2, cdr2) => {
                         assert!(matches!(**car2, Value::Number(n) if n == 2.0));
                         assert!(matches!(**cdr2, Value::Number(n) if n == 3.0));
-                    },
+                    }
                     _ => panic!("Expected nested pair"),
                 }
-            },
+            }
             _ => panic!("Expected pair"),
         }
     }
@@ -508,7 +551,7 @@ mod tests {
         match &result[0] {
             Value::QuotedAtom(atom) => {
                 assert_eq!(&**atom, "hello");
-            },
+            }
             _ => panic!("Expected QuotedAtom"),
         }
     }
@@ -532,10 +575,10 @@ mod tests {
                             Value::Pair(two, rest2) => {
                                 assert!(matches!(**two, Value::Number(n) if n == 2.0));
                                 assert!(matches!(**rest2, Value::Nil));
-                            },
+                            }
                             _ => panic!("Expected [1 2] structure"),
                         }
-                    },
+                    }
                     _ => panic!("Expected first list"),
                 }
 
@@ -547,14 +590,14 @@ mod tests {
                             Value::Pair(three, rest3) => {
                                 assert!(matches!(**three, Value::Number(n) if n == 3.0));
                                 assert!(matches!(**rest3, Value::Nil));
-                            },
+                            }
                             _ => panic!("Expected [3] structure"),
                         }
                         assert!(matches!(**final_cdr, Value::Nil));
-                    },
+                    }
                     _ => panic!("Expected second list pair"),
                 }
-            },
+            }
             _ => panic!("Expected outer list"),
         }
     }
@@ -572,7 +615,7 @@ mod tests {
 
         // Invalid dot notation
         assert!(parse("[.]", &mut interp).is_err());
-        assert!(parse("[1 . 2 3]", &mut interp).is_err());  // Too many elements after dot
+        assert!(parse("[1 . 2 3]", &mut interp).is_err()); // Too many elements after dot
 
         // Standalone dot
         assert!(parse("1 . 2", &mut interp).is_err());
@@ -591,7 +634,7 @@ mod tests {
             (Value::Number(n1), Value::Number(n2)) => {
                 assert_eq!(*n1, 42.0);
                 assert_eq!(*n2, 37.0);
-            },
+            }
             _ => panic!("Expected two numbers"),
         }
     }
@@ -608,7 +651,7 @@ mod tests {
         match &result[0] {
             Value::QuotedAtom(atom) => {
                 assert_eq!(&**atom, "hello");
-            },
+            }
             _ => panic!("Expected QuotedAtom"),
         }
 
@@ -620,7 +663,7 @@ mod tests {
             match &result[i] {
                 Value::QuotedAtom(atom) => {
                     assert_eq!(&**atom, *op);
-                },
+                }
                 _ => panic!("Expected QuotedAtom at {}", i),
             }
         }
@@ -684,23 +727,25 @@ mod tests {
 
                         match rest2.as_ref() {
                             Value::Pair(third, rest3) => {
-                                assert!(matches!(third.as_ref(), Value::String(s) if &**s == "world"));
+                                assert!(
+                                    matches!(third.as_ref(), Value::String(s) if &**s == "world")
+                                );
 
                                 match rest3.as_ref() {
                                     Value::Pair(fourth, rest4) => {
                                         // Fourth should be a nested list
                                         assert!(matches!(fourth.as_ref(), Value::Pair(_, _)));
                                         assert!(matches!(rest4.as_ref(), Value::Nil));
-                                    },
+                                    }
                                     _ => panic!("Expected fourth element"),
                                 }
-                            },
+                            }
                             _ => panic!("Expected third element"),
                         }
-                    },
+                    }
                     _ => panic!("Expected second element"),
                 }
-            },
+            }
             _ => panic!("Expected list"),
         }
     }
@@ -712,11 +757,11 @@ mod tests {
         // RUST CONCEPT: Testing tokenizer integration
         // Various whitespace should be handled correctly
         let inputs = [
-            "  1   2   3  ",           // Extra spaces
-            "1\n2\t3\r\n4",            // Mixed whitespace
-            "[  1   2  ]",             // Spaces in lists
-            "[ 1 . 2 ]",               // Spaces around dot
-            "'   hello   ",            // Spaces after quote
+            "  1   2   3  ", // Extra spaces
+            "1\n2\t3\r\n4",  // Mixed whitespace
+            "[  1   2  ]",   // Spaces in lists
+            "[ 1 . 2 ]",     // Spaces around dot
+            "'   hello   ",  // Spaces after quote
         ];
 
         let expected_lengths = [3, 4, 1, 1, 1];
@@ -743,7 +788,7 @@ mod tests {
                 Value::Pair(car, cdr) => {
                     current = car.as_ref();
                     assert!(matches!(cdr.as_ref(), Value::Nil));
-                },
+                }
                 Value::Number(n) if *n == 1.0 => break,
                 _ => panic!("Expected nested structure"),
             }
@@ -773,11 +818,11 @@ mod tests {
                     Value::Pair(one, two) => {
                         assert!(matches!(one.as_ref(), Value::Number(n) if *n == 1.0));
                         assert!(matches!(two.as_ref(), Value::Number(n) if *n == 2.0));
-                    },
+                    }
                     _ => panic!("Expected inner pair"),
                 }
                 assert!(matches!(outer_cdr.as_ref(), Value::Nil));
-            },
+            }
             _ => panic!("Expected outer list"),
         }
     }
@@ -808,7 +853,7 @@ mod tests {
         let result = parse("", &mut interp).unwrap();
         assert_eq!(result.len(), 0);
 
-        let result = parse("   ", &mut interp).unwrap();  // Just whitespace
+        let result = parse("   ", &mut interp).unwrap(); // Just whitespace
         assert_eq!(result.len(), 0);
 
         let result = parse("\\ just a comment", &mut interp).unwrap();
@@ -838,7 +883,7 @@ mod tests {
         match &result[0] {
             Value::QuotedAtom(atom) => {
                 assert_eq!(&**atom, "quote-me");
-            },
+            }
             _ => panic!("Expected QuotedAtom"),
         }
     }
@@ -856,7 +901,7 @@ mod tests {
             ("'[1 2]", "Lists cannot be quoted"),
             ("'\"hello\"", "Strings cannot be quoted"),
             ("'42", "Numbers cannot be quoted"),
-            ("'", "UnexpectedEndOfInput"),  // Quote with nothing following
+            ("'", "UnexpectedEndOfInput"), // Quote with nothing following
         ];
 
         for (input, expected_error) in error_cases.iter() {
@@ -865,9 +910,13 @@ mod tests {
 
             let error_string = format!("{:?}", result.unwrap_err());
             // Just check that we get the right error type
-            assert!(error_string.contains(expected_error),
+            assert!(
+                error_string.contains(expected_error),
                 "Expected '{}' in error message for '{}', got: {}",
-                expected_error, input, error_string);
+                expected_error,
+                input,
+                error_string
+            );
         }
     }
 
@@ -931,18 +980,20 @@ mod tests {
                                 assert!(matches!(car3.as_ref(), Value::Null));
                                 match cdr3.as_ref() {
                                     Value::Pair(car4, cdr4) => {
-                                        assert!(matches!(car4.as_ref(), Value::Number(n) if *n == 42.0));
+                                        assert!(
+                                            matches!(car4.as_ref(), Value::Number(n) if *n == 42.0)
+                                        );
                                         assert!(matches!(cdr4.as_ref(), Value::Nil));
-                                    },
+                                    }
                                     _ => panic!("Expected fourth element"),
                                 }
-                            },
+                            }
                             _ => panic!("Expected third element"),
                         }
-                    },
+                    }
                     _ => panic!("Expected second element"),
                 }
-            },
+            }
             _ => panic!("Expected list structure"),
         }
     }
@@ -963,9 +1014,15 @@ mod tests {
             assert!(result.is_err(), "Expected error for input: '{}'", input);
 
             let error_string = format!("{:?}", result.unwrap_err());
-            assert!(error_string.to_lowercase().contains(&expected_error.to_lowercase()),
+            assert!(
+                error_string
+                    .to_lowercase()
+                    .contains(&expected_error.to_lowercase()),
                 "Expected '{}' in error message for '{}', got: {}",
-                expected_error, input, error_string);
+                expected_error,
+                input,
+                error_string
+            );
         }
     }
 
@@ -978,28 +1035,47 @@ mod tests {
         assert_eq!(result.len(), 3);
 
         // These should NOT be atoms - they should be their proper types
-        assert!(matches!(result[0], Value::Boolean(true)),
-            "Expected Boolean(true), got: {:?}", result[0]);
-        assert!(!matches!(result[0], Value::Atom(_)),
-            "true should NOT be parsed as an atom");
+        assert!(
+            matches!(result[0], Value::Boolean(true)),
+            "Expected Boolean(true), got: {:?}",
+            result[0]
+        );
+        assert!(
+            !matches!(result[0], Value::Atom(_)),
+            "true should NOT be parsed as an atom"
+        );
 
-        assert!(matches!(result[1], Value::Boolean(false)),
-            "Expected Boolean(false), got: {:?}", result[1]);
-        assert!(!matches!(result[1], Value::Atom(_)),
-            "false should NOT be parsed as an atom");
+        assert!(
+            matches!(result[1], Value::Boolean(false)),
+            "Expected Boolean(false), got: {:?}",
+            result[1]
+        );
+        assert!(
+            !matches!(result[1], Value::Atom(_)),
+            "false should NOT be parsed as an atom"
+        );
 
-        assert!(matches!(result[2], Value::Null),
-            "Expected Null, got: {:?}", result[2]);
-        assert!(!matches!(result[2], Value::Atom(_)),
-            "null should NOT be parsed as an atom");
+        assert!(
+            matches!(result[2], Value::Null),
+            "Expected Null, got: {:?}",
+            result[2]
+        );
+        assert!(
+            !matches!(result[2], Value::Atom(_)),
+            "null should NOT be parsed as an atom"
+        );
 
         // Verify similar-looking strings ARE still atoms
         let result = parse("TRUE True false-flag NULL nil", &mut interp).unwrap();
         assert_eq!(result.len(), 5);
 
         for (i, val) in result.iter().enumerate() {
-            assert!(matches!(val, Value::Atom(_)),
-                "Element {} should be an atom, got: {:?}", i, val);
+            assert!(
+                matches!(val, Value::Atom(_)),
+                "Element {} should be an atom, got: {:?}",
+                i,
+                val
+            );
         }
     }
 
@@ -1012,9 +1088,18 @@ mod tests {
         assert_eq!(error.message(), "Custom error message");
 
         // Test other error types have sensible messages
-        assert_eq!(ParseError::UnexpectedEndOfInput.message(), "Unexpected end of input");
-        assert_eq!(ParseError::MismatchedBrackets.message(), "Mismatched brackets");
-        assert_eq!(ParseError::InvalidDotNotation.message(), "Invalid dot notation");
+        assert_eq!(
+            ParseError::UnexpectedEndOfInput.message(),
+            "Unexpected end of input"
+        );
+        assert_eq!(
+            ParseError::MismatchedBrackets.message(),
+            "Mismatched brackets"
+        );
+        assert_eq!(
+            ParseError::InvalidDotNotation.message(),
+            "Invalid dot notation"
+        );
 
         // Test that error messages are accessible from parse results
         let result = parse("'", &mut interp);

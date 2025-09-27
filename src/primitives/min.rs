@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn min_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let b = interp.pop_number()?;

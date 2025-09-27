@@ -1,7 +1,7 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 // RUST CONCEPT: Truthiness predicate for all value types
 // Stack-based truthy?: ( value -- boolean )
@@ -33,19 +33,26 @@ mod tests {
             Value::Number(-1.0),
             Value::Number(42.0),
             Value::String("hello".into()),
-            Value::String("false".into()),  // String "false" is truthy!
-            Value::Nil,  // empty list is truthy (like [] in JS)
+            Value::String("false".into()), // String "false" is truthy!
+            Value::Nil,                    // empty list is truthy (like [] in JS)
             Value::Atom(interp.intern_atom("test")),
             Value::QuotedAtom(interp.intern_atom("quoted")),
-            Value::Pair(std::rc::Rc::new(Value::Number(1.0)), std::rc::Rc::new(Value::Nil)),
+            Value::Pair(
+                std::rc::Rc::new(Value::Number(1.0)),
+                std::rc::Rc::new(Value::Nil),
+            ),
         ];
 
         for (i, test_value) in truthy_cases.into_iter().enumerate() {
             interp.push(test_value.clone());
             truthy_predicate_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Boolean(true)),
-                "Expected true for truthy value #{}: {:?}", i, test_value);
+            assert!(
+                matches!(result, Value::Boolean(true)),
+                "Expected true for truthy value #{}: {:?}",
+                i,
+                test_value
+            );
         }
 
         // Test falsy values -> false
@@ -61,8 +68,12 @@ mod tests {
             interp.push(test_value.clone());
             truthy_predicate_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Boolean(false)),
-                "Expected false for falsy value #{}: {:?}", i, test_value);
+            assert!(
+                matches!(result, Value::Boolean(false)),
+                "Expected false for falsy value #{}: {:?}",
+                i,
+                test_value
+            );
         }
 
         // Test stack underflow

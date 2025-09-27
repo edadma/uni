@@ -1,7 +1,7 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
-use crate::value::RuntimeError;
 use crate::interpreter::Interpreter;
+use crate::value::RuntimeError;
 
 // RUST CONCEPT: List construction from multiple stack elements
 // Stack-based list: ( element1 element2 ... elementN count -- list )
@@ -11,7 +11,9 @@ pub fn list_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
     // RUST CONCEPT: Input validation
     if count_value < 0.0 || count_value.fract() != 0.0 {
-        return Err(RuntimeError::TypeError("list count must be a non-negative integer".to_string()));
+        return Err(RuntimeError::TypeError(
+            "list count must be a non-negative integer".to_string(),
+        ));
     }
 
     let count = count_value as usize;
@@ -65,13 +67,13 @@ mod tests {
                             Value::Pair(car3, cdr3) => {
                                 assert!(matches!(car3.as_ref(), Value::Number(n) if *n == 3.0));
                                 assert!(matches!(cdr3.as_ref(), Value::Nil));
-                            },
+                            }
                             _ => panic!("Expected third element"),
                         }
-                    },
+                    }
                     _ => panic!("Expected second element"),
                 }
-            },
+            }
             _ => panic!("Expected list structure"),
         }
     }
@@ -102,7 +104,7 @@ mod tests {
             Value::Pair(car, cdr) => {
                 assert!(matches!(car.as_ref(), Value::String(s) if s.as_ref() == "hello"));
                 assert!(matches!(cdr.as_ref(), Value::Nil));
-            },
+            }
             _ => panic!("Expected single-element list"),
         }
     }
@@ -135,16 +137,16 @@ mod tests {
                                     Value::Pair(car4, cdr4) => {
                                         assert!(matches!(car4.as_ref(), Value::Null));
                                         assert!(matches!(cdr4.as_ref(), Value::Nil));
-                                    },
+                                    }
                                     _ => panic!("Expected fourth element"),
                                 }
-                            },
+                            }
                             _ => panic!("Expected third element"),
                         }
-                    },
+                    }
                     _ => panic!("Expected second element"),
                 }
-            },
+            }
             _ => panic!("Expected list structure"),
         }
     }
@@ -184,7 +186,9 @@ mod tests {
         let result = list_builtin(&mut interp);
 
         // Should get validation error for negative count
-        assert!(matches!(result, Err(RuntimeError::TypeError(msg)) if msg.contains("non-negative integer")));
+        assert!(
+            matches!(result, Err(RuntimeError::TypeError(msg)) if msg.contains("non-negative integer"))
+        );
     }
 
     #[test]
@@ -216,13 +220,13 @@ mod tests {
                             Value::Pair(car3, cdr3) => {
                                 assert!(matches!(car3.as_ref(), Value::Atom(c) if c == &atom_c));
                                 assert!(matches!(cdr3.as_ref(), Value::Nil));
-                            },
+                            }
                             _ => panic!("Expected third element"),
                         }
-                    },
+                    }
                     _ => panic!("Expected second element"),
                 }
-            },
+            }
             _ => panic!("Expected list structure"),
         }
     }

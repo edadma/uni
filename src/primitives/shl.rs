@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn shl_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let shift_amount = interp.pop_number()?;
@@ -11,7 +11,9 @@ pub fn shl_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
     // Check for reasonable shift amounts to prevent overflow
     if shift_int > 63 {
-        return Err(RuntimeError::DomainError("shift amount too large".to_string()));
+        return Err(RuntimeError::DomainError(
+            "shift amount too large".to_string(),
+        ));
     }
 
     let result = value_int << shift_int;
@@ -68,8 +70,14 @@ mod tests {
             interp.push(Value::Number(shift));
             shl_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "{} << {} should be {}, got {:?}", value, shift, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "{} << {} should be {}, got {:?}",
+                value,
+                shift,
+                expected,
+                result
+            );
         }
     }
 
@@ -78,9 +86,9 @@ mod tests {
         let mut interp = setup_interpreter();
 
         let test_cases = [
-            (3.0, 2.0, 12.0),  // 11 << 2 = 1100 = 12
-            (5.0, 1.0, 10.0),  // 101 << 1 = 1010 = 10
-            (7.0, 3.0, 56.0),  // 111 << 3 = 111000 = 56
+            (3.0, 2.0, 12.0), // 11 << 2 = 1100 = 12
+            (5.0, 1.0, 10.0), // 101 << 1 = 1010 = 10
+            (7.0, 3.0, 56.0), // 111 << 3 = 111000 = 56
         ];
 
         for (value, shift, expected) in test_cases {
@@ -88,8 +96,14 @@ mod tests {
             interp.push(Value::Number(shift));
             shl_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "{} << {} should be {}, got {:?}", value, shift, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "{} << {} should be {}, got {:?}",
+                value,
+                shift,
+                expected,
+                result
+            );
         }
     }
 
@@ -110,9 +124,9 @@ mod tests {
         let mut interp = setup_interpreter();
 
         let test_cases = [
-            (-1.0, 1.0, -2.0),   // -1 << 1 = -2
-            (-2.0, 2.0, -8.0),   // -2 << 2 = -8
-            (-4.0, 1.0, -8.0),   // -4 << 1 = -8
+            (-1.0, 1.0, -2.0), // -1 << 1 = -2
+            (-2.0, 2.0, -8.0), // -2 << 2 = -8
+            (-4.0, 1.0, -8.0), // -4 << 1 = -8
         ];
 
         for (value, shift, expected) in test_cases {
@@ -120,8 +134,14 @@ mod tests {
             interp.push(Value::Number(shift));
             shl_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "{} << {} should be {}, got {:?}", value, shift, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "{} << {} should be {}, got {:?}",
+                value,
+                shift,
+                expected,
+                result
+            );
         }
     }
 
@@ -130,7 +150,7 @@ mod tests {
         let mut interp = setup_interpreter();
 
         let test_cases = [
-            (1.0, 10.0, 1024.0), // 1 << 10 = 1024
+            (1.0, 10.0, 1024.0),    // 1 << 10 = 1024
             (1.0, 20.0, 1048576.0), // 1 << 20 = 2^20
         ];
 
@@ -139,8 +159,14 @@ mod tests {
             interp.push(Value::Number(shift));
             shl_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if n == expected),
-                   "{} << {} should be {}, got {:?}", value, shift, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if n == expected),
+                "{} << {} should be {}, got {:?}",
+                value,
+                shift,
+                expected,
+                result
+            );
         }
     }
 
@@ -164,9 +190,9 @@ mod tests {
 
         // Left shift by n is equivalent to multiplication by 2^n
         let test_cases = [
-            (5.0, 1.0),  // 5 << 1 = 5 * 2 = 10
-            (7.0, 2.0),  // 7 << 2 = 7 * 4 = 28
-            (3.0, 4.0),  // 3 << 4 = 3 * 16 = 48
+            (5.0, 1.0), // 5 << 1 = 5 * 2 = 10
+            (7.0, 2.0), // 7 << 2 = 7 * 4 = 28
+            (3.0, 4.0), // 3 << 4 = 3 * 16 = 48
         ];
 
         for (value, shift) in test_cases {
@@ -177,9 +203,16 @@ mod tests {
 
             let expected = value * (2.0_f64.powf(shift));
 
-            assert!(matches!(shift_result, Value::Number(n) if n == expected),
-                   "{} << {} should equal {} * 2^{} = {}, got {:?}",
-                   value, shift, value, shift, expected, shift_result);
+            assert!(
+                matches!(shift_result, Value::Number(n) if n == expected),
+                "{} << {} should equal {} * 2^{} = {}, got {:?}",
+                value,
+                shift,
+                value,
+                shift,
+                expected,
+                shift_result
+            );
         }
     }
 
@@ -210,7 +243,7 @@ mod tests {
 
         // Test that bit patterns are preserved correctly
         interp.push(Value::Number(170.0)); // 10101010 in binary
-        interp.push(Value::Number(1.0));   // Shift left by 1
+        interp.push(Value::Number(1.0)); // Shift left by 1
 
         shl_builtin(&mut interp).unwrap();
 

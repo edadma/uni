@@ -1,11 +1,13 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn sqrt_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let n = interp.pop_number()?;
 
     if n < 0.0 {
-        return Err(RuntimeError::DomainError("sqrt of negative number".to_string()));
+        return Err(RuntimeError::DomainError(
+            "sqrt of negative number".to_string(),
+        ));
     }
 
     interp.push(Value::Number(n.sqrt()));

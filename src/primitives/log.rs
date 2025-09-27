@@ -1,11 +1,13 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn log_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let n = interp.pop_number()?;
 
     if n <= 0.0 {
-        return Err(RuntimeError::DomainError("log of non-positive number".to_string()));
+        return Err(RuntimeError::DomainError(
+            "log of non-positive number".to_string(),
+        ));
     }
 
     interp.push(Value::Number(n.ln()));
@@ -70,8 +72,13 @@ mod tests {
             interp.push(Value::Number(input));
             log_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if (n - expected).abs() < 1e-14),
-                   "log({}) should be approximately {}, got {:?}", input, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if (n - expected).abs() < 1e-14),
+                "log({}) should be approximately {}, got {:?}",
+                input,
+                expected,
+                result
+            );
         }
     }
 
@@ -142,8 +149,13 @@ mod tests {
             log_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
 
-            assert!(matches!(result, Value::Number(n) if (n - value).abs() < 1e-14),
-                   "log(exp({})) should be approximately {}, got {:?}", value, value, result);
+            assert!(
+                matches!(result, Value::Number(n) if (n - value).abs() < 1e-14),
+                "log(exp({})) should be approximately {}, got {:?}",
+                value,
+                value,
+                result
+            );
         }
     }
 

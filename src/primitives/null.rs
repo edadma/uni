@@ -1,7 +1,7 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 // RUST CONCEPT: Type checking predicates
 // null? ( value -- boolean ) - Check if value is null
@@ -41,7 +41,7 @@ mod tests {
             Value::Number(42.0),
             Value::String("".into()),
             Value::String("hello".into()),
-            Value::Nil,  // Nil is NOT null
+            Value::Nil, // Nil is NOT null
             Value::Atom(interp.intern_atom("test")),
             Value::QuotedAtom(interp.intern_atom("quoted")),
             Value::Pair(Rc::new(Value::Number(1.0)), Rc::new(Value::Nil)),
@@ -51,8 +51,12 @@ mod tests {
             interp.push(test_value.clone());
             null_predicate_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Boolean(false)),
-                "Expected false for non-null value #{}: {:?}", i, test_value);
+            assert!(
+                matches!(result, Value::Boolean(false)),
+                "Expected false for non-null value #{}: {:?}",
+                i,
+                test_value
+            );
         }
     }
 
@@ -97,10 +101,10 @@ mod tests {
 
         // Test with various edge case values
         let edge_cases = vec![
-            Value::Number(-0.0),    // negative zero
-            Value::Number(f64::NAN), // NaN
-            Value::Number(f64::INFINITY), // infinity
-            Value::String("null".into()), // string "null"
+            Value::Number(-0.0),           // negative zero
+            Value::Number(f64::NAN),       // NaN
+            Value::Number(f64::INFINITY),  // infinity
+            Value::String("null".into()),  // string "null"
             Value::String("false".into()), // string "false"
         ];
 
@@ -108,8 +112,12 @@ mod tests {
             interp.push(test_value.clone());
             null_predicate_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Boolean(false)),
-                "Expected false for edge case #{}: {:?}", i, test_value);
+            assert!(
+                matches!(result, Value::Boolean(false)),
+                "Expected false for edge case #{}: {:?}",
+                i,
+                test_value
+            );
         }
     }
 

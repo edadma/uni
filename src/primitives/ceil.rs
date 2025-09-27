@@ -1,5 +1,5 @@
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 pub fn ceil_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let n = interp.pop_number()?;
@@ -86,18 +86,19 @@ mod tests {
     fn test_ceil_large_numbers() {
         let mut interp = setup_interpreter();
 
-        let test_cases = [
-            (999.1, 1000.0),
-            (-999.1, -999.0),
-            (1e10 + 0.5, 1e10 + 1.0),
-        ];
+        let test_cases = [(999.1, 1000.0), (-999.1, -999.0), (1e10 + 0.5, 1e10 + 1.0)];
 
         for (input, expected) in test_cases {
             interp.push(Value::Number(input));
             ceil_builtin(&mut interp).unwrap();
             let result = interp.pop().unwrap();
-            assert!(matches!(result, Value::Number(n) if (n - expected).abs() < f64::EPSILON),
-                   "ceil({}) should be {}, got {:?}", input, expected, result);
+            assert!(
+                matches!(result, Value::Number(n) if (n - expected).abs() < f64::EPSILON),
+                "ceil({}) should be {}, got {:?}",
+                input,
+                expected,
+                result
+            );
         }
     }
 

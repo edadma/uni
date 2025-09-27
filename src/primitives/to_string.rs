@@ -1,7 +1,7 @@
 // RUST CONCEPT: String conversion primitive
 // Converts any value to its string representation using Display trait
-use crate::value::{Value, RuntimeError};
 use crate::interpreter::Interpreter;
+use crate::value::{RuntimeError, Value};
 
 // RUST CONCEPT: Universal string conversion
 // Stack-based conversion: ( any -- string )
@@ -129,7 +129,7 @@ mod tests {
         let list = interp.make_list(vec![
             Value::Number(1.0),
             Value::Number(2.0),
-            Value::Number(3.0)
+            Value::Number(3.0),
         ]);
         interp.push(list);
         to_string_builtin(&mut interp).unwrap();
@@ -146,7 +146,7 @@ mod tests {
         let mixed_list = interp.make_list(vec![
             Value::String("hello".into()),
             Value::Number(42.0),
-            Value::Boolean(true)
+            Value::Boolean(true),
         ]);
         interp.push(mixed_list);
         to_string_builtin(&mut interp).unwrap();
