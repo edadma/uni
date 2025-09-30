@@ -7,8 +7,10 @@ use crate::value::{RuntimeError, Value};
 // Stack-based addition: ( n1 n2 -- sum ) or ( str1 any -- concat ) or ( any str2 -- concat )
 pub fn add_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // RUST CONCEPT: Context-aware error messages using position-aware pop
-    let b = interp.pop_with_context("'+' requires exactly 2 values on the stack (e.g., '5 3 +')")?;
-    let a = interp.pop_with_context("'+' requires exactly 2 values on the stack (e.g., '5 3 +')")?;
+    let b =
+        interp.pop_with_context("'+' requires exactly 2 values on the stack (e.g., '5 3 +')")?;
+    let a =
+        interp.pop_with_context("'+' requires exactly 2 values on the stack (e.g., '5 3 +')")?;
 
     // RUST CONCEPT: Pattern matching for polymorphic behavior
     match (&a, &b) {

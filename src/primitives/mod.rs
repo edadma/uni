@@ -60,6 +60,9 @@ pub mod head;
 pub mod list;
 pub mod tail;
 
+// Vector (array) operations
+pub mod vector;
+
 // Meta operations
 pub mod def;
 pub mod val;
@@ -140,6 +143,15 @@ pub use cons::cons_builtin;
 pub use head::head_builtin;
 pub use list::list_builtin;
 pub use tail::tail_builtin;
+
+// Vector (array) operations
+pub use vector::list_to_vector_builtin;
+pub use vector::make_vector_builtin;
+pub use vector::vector_builtin;
+pub use vector::vector_length_builtin;
+pub use vector::vector_ref_builtin;
+pub use vector::vector_set_builtin;
+pub use vector::vector_to_list_builtin;
 
 // Meta operations
 pub use def::def_builtin;

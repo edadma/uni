@@ -25,7 +25,7 @@ cargo build --release
 
 ### Data Types
 
-Uni has just four fundamental types that compose to create everything:
+Uni has five fundamental types that compose to create everything:
 
 | Type | Example | Description |
 |------|---------|-------------|
@@ -33,6 +33,7 @@ Uni has just four fundamental types that compose to create everything:
 | **Atoms** | `hello`, `+`, `print` | Interned symbols that execute when encountered |
 | **Strings** | `"Hello, World!"` | Reference-counted UTF-8 text |
 | **Lists** | `[1 2 3]`, `[a . b]` | Cons cells (pairs + nil) for list structures |
+| **Arrays** | `#[1 2 3]` | Dense vectors with constant-time indexing |
 
 ### Basic Syntax
 
@@ -43,6 +44,7 @@ Uni has just four fundamental types that compose to create everything:
 hello           \ Atoms execute (look up definition)
 'hello          \ Quoted atoms push without executing
 [1 2 +]         \ Lists are data (quotation/code-as-data)
+#[1 2 3]        \ Arrays/vectors are dense indexed data
 [1 2 +] exec    \ Execute the list: pushes 1, 2, then adds
 "text"          \ Strings push themselves onto stack
 
@@ -50,6 +52,7 @@ hello           \ Atoms execute (look up definition)
 [1 2 3]         \ Proper list: [1 . [2 . [3 . nil]]]
 []              \ Empty list (nil)
 [a . b]         \ Improper list (just a pair)
+#[1 2 3]        \ Array literal (vector) with three elements
 ```
 
 ## Command Line Usage
@@ -114,6 +117,15 @@ chmod +x fibonacci.uni
 1 2 swap    \ Swap top two: [2 1]
 1 2 drop    \ Remove top: [1]
 1 2 3 over  \ Copy second to top: [1 2 3 2]
+```
+
+### Array Operations
+```uni
+1 2 3 3 vector      \ Build #[1 2 3] (count comes last)
+dup 1 vector-ref    \ Peek element at index 1 -> 2
+dup 0 42 vector-set!\ Mutate index 0 to 42 (in-place update)
+vector->list        \ Convert vector back into a list
+"x" 4 make-vector   \ Create #["x" "x" "x" "x"]
 ```
 
 ### Control Flow

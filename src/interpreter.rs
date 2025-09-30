@@ -1,5 +1,5 @@
-use crate::value::{RuntimeError, Value};
 use crate::tokenizer::SourcePos;
+use crate::value::{RuntimeError, Value};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -75,6 +75,10 @@ impl Interpreter {
         })
     }
 
+    pub fn make_array(&self, items: Vec<Value>) -> Value {
+        Value::Array(Rc::new(std::cell::RefCell::new(items)))
+    }
+
     pub fn is_null(&self, value: &Value) -> bool {
         matches!(value, Value::Null)
     }
@@ -89,6 +93,7 @@ impl Interpreter {
             Value::Atom(_) => true,            // atoms are truthy
             Value::QuotedAtom(_) => true,      // quoted atoms are truthy
             Value::Pair(_, _) => true,         // non-empty lists are truthy
+            Value::Array(_) => true,           // arrays are truthy by default
             Value::Builtin(_) => true,         // builtins are truthy
         }
     }
@@ -121,10 +126,12 @@ impl Interpreter {
     // Position-aware pop method for better error messages
     pub fn pop_with_context(&mut self, context: &str) -> Result<Value, RuntimeError> {
         if let Some(pos) = &self.current_pos {
-            self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflowAt {
-                pos: pos.clone(),
-                context: context.to_string(),
-            })
+            self.stack
+                .pop()
+                .ok_or_else(|| RuntimeError::StackUnderflowAt {
+                    pos: pos.clone(),
+                    context: context.to_string(),
+                })
         } else {
             self.stack.pop().ok_or(RuntimeError::StackUnderflow)
         }

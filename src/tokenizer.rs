@@ -51,6 +51,7 @@ pub enum TokenKind {
     Boolean(bool),  // Boolean literals: true, false
     Null,           // Null literal
     LeftBracket,
+    ArrayLeftBracket,
     RightBracket,
     Quote,
     Dot, // For cons pair notation like [1 . rest]
@@ -65,6 +66,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Boolean(b) => write!(f, "{}", if *b { "true" } else { "false" }),
             TokenKind::Null => write!(f, "null"),
             TokenKind::LeftBracket => write!(f, "["),
+            TokenKind::ArrayLeftBracket => write!(f, "#["),
             TokenKind::RightBracket => write!(f, "]"),
             TokenKind::Quote => write!(f, "'"),
             TokenKind::Dot => write!(f, "."),
@@ -115,6 +117,46 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                     SourcePos::new(start_line, start_column, start_offset),
                     SourcePos::new(line, column, offset),
                 ));
+            }
+
+            '#' => {
+                let consumed = chars.next().unwrap();
+                advance_pos(consumed, &mut line, &mut column, &mut offset);
+
+                match chars.peek() {
+                    Some(&'[') => {
+                        let consumed_bracket = chars.next().unwrap();
+                        advance_pos(consumed_bracket, &mut line, &mut column, &mut offset);
+                        tokens.push(Token::new(
+                            TokenKind::ArrayLeftBracket,
+                            SourcePos::new(start_line, start_column, start_offset),
+                            SourcePos::new(line, column, offset),
+                        ));
+                    }
+                    Some(_) => {
+                        let mut atom = String::from("#");
+                        while let Some(&ch) = chars.peek() {
+                            if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
+                                break;
+                            }
+                            atom.push(ch);
+                            let consumed = chars.next().unwrap();
+                            advance_pos(consumed, &mut line, &mut column, &mut offset);
+                        }
+                        tokens.push(Token::new(
+                            TokenKind::Atom(atom),
+                            SourcePos::new(start_line, start_column, start_offset),
+                            SourcePos::new(line, column, offset),
+                        ));
+                    }
+                    None => {
+                        tokens.push(Token::new(
+                            TokenKind::Atom("#".to_string()),
+                            SourcePos::new(start_line, start_column, start_offset),
+                            SourcePos::new(line, column, offset),
+                        ));
+                    }
+                }
             }
 
             ']' => {
@@ -424,6 +466,16 @@ mod tests {
         assert!(matches!(tokens[2].kind, TokenKind::Number(n) if n == 2.0));
         assert!(matches!(tokens[3].kind, TokenKind::Number(n) if n == 3.0));
         assert!(matches!(tokens[4].kind, TokenKind::RightBracket));
+    }
+
+    #[test]
+    fn test_tokenize_array_literals() {
+        let tokens = tokenize("#[1 2]").unwrap();
+        assert_eq!(tokens.len(), 4);
+        assert!(matches!(tokens[0].kind, TokenKind::ArrayLeftBracket));
+        assert!(matches!(tokens[1].kind, TokenKind::Number(n) if n == 1.0));
+        assert!(matches!(tokens[2].kind, TokenKind::Number(n) if n == 2.0));
+        assert!(matches!(tokens[3].kind, TokenKind::RightBracket));
     }
 
     #[test]

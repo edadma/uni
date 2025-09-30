@@ -156,6 +156,18 @@ mod tests {
     }
 
     #[test]
+    fn test_to_string_builtin_array() {
+        let mut interp = setup_interpreter();
+
+        let array = interp.make_array(vec![Value::Number(1.0), Value::Number(2.0)]);
+        interp.push(array);
+        to_string_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::String(s) if s.as_ref() == "#[1 2]"));
+    }
+
+    #[test]
     fn test_to_string_builtin_stack_underflow() {
         let mut interp = setup_interpreter();
 

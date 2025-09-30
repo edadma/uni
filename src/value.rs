@@ -1,15 +1,17 @@
-use std::rc::Rc;
 use crate::tokenizer::SourcePos;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum Value {
     Number(f64),
-    Atom(Rc<str>),              // Interned atoms for efficiency
-    QuotedAtom(Rc<str>),        // Quoted atoms - push without executing
-    String(Rc<str>),            // Literal strings - ref counted but not interned
-    Boolean(bool),              // True/false boolean values
-    Null,                       // Null/undefined value (distinct from Nil empty list)
+    Atom(Rc<str>),       // Interned atoms for efficiency
+    QuotedAtom(Rc<str>), // Quoted atoms - push without executing
+    String(Rc<str>),     // Literal strings - ref counted but not interned
+    Boolean(bool),       // True/false boolean values
+    Null,                // Null/undefined value (distinct from Nil empty list)
     Pair(Rc<Value>, Rc<Value>),
+    Array(Rc<RefCell<Vec<Value>>>),
     Nil,
     Builtin(fn(&mut crate::interpreter::Interpreter) -> Result<(), RuntimeError>),
 }
@@ -32,8 +34,11 @@ impl std::fmt::Display for RuntimeError {
         match self {
             RuntimeError::StackUnderflow => write!(f, "Stack underflow"),
             RuntimeError::StackUnderflowAt { pos, context } => {
-                write!(f, "Stack underflow at line {}, column {}: {}",
-                       pos.line, pos.column, context)
+                write!(
+                    f,
+                    "Stack underflow at line {}, column {}: {}",
+                    pos.line, pos.column, context
+                )
             }
             RuntimeError::TypeError(msg) => write!(f, "Type error: {}", msg),
             RuntimeError::UndefinedWord(word) => write!(f, "Undefined word: {}", word),
@@ -52,7 +57,7 @@ impl std::fmt::Display for Value {
             Value::Number(n) => write!(f, "{}", n),
             Value::Atom(a) => write!(f, "{}", a),
             Value::QuotedAtom(a) => write!(f, "'{}", a),
-            Value::String(s) => write!(f, "\"{}\"", s),  // Strings WITH quotes
+            Value::String(s) => write!(f, "\"{}\"", s), // Strings WITH quotes
             Value::Boolean(b) => write!(f, "{}", if *b { "true" } else { "false" }),
             Value::Null => write!(f, "null"),
             Value::Pair(head, tail) => {
@@ -70,6 +75,18 @@ impl std::fmt::Display for Value {
                             write!(f, " . {}", other)?;
                             break;
                         }
+                    }
+                }
+                write!(f, "]")
+            }
+            Value::Array(elements) => {
+                let elements_ref = elements.borrow();
+                write!(f, "#[")?;
+                let mut iter = elements_ref.iter();
+                if let Some(first) = iter.next() {
+                    write!(f, "{}", first)?;
+                    for elem in iter {
+                        write!(f, " {}", elem)?;
                     }
                 }
                 write!(f, "]")

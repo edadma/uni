@@ -31,8 +31,10 @@ use crate::primitives::{
     // Comparison operations
     less_than_builtin,
     list_builtin,
+    list_to_vector_builtin,
     // Logarithmic functions
     log_builtin,
+    make_vector_builtin,
     max_builtin,
     min_builtin,
     mod_builtin,
@@ -64,6 +66,11 @@ use crate::primitives::{
     // Predicate operations
     truthy_predicate_builtin,
     val_builtin,
+    vector_builtin,
+    vector_length_builtin,
+    vector_ref_builtin,
+    vector_set_builtin,
+    vector_to_list_builtin,
 };
 
 // RUST CONCEPT: Registering all builtins with the interpreter
@@ -227,6 +234,69 @@ pub fn register_builtins(interp: &mut Interpreter) {
         list_atom,
         DictEntry {
             value: Value::Builtin(list_builtin),
+            is_executable: true,
+        },
+    );
+
+    let vector_atom = interp.intern_atom("vector");
+    interp.dictionary.insert(
+        vector_atom,
+        DictEntry {
+            value: Value::Builtin(vector_builtin),
+            is_executable: true,
+        },
+    );
+
+    let make_vector_atom = interp.intern_atom("make-vector");
+    interp.dictionary.insert(
+        make_vector_atom,
+        DictEntry {
+            value: Value::Builtin(make_vector_builtin),
+            is_executable: true,
+        },
+    );
+
+    let vector_length_atom = interp.intern_atom("vector-length");
+    interp.dictionary.insert(
+        vector_length_atom,
+        DictEntry {
+            value: Value::Builtin(vector_length_builtin),
+            is_executable: true,
+        },
+    );
+
+    let vector_ref_atom = interp.intern_atom("vector-ref");
+    interp.dictionary.insert(
+        vector_ref_atom,
+        DictEntry {
+            value: Value::Builtin(vector_ref_builtin),
+            is_executable: true,
+        },
+    );
+
+    let vector_set_atom = interp.intern_atom("vector-set!");
+    interp.dictionary.insert(
+        vector_set_atom,
+        DictEntry {
+            value: Value::Builtin(vector_set_builtin),
+            is_executable: true,
+        },
+    );
+
+    let vector_to_list_atom = interp.intern_atom("vector->list");
+    interp.dictionary.insert(
+        vector_to_list_atom,
+        DictEntry {
+            value: Value::Builtin(vector_to_list_builtin),
+            is_executable: true,
+        },
+    );
+
+    let list_to_vector_atom = interp.intern_atom("list->vector");
+    interp.dictionary.insert(
+        list_to_vector_atom,
+        DictEntry {
+            value: Value::Builtin(list_to_vector_builtin),
             is_executable: true,
         },
     );
@@ -529,7 +599,7 @@ mod tests {
             ">r", "r>", "r@", // Control flow & meta
             "def", "val", // exec and if are now special in evaluator
             // I/O operations
-            "pr", // String operations
+            "pr",       // String operations
             "->string", // List operations
             "head", "tail", "cons", "list", // Predicates
             "truthy?",

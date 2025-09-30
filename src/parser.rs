@@ -166,6 +166,10 @@ fn parse_value(
             parse_list(tokens, index, interp)
         }
 
+        Some(token) if matches!(token.kind, TokenKind::ArrayLeftBracket) => {
+            parse_array(tokens, index, interp)
+        }
+
         Some(token) if matches!(token.kind, TokenKind::Quote) => {
             *index += 1; // Skip the quote token
 
@@ -258,7 +262,9 @@ fn parse_list(
     // RUST CONCEPT: Assertions and debugging
     // debug_assert! is removed in release builds but helps catch bugs during development
     // This ensures we're starting at a LeftBracket token
-    debug_assert!(matches!(tokens.get(*index), Some(token) if matches!(token.kind, TokenKind::LeftBracket)));
+    debug_assert!(
+        matches!(tokens.get(*index), Some(token) if matches!(token.kind, TokenKind::LeftBracket))
+    );
 
     *index += 1; // Skip the opening bracket
 
@@ -341,6 +347,43 @@ fn parse_list(
         });
 
     Ok(list)
+}
+
+fn parse_array(
+    tokens: &[Token],
+    index: &mut usize,
+    interp: &mut Interpreter,
+) -> Result<Value, ParseError> {
+    debug_assert!(
+        matches!(tokens.get(*index), Some(token) if matches!(token.kind, TokenKind::ArrayLeftBracket))
+    );
+
+    *index += 1; // Skip the #[ token
+
+    let mut elements = Vec::new();
+
+    loop {
+        match tokens.get(*index) {
+            Some(token) if matches!(token.kind, TokenKind::RightBracket) => {
+                *index += 1;
+                break;
+            }
+            Some(token) if matches!(token.kind, TokenKind::Dot) => {
+                return Err(ParseError::UnexpectedToken(
+                    "Arrays do not support dot notation".to_string(),
+                ));
+            }
+            None => {
+                return Err(ParseError::UnexpectedEndOfInput);
+            }
+            _ => {
+                let element = parse_value(tokens, index, interp)?;
+                elements.push(element);
+            }
+        }
+    }
+
+    Ok(interp.make_array(elements))
 }
 
 // RUST CONCEPT: Conditional compilation and testing
@@ -504,6 +547,36 @@ mod tests {
             }
             _ => panic!("Expected list pair"),
         }
+    }
+
+    #[test]
+    fn test_parse_array_literal() {
+        let mut interp = Interpreter::new();
+
+        let result = parse("#[1 2 3]", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+
+        match &result[0] {
+            Value::Array(array_rc) => {
+                let array = array_rc.borrow();
+                assert_eq!(array.len(), 3);
+                assert!(matches!(array[0], Value::Number(n) if n == 1.0));
+                assert!(matches!(array[1], Value::Number(n) if n == 2.0));
+                assert!(matches!(array[2], Value::Number(n) if n == 3.0));
+            }
+            _ => panic!("Expected array value"),
+        }
+    }
+
+    #[test]
+    fn test_parse_array_disallows_dot() {
+        let mut interp = Interpreter::new();
+
+        let result = parse("#[1 . 2]", &mut interp);
+        assert!(matches!(
+            result,
+            Err(ParseError::UnexpectedToken(msg)) if msg.contains("Arrays do not support dot notation")
+        ));
     }
 
     #[test]

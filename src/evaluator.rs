@@ -165,6 +165,10 @@ fn execute_value_direct(
             interp.push(Value::Null);
             Ok(())
         }
+        Value::Array(array) => {
+            interp.push(Value::Array(array.clone()));
+            Ok(())
+        }
         Value::Pair(_, _) | Value::Nil => {
             interp.push(value.clone());
             Ok(())
