@@ -17,6 +17,9 @@
 use crate::interpreter::Interpreter;
 use crate::tokenizer::{Token, TokenKind, tokenize};
 use crate::value::{RuntimeError, Value};
+use num_bigint::BigInt;
+use num_complex::Complex64;
+use num_rational::BigRational;
 use std::rc::Rc;
 
 // RUST CONCEPT: Error types
@@ -119,6 +122,87 @@ fn parse_value(
         Some(token) if matches!(token.kind, TokenKind::Atom(_)) => {
             if let TokenKind::Atom(atom_text) = &token.kind {
                 *index += 1;
+
+                // RUST CONCEPT: Parse special number suffixes
+                // Check if atom is actually a suffixed number literal
+                // Syntax: 123n (BigInt), 3/4 (Rational), 3+4i (Complex)
+
+                // Try parsing as BigInt (suffix 'n')
+                if atom_text.ends_with('n') && atom_text.len() > 1 {
+                    let num_part = &atom_text[..atom_text.len() - 1];
+                    if let Ok(bigint) = num_part.parse::<BigInt>() {
+                        return Ok(Value::Integer(bigint));
+                    }
+                }
+
+                // Try parsing as Rational (format: numerator/denominator)
+                if atom_text.contains('/') {
+                    let parts: Vec<&str> = atom_text.split('/').collect();
+                    if parts.len() == 2
+                        && let (Ok(numer), Ok(denom)) = (
+                            parts[0].parse::<i64>(),
+                            parts[1].parse::<i64>(),
+                        )
+                        && denom != 0
+                    {
+                        return Ok(Value::Rational(BigRational::new(
+                            BigInt::from(numer),
+                            BigInt::from(denom),
+                        )));
+                    }
+                }
+
+                // Try parsing as Complex/GaussianInt (format: real+imagi or real-imagi)
+                // Examples: 3+4i, 5-2i, 0+1i
+                // PROMOTION RULE: If both parts are integers -> GaussianInt
+                //                 If either part has decimal/rational -> Complex64
+                if atom_text.ends_with('i') && atom_text.len() > 1 {
+                    let num_part = &atom_text[..atom_text.len() - 1];
+
+                    // Find the operator (+ or -) that separates real and imaginary parts
+                    // Look for the last + or - that's not at the start
+                    if let Some(op_pos) = num_part
+                        .char_indices()
+                        .skip(1) // Skip first char to allow negative real part
+                        .find(|(_, c)| *c == '+' || *c == '-')
+                        .map(|(pos, _)| pos)
+                    {
+                        let real_part = &num_part[..op_pos];
+                        let imag_part = &num_part[op_pos..];
+
+                        // Try parsing as integers first (for Gaussian integers)
+                        if let (Ok(re_int), Ok(im_int)) = (
+                            real_part.parse::<i64>(),
+                            imag_part.parse::<i64>(),
+                        ) {
+                            return Ok(Value::GaussianInt(
+                                BigInt::from(re_int),
+                                BigInt::from(im_int),
+                            ));
+                        }
+
+                        // Fall back to floating point (Complex64)
+                        if let (Ok(re), Ok(im)) = (
+                            real_part.parse::<f64>(),
+                            imag_part.parse::<f64>(),
+                        ) {
+                            return Ok(Value::Complex(Complex64::new(re, im)));
+                        }
+                    }
+                    // Try pure imaginary: just "5i" -> 0+5i
+                    else {
+                        // Try integer first
+                        if let Ok(im_int) = num_part.parse::<i64>() {
+                            return Ok(Value::GaussianInt(BigInt::from(0), BigInt::from(im_int)));
+                        }
+                        // Fall back to float
+                        else if let Ok(im) = num_part.parse::<f64>() {
+                            return Ok(Value::Complex(Complex64::new(0.0, im)));
+                        }
+                    }
+                }
+
+                // Not a special number, treat as regular atom
                 // RUST CONCEPT: Method calls and string conversion
                 // We need to intern the atom through the interpreter
                 // .clone() on a String creates a new owned string
@@ -1181,5 +1265,385 @@ mod tests {
             let message = error.message();
             assert!(!message.is_empty());
         }
+    }
+
+    // ========== TESTS FOR NEW NUMBER TYPES ==========
+
+    #[test]
+    fn test_parse_bigint_literals() {
+        use num_bigint::BigInt;
+        let mut interp = Interpreter::new();
+
+        // Test simple BigInt
+        let result = parse("123n", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Integer(ref i) if *i == BigInt::from(123)));
+
+        // Test negative BigInt
+        let result = parse("-456n", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Integer(ref i) if *i == BigInt::from(-456)));
+
+        // Test large BigInt
+        let result = parse("123456789012345678901234567890n", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        let expected = BigInt::parse_bytes(b"123456789012345678901234567890", 10).unwrap();
+        assert!(matches!(result[0], Value::Integer(ref i) if *i == expected));
+
+        // Test zero BigInt
+        let result = parse("0n", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Integer(ref i) if *i == BigInt::from(0)));
+    }
+
+    #[test]
+    fn test_parse_rational_literals() {
+        use num_bigint::BigInt;
+        use num_rational::BigRational;
+        let mut interp = Interpreter::new();
+
+        // Test simple fraction
+        let result = parse("3/4", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        let expected = BigRational::new(BigInt::from(3), BigInt::from(4));
+        assert!(matches!(result[0], Value::Rational(ref r) if *r == expected));
+
+        // Test 1/2
+        let result = parse("1/2", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        let expected = BigRational::new(BigInt::from(1), BigInt::from(2));
+        assert!(matches!(result[0], Value::Rational(ref r) if *r == expected));
+
+        // Test negative numerator
+        let result = parse("-5/8", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        let expected = BigRational::new(BigInt::from(-5), BigInt::from(8));
+        assert!(matches!(result[0], Value::Rational(ref r) if *r == expected));
+    }
+
+    #[test]
+    fn test_parse_complex_literals() {
+        use num_bigint::BigInt;
+        use num_complex::Complex64;
+        let mut interp = Interpreter::new();
+
+        // Test standard complex number (integers -> GaussianInt)
+        let result = parse("3+4i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(3) && im == &BigInt::from(4)));
+
+        // Test negative imaginary (integers -> GaussianInt)
+        let result = parse("5-2i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(5) && im == &BigInt::from(-2)));
+
+        // Test pure imaginary (integer -> GaussianInt)
+        let result = parse("5i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(0) && im == &BigInt::from(5)));
+
+        // Test with negative real part (integers -> GaussianInt)
+        let result = parse("-3+4i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(-3) && im == &BigInt::from(4)));
+
+        // Test with decimal parts (decimals -> Complex64)
+        let result = parse("1.5+2.5i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Complex(c) if c == Complex64::new(1.5, 2.5)));
+    }
+
+    #[test]
+    fn test_parse_mixed_number_types() {
+        use num_bigint::BigInt;
+        use num_complex::Complex64;
+        use num_rational::BigRational;
+        let mut interp = Interpreter::new();
+
+        // Test parsing multiple different number types
+        let result = parse("42 123n 3/4 2+3i", &mut interp).unwrap();
+        assert_eq!(result.len(), 4);
+
+        assert!(matches!(result[0], Value::Number(n) if n == 42.0));
+        assert!(matches!(result[1], Value::Integer(ref i) if *i == BigInt::from(123)));
+        assert!(matches!(result[2], Value::Rational(ref r) if *r == BigRational::new(BigInt::from(3), BigInt::from(4))));
+        assert!(matches!(result[3], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(2) && im == &BigInt::from(3)));
+    }
+
+    #[test]
+    fn test_parse_number_types_in_lists() {
+        use num_bigint::BigInt;
+        let mut interp = Interpreter::new();
+
+        // Test BigInt in list
+        let result = parse("[1 2n 3]", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+
+        // Verify it's a list with proper elements
+        match &result[0] {
+            Value::Pair(_, _) => {
+                // List created correctly
+            }
+            _ => panic!("Expected list"),
+        }
+
+        // Test GaussianInt in list (integers -> GaussianInt)
+        let result = parse("[1+2i 3+4i]", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        match &result[0] {
+            Value::Pair(car, cdr) => {
+                assert!(matches!(**car, Value::GaussianInt(ref re, ref im)
+                    if re == &BigInt::from(1) && im == &BigInt::from(2)));
+                match cdr.as_ref() {
+                    Value::Pair(car2, _) => {
+                        assert!(matches!(**car2, Value::GaussianInt(ref re, ref im)
+                            if re == &BigInt::from(3) && im == &BigInt::from(4)));
+                    }
+                    _ => panic!("Expected second element"),
+                }
+            }
+            _ => panic!("Expected list"),
+        }
+    }
+
+    // ========== COMPLEX NUMBER PARSING EDGE CASES ==========
+
+    #[test]
+    fn test_parse_complex_negative_imaginary() {
+        use num_bigint::BigInt;
+        let mut interp = Interpreter::new();
+
+        // Test with negative imaginary part: 3-4i (integers -> GaussianInt)
+        let result = parse("3-4i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(3) && im == &BigInt::from(-4)));
+
+        // Test with both negative: -3-4i (integers -> GaussianInt)
+        let result = parse("-3-4i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(-3) && im == &BigInt::from(-4)));
+    }
+
+    #[test]
+    fn test_parse_complex_zero_parts() {
+        use num_bigint::BigInt;
+        let mut interp = Interpreter::new();
+
+        // Test 0+5i (zero real part) - integers -> GaussianInt
+        let result = parse("0+5i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(0) && im == &BigInt::from(5)));
+
+        // Test 5+0i (zero imaginary part) - integers -> GaussianInt
+        let result = parse("5+0i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(5) && im == &BigInt::from(0)));
+
+        // Test 0+0i (both zero) - integers -> GaussianInt
+        let result = parse("0+0i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(0) && im == &BigInt::from(0)));
+    }
+
+    #[test]
+    fn test_parse_complex_decimal_parts() {
+        use num_complex::Complex64;
+        let mut interp = Interpreter::new();
+
+        // Test decimals in both parts
+        let result = parse("1.5+2.5i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Complex(c) if c == Complex64::new(1.5, 2.5)));
+
+        // Test decimal in real only
+        let result = parse("3.14+2i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Complex(c) if c == Complex64::new(3.14, 2.0)));
+
+        // Test decimal in imaginary only
+        let result = parse("2+3.14i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Complex(c) if c == Complex64::new(2.0, 3.14)));
+
+        // Test very small decimals
+        let result = parse("0.1+0.2i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Complex(c) if (c.re - 0.1).abs() < 0.0001 && (c.im - 0.2).abs() < 0.0001));
+    }
+
+    #[test]
+    fn test_parse_complex_pure_imaginary_edge_cases() {
+        use num_bigint::BigInt;
+        use num_complex::Complex64;
+        let mut interp = Interpreter::new();
+
+        // Test simple pure imaginary (integer -> GaussianInt)
+        let result = parse("5i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(0) && im == &BigInt::from(5)));
+
+        // Test negative pure imaginary (integer -> GaussianInt)
+        let result = parse("-5i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(0) && im == &BigInt::from(-5)));
+
+        // Test decimal pure imaginary (decimal -> Complex64)
+        let result = parse("3.5i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Complex(c) if c == Complex64::new(0.0, 3.5)));
+
+        // Test zero pure imaginary (integer -> GaussianInt)
+        let result = parse("0i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(0) && im == &BigInt::from(0)));
+    }
+
+    #[test]
+    fn test_parse_complex_large_numbers() {
+        use num_bigint::BigInt;
+        use num_complex::Complex64;
+        let mut interp = Interpreter::new();
+
+        // Test large integer values (integers -> GaussianInt)
+        let result = parse("1000000+2000000i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(1000000) && im == &BigInt::from(2000000)));
+
+        // Test very large decimals (decimals -> Complex64)
+        let result = parse("123456.789+987654.321i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        match &result[0] {
+            Value::Complex(c) => {
+                assert!((c.re - 123456.789).abs() < 0.001);
+                assert!((c.im - 987654.321).abs() < 0.001);
+            }
+            _ => panic!("Expected complex"),
+        }
+    }
+
+    #[test]
+    fn test_parse_complex_with_spaces_fails() {
+        let mut interp = Interpreter::new();
+
+        // In postfix, "3 + 4i" should parse as three separate tokens
+        // (not a complex number)
+        let result = parse("3 + 4i", &mut interp).unwrap();
+        assert_eq!(result.len(), 3); // Three separate values
+
+        // Only "3+4i" (no spaces) should be a complex number (GaussianInt since both integers)
+        let result = parse("3+4i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(_, _)));
+    }
+
+    #[test]
+    fn test_parse_complex_not_confused_with_operators() {
+        use num_bigint::BigInt;
+        let mut interp = Interpreter::new();
+
+        // "3+4" is not complex (no 'i' suffix)
+        // It should parse as two separate tokens in postfix
+        let result = parse("3 4 +", &mut interp).unwrap();
+        assert_eq!(result.len(), 3);
+
+        // But "3+4i" IS complex (has 'i' suffix, integers -> GaussianInt)
+        let result = parse("3+4i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(3) && im == &BigInt::from(4)));
+    }
+
+    #[test]
+    fn test_parse_complex_multiple_signs() {
+        use num_bigint::BigInt;
+        let mut interp = Interpreter::new();
+
+        // Test multiple complex numbers in sequence (all integers -> GaussianInt)
+        let result = parse("1+2i 3-4i -5+6i -7-8i", &mut interp).unwrap();
+        assert_eq!(result.len(), 4);
+
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(1) && im == &BigInt::from(2)));
+        assert!(matches!(result[1], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(3) && im == &BigInt::from(-4)));
+        assert!(matches!(result[2], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(-5) && im == &BigInt::from(6)));
+        assert!(matches!(result[3], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(-7) && im == &BigInt::from(-8)));
+    }
+
+    #[test]
+    fn test_parse_complex_scientific_notation() {
+        use num_complex::Complex64;
+        let mut interp = Interpreter::new();
+
+        // Test scientific notation in complex numbers (positive exponents only)
+        let result = parse("1e2+3e1i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Complex(c) if c == Complex64::new(100.0, 30.0)));
+
+        // Note: Scientific notation with negative exponents (e.g., "1e-2+3e-1i")
+        // is not supported because the '-' is ambiguous with complex number syntax.
+        // For such cases, use decimals instead: "0.01+0.3i"
+    }
+
+    #[test]
+    fn test_parse_rational_edge_cases() {
+        use num_rational::BigRational;
+        use num_traits::Zero;
+        let mut interp = Interpreter::new();
+
+        // Test 1/1 (whole number as fraction)
+        let result = parse("1/1", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        let expected = BigRational::new(BigInt::from(1), BigInt::from(1));
+        assert!(matches!(result[0], Value::Rational(ref r) if *r == expected));
+
+        // Test 0/1 (zero as fraction)
+        let result = parse("0/1", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Rational(ref r) if r.is_zero()));
+
+        // Test large numerator and denominator
+        let result = parse("123456789/987654321", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        let expected = BigRational::new(BigInt::from(123456789), BigInt::from(987654321));
+        assert!(matches!(result[0], Value::Rational(ref r) if *r == expected));
+    }
+
+    #[test]
+    fn test_parse_bigint_edge_cases() {
+        use num_bigint::BigInt;
+        use num_traits::Zero;
+        let mut interp = Interpreter::new();
+
+        // Test 0n
+        let result = parse("0n", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Integer(ref i) if i.is_zero()));
+
+        // Test 1n
+        let result = parse("1n", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Integer(ref i) if *i == BigInt::from(1)));
+
+        // Test negative zero: -0n
+        let result = parse("-0n", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Integer(ref i) if i.is_zero()));
     }
 }

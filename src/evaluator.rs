@@ -153,6 +153,23 @@ fn execute_value_direct(
             interp.push(Value::Number(*n));
             Ok(())
         }
+        // RUST CONCEPT: New number types also push themselves
+        Value::Integer(i) => {
+            interp.push(Value::Integer(i.clone()));
+            Ok(())
+        }
+        Value::Rational(r) => {
+            interp.push(Value::Rational(r.clone()));
+            Ok(())
+        }
+        Value::Complex(c) => {
+            interp.push(Value::Complex(*c));
+            Ok(())
+        }
+        Value::GaussianInt(re, im) => {
+            interp.push(Value::GaussianInt(re.clone(), im.clone()));
+            Ok(())
+        }
         Value::String(s) => {
             interp.push(Value::String(s.clone()));
             Ok(())

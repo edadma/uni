@@ -311,28 +311,55 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                     }
                 }
 
-                match num_str.parse::<f64>() {
-                    Ok(num) => tokens.push(Token::new(
-                        TokenKind::Number(num),
+                // RUST CONCEPT: Check for extended number suffixes (same as unsigned numbers)
+                let has_suffix = chars.peek().is_some_and(|&c| {
+                    c == 'n' // BigInt suffix
+                        || c == 'i' // Complex imaginary unit
+                        || c == '/' // Rational fraction
+                        || c == '+' || c == '-' // Complex with separate real/imaginary
+                });
+
+                if has_suffix {
+                    // Continue collecting as an atom (extended number literal)
+                    // Don't break on '.' since we might have decimal complex numbers like "-1.5+2.5i"
+                    while let Some(&ch) = chars.peek() {
+                        if ch.is_whitespace() || "[]\'\"\\\\".contains(ch) {
+                            break;
+                        }
+                        num_str.push(ch);
+                        let consumed = chars.next().unwrap();
+                        advance_pos(consumed, &mut line, &mut column, &mut offset);
+                    }
+                    tokens.push(Token::new(
+                        TokenKind::Atom(num_str),
                         SourcePos::new(start_line, start_column, start_offset),
                         SourcePos::new(line, column, offset),
-                    )),
-                    Err(_) => {
-                        // If it's not a valid number, treat it as an atom
-                        // Continue collecting non-whitespace chars
-                        while let Some(&ch) = chars.peek() {
-                            if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
-                                break;
-                            }
-                            num_str.push(ch);
-                            let consumed = chars.next().unwrap();
-                            advance_pos(consumed, &mut line, &mut column, &mut offset);
-                        }
-                        tokens.push(Token::new(
-                            TokenKind::Atom(num_str),
+                    ));
+                } else {
+                    // Regular signed number
+                    match num_str.parse::<f64>() {
+                        Ok(num) => tokens.push(Token::new(
+                            TokenKind::Number(num),
                             SourcePos::new(start_line, start_column, start_offset),
                             SourcePos::new(line, column, offset),
-                        ));
+                        )),
+                        Err(_) => {
+                            // If it's not a valid number, treat it as an atom
+                            // Continue collecting non-whitespace chars
+                            while let Some(&ch) = chars.peek() {
+                                if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
+                                    break;
+                                }
+                                num_str.push(ch);
+                                let consumed = chars.next().unwrap();
+                                advance_pos(consumed, &mut line, &mut column, &mut offset);
+                            }
+                            tokens.push(Token::new(
+                                TokenKind::Atom(num_str),
+                                SourcePos::new(start_line, start_column, start_offset),
+                                SourcePos::new(line, column, offset),
+                            ));
+                        }
                     }
                 }
             }
@@ -358,28 +385,57 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                     }
                 }
 
-                match num_str.parse::<f64>() {
-                    Ok(num) => tokens.push(Token::new(
-                        TokenKind::Number(num),
+                // RUST CONCEPT: Check for extended number suffixes (n, i, /, +, -)
+                // In postfix languages, operators need spaces, so "+"/"-" immediately
+                // after a number can only mean complex number syntax (e.g., 1.5+2.5i)
+                let has_suffix = chars.peek().is_some_and(|&c| {
+                    c == 'n' // BigInt suffix
+                        || c == 'i' // Complex imaginary unit
+                        || c == '/' // Rational fraction
+                        || c == '+' || c == '-' // Complex with separate real/imaginary
+                });
+
+                if has_suffix {
+                    // Continue collecting as an atom (extended number literal)
+                    // Don't break on '.' since we might have decimal complex numbers like "1.5+2.5i"
+                    while let Some(&ch) = chars.peek() {
+                        if ch.is_whitespace() || "[]\'\"\\\\".contains(ch) {
+                            break;
+                        }
+                        num_str.push(ch);
+                        let consumed = chars.next().unwrap();
+                        advance_pos(consumed, &mut line, &mut column, &mut offset);
+                    }
+                    tokens.push(Token::new(
+                        TokenKind::Atom(num_str),
                         SourcePos::new(start_line, start_column, start_offset),
                         SourcePos::new(line, column, offset),
-                    )),
-                    Err(_) => {
-                        // If it's not a valid number, treat it as an atom
-                        // Continue collecting non-whitespace chars
-                        while let Some(&ch) = chars.peek() {
-                            if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
-                                break;
-                            }
-                            num_str.push(ch);
-                            let consumed = chars.next().unwrap();
-                            advance_pos(consumed, &mut line, &mut column, &mut offset);
-                        }
-                        tokens.push(Token::new(
-                            TokenKind::Atom(num_str),
+                    ));
+                } else {
+                    // Regular number
+                    match num_str.parse::<f64>() {
+                        Ok(num) => tokens.push(Token::new(
+                            TokenKind::Number(num),
                             SourcePos::new(start_line, start_column, start_offset),
                             SourcePos::new(line, column, offset),
-                        ));
+                        )),
+                        Err(_) => {
+                            // If it's not a valid number, treat it as an atom
+                            // Continue collecting non-whitespace chars
+                            while let Some(&ch) = chars.peek() {
+                                if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
+                                    break;
+                                }
+                                num_str.push(ch);
+                                let consumed = chars.next().unwrap();
+                                advance_pos(consumed, &mut line, &mut column, &mut offset);
+                            }
+                            tokens.push(Token::new(
+                                TokenKind::Atom(num_str),
+                                SourcePos::new(start_line, start_column, start_offset),
+                                SourcePos::new(line, column, offset),
+                            ));
+                        }
                     }
                 }
             }

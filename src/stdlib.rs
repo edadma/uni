@@ -23,6 +23,9 @@ pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         'tuck [swap over] def
         'nil? [[] =] def
 
+        \\ Mathematical constants
+        'i 0+1i def
+
         \\ List processing primitives
         'length [
             dup nil?
@@ -411,5 +414,25 @@ mod tests {
 
         let result = interp.pop().unwrap();
         assert!(matches!(result, Value::Number(n) if n == 10.0));
+    }
+
+    #[test]
+    fn test_stdlib_imaginary_constant() {
+        use num_bigint::BigInt;
+        let mut interp = setup_interpreter_with_stdlib();
+
+        // Test: 'i' should be defined as 0+1i (GaussianInt)
+        execute_string("i", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(0) && im == &BigInt::from(1)));
+
+        // Test: using 'i' in arithmetic: i + i = 0+2i
+        execute_string("i i +", &mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(0) && im == &BigInt::from(2)));
     }
 }

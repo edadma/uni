@@ -1,19 +1,71 @@
 use crate::tokenizer::SourcePos;
+use num_bigint::BigInt;
+use num_complex::Complex64;
+use num_rational::BigRational;
+use num_traits::{One, Zero};
 use std::cell::RefCell;
 use std::rc::Rc;
 
+// RUST CONCEPT: Using the num ecosystem for arbitrary precision and special number types
+// BigInt: Arbitrary precision integers (unlimited size)
+// BigRational: Exact rational numbers (fractions)
+// GaussianInt: Gaussian integers (a + bi where a, b are integers)
+// Complex64: Complex numbers with f64 components
+
 #[derive(Debug, Clone)]
 pub enum Value {
-    Number(f64),
-    Atom(Rc<str>),       // Interned atoms for efficiency
-    QuotedAtom(Rc<str>), // Quoted atoms - push without executing
-    String(Rc<str>),     // Literal strings - ref counted but not interned
-    Boolean(bool),       // True/false boolean values
-    Null,                // Null/undefined value (distinct from Nil empty list)
-    Pair(Rc<Value>, Rc<Value>),
-    Array(Rc<RefCell<Vec<Value>>>),
-    Nil,
+    Number(f64),                    // Floating point number (default)
+    Integer(BigInt),                // Arbitrary precision integer
+    Rational(BigRational),          // Exact rational number (fraction)
+    GaussianInt(BigInt, BigInt),    // Gaussian integer (real, imaginary) - both integers
+    Complex(Complex64),             // Complex number (a + bi) - floating point components
+    Atom(Rc<str>),                  // Interned atoms for efficiency
+    QuotedAtom(Rc<str>),            // Quoted atoms - push without executing
+    String(Rc<str>),                // Literal strings - ref counted but not interned
+    Boolean(bool),                  // True/false boolean values
+    Null,                           // Null/undefined value (distinct from Nil empty list)
+    Pair(Rc<Value>, Rc<Value>),    // Cons cell for lists
+    Array(Rc<RefCell<Vec<Value>>>), // Mutable array/vector
+    Nil,                            // Empty list marker
     Builtin(fn(&mut crate::interpreter::Interpreter) -> Result<(), RuntimeError>),
+}
+
+impl Value {
+    // RUST CONCEPT: Automatic numeric type demotion for cleaner results
+    // This function attempts to demote numeric types to simpler representations:
+    // - Rational with denominator 1 → Integer
+    // - Rational with numerator 0 → Integer(0)
+    // - GaussianInt with imaginary 0 → Integer
+    // This keeps values in their simplest form after arithmetic operations
+    pub fn demote(self) -> Self {
+        match &self {
+            // Check Rational: demote if denominator is 1 or numerator is 0
+            Value::Rational(r) if r.numer().is_zero() => {
+                // 0/n → 0
+                Value::Integer(BigInt::from(0))
+            }
+            Value::Rational(r) if r.denom().is_one() => {
+                // n/1 → n
+                // Extract the inner BigRational and clone its numerator
+                if let Value::Rational(r) = self {
+                    Value::Integer(r.numer().clone())
+                } else {
+                    unreachable!()
+                }
+            }
+            // Check GaussianInt: demote if imaginary part is 0
+            Value::GaussianInt(_re, im) if im.is_zero() => {
+                // a+0i → a (move real part out)
+                if let Value::GaussianInt(re, _im) = self {
+                    Value::Integer(re)
+                } else {
+                    unreachable!()
+                }
+            }
+            // All other cases: return unchanged (no deconstruct/reconstruct)
+            _ => self,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -55,6 +107,50 @@ impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Number(n) => write!(f, "{}", n),
+            // RUST CONCEPT: BigInt displays without suffix by default
+            Value::Integer(i) => write!(f, "{}n", i), // Suffix 'n' to indicate bigint
+            // RUST CONCEPT: BigRational displays as "numerator/denominator"
+            Value::Rational(r) => write!(f, "{}", r), // Shows as fraction like "3/4"
+            // RUST CONCEPT: GaussianInt displays as "a+bi" with integer parts
+            Value::GaussianInt(re, im) => {
+                use num_traits::Zero;
+
+                // Special case: 0+1i displays as just "i"
+                if re.is_zero() && im == &BigInt::from(1) {
+                    write!(f, "i")
+                }
+                // Special case: 0-1i displays as "-i"
+                else if re.is_zero() && im == &BigInt::from(-1) {
+                    write!(f, "-i")
+                }
+                // Special case: 0+ni displays as "ni" (pure imaginary)
+                else if re.is_zero() {
+                    if im >= &BigInt::from(0) {
+                        write!(f, "{}i", im)
+                    } else {
+                        write!(f, "{}i", im)
+                    }
+                }
+                // Special case: a+0i displays as just "a" (pure real)
+                else if im.is_zero() {
+                    write!(f, "{}", re)
+                }
+                // General case: a+bi
+                else if im >= &BigInt::from(0) {
+                    write!(f, "{}+{}i", re, im)
+                } else {
+                    write!(f, "{}{}i", re, im)
+                }
+            }
+            // RUST CONCEPT: Complex64 displays as "a+bi" format with floating point
+            Value::Complex(c) => {
+                // Custom formatting for complex numbers
+                if c.im >= 0.0 {
+                    write!(f, "{}+{}i", c.re, c.im)
+                } else {
+                    write!(f, "{}{}i", c.re, c.im)
+                }
+            }
             Value::Atom(a) => write!(f, "{}", a),
             Value::QuotedAtom(a) => write!(f, "'{}", a),
             Value::String(s) => write!(f, "\"{}\"", s), // Strings WITH quotes

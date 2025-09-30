@@ -1,5 +1,6 @@
 use crate::tokenizer::SourcePos;
 use crate::value::{RuntimeError, Value};
+use num_traits::Zero;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -109,6 +110,10 @@ impl Interpreter {
             Value::Null => false,              // null is falsy (like JS)
             Value::Nil => true,                // empty list is truthy (like [] in JS)
             Value::Number(n) => *n != 0.0,     // 0 is falsy, everything else truthy (like JS)
+            Value::Integer(i) => !i.is_zero(), // 0n is falsy, non-zero is truthy
+            Value::Rational(r) => !r.is_zero(), // 0/1 is falsy, non-zero is truthy
+            Value::GaussianInt(re, im) => !re.is_zero() || !im.is_zero(), // 0+0i is falsy
+            Value::Complex(c) => c.re != 0.0 || c.im != 0.0, // 0+0i is falsy
             Value::String(s) => !s.is_empty(), // "" is falsy, non-empty is truthy (like JS)
             Value::Atom(_) => true,            // atoms are truthy
             Value::QuotedAtom(_) => true,      // quoted atoms are truthy
