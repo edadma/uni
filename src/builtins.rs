@@ -87,7 +87,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(add_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Add two numbers or concatenate strings.\nUsage: a b + => result\nExamples: 5 3 + => 8\n\"Hello \" \"World\" + => \"Hello World\"",
+            )),
         },
     );
 
@@ -97,7 +99,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(sub_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Subtract two numbers.\nUsage: a b - => result\nExample: 10 3 - => 7",
+            )),
         },
     );
 
@@ -107,7 +111,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(mul_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Multiply two numbers.\nUsage: a b * => result\nExample: 6 7 * => 42",
+            )),
         },
     );
 
@@ -117,7 +123,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(div_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Divide two numbers.\nUsage: a b / => result\nExample: 15 3 / => 5",
+            )),
         },
     );
 
@@ -127,7 +135,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(mod_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Calculate modulo (remainder after division).\nUsage: a b mod => remainder\nExample: 10 3 mod => 1",
+            )),
         },
     );
 
@@ -137,7 +147,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(eq_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Test equality of two values.\nUsage: a b = => boolean\nExample: 5 5 = => true",
+            )),
         },
     );
 
@@ -148,7 +160,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(roll_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Rotate n-th stack item to top.\nUsage: x1 x2 ... xn n roll => x2 ... xn x1\nExample: 1 2 3 2 roll => 2 3 1",
+            )),
         },
     );
 
@@ -158,7 +172,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(pick_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Copy n-th stack item to top.\nUsage: x1 x2 ... xn n pick => x1 x2 ... xn x1\nExample: 1 2 3 2 pick => 1 2 3 1",
+            )),
         },
     );
 
@@ -168,7 +184,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(drop_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Remove top stack item.\nUsage: x drop =>\nExample: 1 2 3 drop => 1 2",
+            )),
         },
     );
 
@@ -230,7 +248,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(print_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Print top stack value to output.\nUsage: value pr => (prints value)\nExample: \"Hello\" pr => Hello",
+            )),
         },
     );
 
@@ -241,7 +261,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(to_string_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Convert value to string representation.\nUsage: value ->string => string\nExample: 42 ->string => \"42\"",
+            )),
         },
     );
 
@@ -252,7 +274,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(head_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Get first element of a list.\nUsage: [x y z] head => x\nExample: [1 2 3] head => 1",
+            )),
         },
     );
 
@@ -262,7 +286,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(tail_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Get all but first element of a list.\nUsage: [x y z] tail => [y z]\nExample: [1 2 3] tail => [2 3]",
+            )),
         },
     );
 
@@ -272,7 +298,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(cons_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Prepend element to list (construct cons cell).\nUsage: x [y z] cons => [x y z]\nExample: 1 [2 3] cons => [1 2 3]",
+            )),
         },
     );
 
@@ -282,7 +310,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(list_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Convert all stack items into a list.\nUsage: x y z n list => [x y z]\nExample: 1 2 3 3 list => [1 2 3]",
+            )),
         },
     );
 
@@ -292,7 +322,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(vector_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Create vector from stack items.\nUsage: x y z n vector => #[x y z]\nExample: 1 2 3 3 vector => #[1 2 3]",
+            )),
         },
     );
 
@@ -302,7 +334,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(make_vector_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Create vector of size n filled with value.\nUsage: n value make-vector => #[value ...]\nExample: 3 0 make-vector => #[0 0 0]",
+            )),
         },
     );
 
@@ -312,7 +346,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(vector_length_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Get length of a vector.\nUsage: #[a b c] vector-length => 3\nExample: #[1 2 3] vector-length => 3",
+            )),
         },
     );
 
@@ -322,7 +358,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(vector_ref_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Get element at index from vector.\nUsage: #[a b c] i vector-ref => element\nExample: #[10 20 30] 1 vector-ref => 20",
+            )),
         },
     );
 
@@ -332,7 +370,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(vector_set_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Set element at index in vector.\nUsage: #[a b c] i value vector-set! => #[a value c]\nExample: #[10 20 30] 1 99 vector-set! => #[10 99 30]",
+            )),
         },
     );
 
@@ -342,7 +382,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(vector_to_list_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Convert vector to list.\nUsage: #[a b c] vector->list => [a b c]\nExample: #[1 2 3] vector->list => [1 2 3]",
+            )),
         },
     );
 
@@ -352,7 +394,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(list_to_vector_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Convert list to vector.\nUsage: [a b c] list->vector => #[a b c]\nExample: [1 2 3] list->vector => #[1 2 3]",
+            )),
         },
     );
 
@@ -363,7 +407,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(null_predicate_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Test if value is null.\nUsage: value null? => boolean\nExample: null null? => true",
+            )),
         },
     );
 
@@ -373,7 +419,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(truthy_predicate_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Test if value is truthy (non-null, non-false, non-zero).\nUsage: value truthy? => boolean\nExample: 5 truthy? => true",
+            )),
         },
     );
 
@@ -384,7 +432,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(less_than_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Test if first number is less than second.\nUsage: a b < => boolean\nExample: 3 5 < => true",
+            )),
         },
     );
 
@@ -394,7 +444,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(greater_than_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Test if first number is greater than second.\nUsage: a b > => boolean\nExample: 5 3 > => true",
+            )),
         },
     );
 
@@ -404,7 +456,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(less_equal_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Test if first number is less than or equal to second.\nUsage: a b <= => boolean\nExample: 3 3 <= => true",
+            )),
         },
     );
 
@@ -414,7 +468,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(greater_equal_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Test if first number is greater than or equal to second.\nUsage: a b >= => boolean\nExample: 5 5 >= => true",
+            )),
         },
     );
 
@@ -424,7 +480,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(not_equal_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Test if two values are not equal.\nUsage: a b != => boolean\nExample: 5 3 != => true",
+            )),
         },
     );
 
@@ -435,7 +493,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(abs_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Calculate absolute value.\nUsage: n abs => |n|\nExample: -5 abs => 5",
+            )),
         },
     );
 
@@ -445,7 +505,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(min_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Return minimum of two numbers.\nUsage: a b min => min(a,b)\nExample: 3 7 min => 3",
+            )),
         },
     );
 
@@ -455,7 +517,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(max_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Return maximum of two numbers.\nUsage: a b max => max(a,b)\nExample: 3 7 max => 7",
+            )),
         },
     );
 
@@ -465,7 +529,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(sqrt_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Calculate square root.\nUsage: n sqrt => √n\nExample: 16 sqrt => 4",
+            )),
         },
     );
 
@@ -476,7 +542,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(pow_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Raise number to power.\nUsage: base exponent pow => base^exponent\nExample: 2 8 pow => 256",
+            )),
         },
     );
 
@@ -486,7 +554,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(floor_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Round down to nearest integer.\nUsage: n floor => ⌊n⌋\nExample: 3.7 floor => 3",
+            )),
         },
     );
 
@@ -496,7 +566,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(ceil_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Round up to nearest integer.\nUsage: n ceil => ⌈n⌉\nExample: 3.2 ceil => 4",
+            )),
         },
     );
 
@@ -506,7 +578,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(round_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Round to nearest integer.\nUsage: n round => round(n)\nExample: 3.5 round => 4",
+            )),
         },
     );
 
@@ -517,7 +591,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(sin_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Calculate sine (radians).\nUsage: radians sin => sin(radians)\nExample: 0 sin => 0",
+            )),
         },
     );
 
@@ -527,7 +603,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(cos_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Calculate cosine (radians).\nUsage: radians cos => cos(radians)\nExample: 0 cos => 1",
+            )),
         },
     );
 
@@ -537,7 +615,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(tan_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Calculate tangent (radians).\nUsage: radians tan => tan(radians)\nExample: 0 tan => 0",
+            )),
         },
     );
 
@@ -548,7 +628,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(log_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Calculate natural logarithm.\nUsage: n log => ln(n)\nExample: 2.718281828 log => 1",
+            )),
         },
     );
 
@@ -558,7 +640,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(exp_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Calculate e raised to power.\nUsage: n exp => e^n\nExample: 1 exp => 2.718281828",
+            )),
         },
     );
 
@@ -569,7 +653,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(bit_and_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Bitwise AND of two integers.\nUsage: a b bit-and => a&b\nExample: 12 10 bit-and => 8",
+            )),
         },
     );
 
@@ -579,7 +665,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(bit_or_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Bitwise OR of two integers.\nUsage: a b bit-or => a|b\nExample: 12 10 bit-or => 14",
+            )),
         },
     );
 
@@ -589,7 +677,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(bit_xor_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Bitwise XOR of two integers.\nUsage: a b bit-xor => a^b\nExample: 12 10 bit-xor => 6",
+            )),
         },
     );
 
@@ -599,7 +689,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(bit_not_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Bitwise NOT (complement) of integer.\nUsage: n bit-not => ~n\nExample: 5 bit-not => -6",
+            )),
         },
     );
 
@@ -610,7 +702,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(shl_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Shift bits left.\nUsage: n count shl => n<<count\nExample: 5 2 shl => 20",
+            )),
         },
     );
 
@@ -620,7 +714,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(shr_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Shift bits right.\nUsage: n count shr => n>>count\nExample: 20 2 shr => 5",
+            )),
         },
     );
 
@@ -631,7 +727,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(to_r_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Move value from data stack to return stack.\nUsage: x >r => (moves x to return stack)\nExample: 5 >r => (5 now on return stack)",
+            )),
         },
     );
 
@@ -641,7 +739,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(from_r_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Move value from return stack to data stack.\nUsage: r> => x\nExample: r> => (moves top of return stack to data stack)",
+            )),
         },
     );
 
@@ -651,7 +751,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(r_fetch_builtin),
             is_executable: true,
-            doc: None,
+            doc: Some(Rc::<str>::from(
+                "Copy top of return stack to data stack.\nUsage: r@ => x\nExample: r@ => (copies top of return stack without removing it)",
+            )),
         },
     );
 }
