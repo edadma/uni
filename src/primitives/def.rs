@@ -23,11 +23,17 @@ pub fn def_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         Value::Atom(atom_name) => {
             // RUST CONCEPT: Creating dict entry with executable flag
             use crate::interpreter::DictEntry;
+            let doc_clone = interp
+                .dictionary
+                .get(&atom_name)
+                .and_then(|entry| entry.doc.clone());
             let entry = DictEntry {
                 value: definition,
                 is_executable: true, // def marks entries as executable
+                doc: doc_clone,
             };
-            interp.dictionary.insert(atom_name, entry);
+            interp.dictionary.insert(atom_name.clone(), entry);
+            interp.set_pending_doc_target(atom_name);
             Ok(())
         }
 

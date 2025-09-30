@@ -296,6 +296,7 @@ let your_atom = interp.intern_atom("your-word");
 interp.dictionary.insert(your_atom, DictEntry {
     value: Value::Builtin(your_builtin),
     is_executable: true,
+    doc: None,
 });
 ```
 

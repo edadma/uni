@@ -9,6 +9,7 @@ use std::rc::Rc;
 pub struct DictEntry {
     pub value: Value,
     pub is_executable: bool, // true = execute lists (def), false = push as data (val)
+    pub doc: Option<Rc<str>>, // Optional documentation string for help
 }
 
 pub struct Interpreter {
@@ -17,6 +18,7 @@ pub struct Interpreter {
     pub dictionary: HashMap<Rc<str>, DictEntry>,
     pub atoms: HashMap<String, Rc<str>>,
     pub current_pos: Option<SourcePos>, // Track current execution position for error messages
+    pending_doc_target: Option<Rc<str>>, // Remember most recent definition for doc
 }
 
 impl Interpreter {
@@ -27,6 +29,7 @@ impl Interpreter {
             dictionary: HashMap::new(),
             atoms: HashMap::new(),
             current_pos: None, // No position initially
+            pending_doc_target: None,
         };
 
         // RUST CONCEPT: Automatic initialization
@@ -50,6 +53,23 @@ impl Interpreter {
             let atom: Rc<str> = text.into();
             self.atoms.insert(text.to_string(), atom.clone());
             atom
+        }
+    }
+
+    pub fn set_pending_doc_target(&mut self, atom: Rc<str>) {
+        self.pending_doc_target = Some(atom);
+    }
+
+    pub fn take_pending_doc_target(&mut self) -> Option<Rc<str>> {
+        self.pending_doc_target.take()
+    }
+
+    pub fn attach_doc(&mut self, atom: &Rc<str>, doc: Rc<str>) -> Result<(), RuntimeError> {
+        if let Some(entry) = self.dictionary.get_mut(atom) {
+            entry.doc = Some(doc);
+            Ok(())
+        } else {
+            Err(RuntimeError::UndefinedWord(atom.to_string()))
         }
     }
 
@@ -267,6 +287,7 @@ mod tests {
         let entry = DictEntry {
             value: Value::Number(99.0),
             is_executable: false, // Constants are not executable
+            doc: None,
         };
         interp.dictionary.insert(key.clone(), entry);
 

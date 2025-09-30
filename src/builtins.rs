@@ -1,5 +1,6 @@
 use crate::interpreter::Interpreter;
 use crate::value::Value;
+use std::rc::Rc;
 
 use crate::primitives::{
     // Basic math functions
@@ -18,6 +19,7 @@ use crate::primitives::{
     // Meta operations
     def_builtin,
     div_builtin,
+    doc_builtin,
     // Stack operations
     drop_builtin,
     eq_builtin,
@@ -27,6 +29,7 @@ use crate::primitives::{
     greater_equal_builtin,
     greater_than_builtin,
     head_builtin,
+    help_builtin,
     less_equal_builtin,
     // Comparison operations
     less_than_builtin,
@@ -84,6 +87,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(add_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -93,6 +97,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(sub_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -102,6 +107,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(mul_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -111,6 +117,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(div_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -120,6 +127,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(mod_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -129,6 +137,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(eq_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -139,6 +148,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(roll_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -148,6 +158,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(pick_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -157,6 +168,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(drop_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -169,6 +181,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(def_builtin),
             is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Define an executable word. Usage: 'name body def",
+            )),
         },
     );
 
@@ -178,6 +193,33 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(val_builtin),
             is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Define a constant value. Usage: 'name value val",
+            )),
+        },
+    );
+
+    let doc_atom = interp.intern_atom("doc");
+    interp.dictionary.insert(
+        doc_atom,
+        DictEntry {
+            value: Value::Builtin(doc_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Attach documentation to the most recent def/val.\nUsage: \"lines\" doc",
+            )),
+        },
+    );
+
+    let help_atom = interp.intern_atom("help");
+    interp.dictionary.insert(
+        help_atom,
+        DictEntry {
+            value: Value::Builtin(help_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Display documentation for a word. Usage: 'name help",
+            )),
         },
     );
 
@@ -188,6 +230,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(print_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -198,6 +241,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(to_string_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -208,6 +252,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(head_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -217,6 +262,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(tail_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -226,6 +272,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(cons_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -235,6 +282,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(list_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -244,6 +292,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(vector_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -253,6 +302,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(make_vector_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -262,6 +312,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(vector_length_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -271,6 +322,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(vector_ref_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -280,6 +332,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(vector_set_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -289,6 +342,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(vector_to_list_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -298,6 +352,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(list_to_vector_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -308,6 +363,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(null_predicate_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -317,6 +373,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(truthy_predicate_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -327,6 +384,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(less_than_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -336,6 +394,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(greater_than_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -345,6 +404,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(less_equal_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -354,6 +414,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(greater_equal_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -363,6 +424,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(not_equal_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -373,6 +435,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(abs_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -382,6 +445,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(min_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -391,6 +455,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(max_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -400,6 +465,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(sqrt_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -410,6 +476,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(pow_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -419,6 +486,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(floor_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -428,6 +496,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(ceil_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -437,6 +506,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(round_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -447,6 +517,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(sin_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -456,6 +527,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(cos_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -465,6 +537,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(tan_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -475,6 +548,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(log_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -484,6 +558,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(exp_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -494,6 +569,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(bit_and_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -503,6 +579,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(bit_or_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -512,6 +589,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(bit_xor_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -521,6 +599,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(bit_not_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -531,6 +610,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(shl_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -540,6 +620,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(shr_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -550,6 +631,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(to_r_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -559,6 +641,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(from_r_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 
@@ -568,6 +651,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         DictEntry {
             value: Value::Builtin(r_fetch_builtin),
             is_executable: true,
+            doc: None,
         },
     );
 }

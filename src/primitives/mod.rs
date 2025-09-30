@@ -65,6 +65,8 @@ pub mod vector;
 
 // Meta operations
 pub mod def;
+pub mod doc;
+pub mod help;
 pub mod val;
 
 // Control flow - if is now handled specially in the evaluator
@@ -155,6 +157,8 @@ pub use vector::vector_to_list_builtin;
 
 // Meta operations
 pub use def::def_builtin;
+pub use doc::doc_builtin;
+pub use help::help_builtin;
 pub use val::val_builtin;
 
 // Control flow - if is now handled specially in the evaluator

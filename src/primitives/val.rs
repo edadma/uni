@@ -19,11 +19,17 @@ pub fn val_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         Value::Atom(atom_name) => {
             // RUST CONCEPT: Creating dict entry with constant flag
             use crate::interpreter::DictEntry;
+            let doc_clone = interp
+                .dictionary
+                .get(&atom_name)
+                .and_then(|entry| entry.doc.clone());
             let entry = DictEntry {
                 value: definition,
                 is_executable: false, // val marks entries as constants
+                doc: doc_clone,
             };
-            interp.dictionary.insert(atom_name, entry);
+            interp.dictionary.insert(atom_name.clone(), entry);
+            interp.set_pending_doc_target(atom_name);
             Ok(())
         }
         _ => Err(RuntimeError::TypeError(
@@ -155,6 +161,7 @@ mod tests {
                 Some(DictEntry {
                     value: stored_value,
                     is_executable,
+                    ..
                 }) => {
                     assert!(!*is_executable, "Constants should not be executable");
 
@@ -229,6 +236,7 @@ mod tests {
             Some(DictEntry {
                 value: Value::Nil,
                 is_executable,
+                ..
             }) => {
                 assert!(!*is_executable, "Nil constant should not be executable");
             }
@@ -260,6 +268,7 @@ mod tests {
             Some(DictEntry {
                 value: Value::Pair(_, _),
                 is_executable,
+                ..
             }) => {
                 assert!(!*is_executable, "List constants should not be executable");
             }
