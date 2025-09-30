@@ -3,8 +3,8 @@ mod evaluator;
 mod integration_tests;
 mod interpreter;
 mod parser;
+mod prelude;
 mod primitives; // RUST CONCEPT: New modular primitives organization
-mod stdlib;
 mod tokenizer;
 mod value;
 

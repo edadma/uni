@@ -1,30 +1,45 @@
-// RUST CONCEPT: Uni Standard Library Module
-// This module contains Uni's standard library definitions
+// RUST CONCEPT: Uni Prelude Module
+// This module contains Uni's prelude definitions - the standard words loaded at startup
 // Following the Forth tradition, we define higher-level operations in terms of primitives
 
 use crate::evaluator::execute_string;
 use crate::interpreter::Interpreter;
 use crate::value::RuntimeError;
 
-// RUST CONCEPT: Standard library initialization
-// This function loads all standard library definitions into the interpreter
-pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Define stdlib words using actual Uni code
+// RUST CONCEPT: Prelude initialization
+// This function loads all prelude definitions into the interpreter
+pub fn load_prelude(interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    // RUST CONCEPT: Define prelude words using actual Uni code
     // This is much more natural than building def commands from string pairs
     // Each line is real Uni code that defines a word
     // RUST CONCEPT: Multi-line string for multiple definitions
     // Each definition is actual Uni code that uses def naturally
-    let stdlib_code = r#"
+    let prelude_code = r#"
+        \\ Stack manipulation words
         'swap [1 roll] def
+        "( a b -- b a ) Swap top two stack items" doc
+
         'dup [0 pick] def
+        "( a -- a a ) Duplicate top stack item" doc
+
         'over [1 pick] def
+        "( a b -- a b a ) Copy second stack item to top" doc
+
         'rot [2 roll] def
+        "( a b c -- b c a ) Rotate third item to top" doc
+
         'nip [swap drop] def
+        "( a b -- b ) Remove second stack item" doc
+
         'tuck [swap over] def
+        "( a b -- b a b ) Copy top below second item" doc
+
         'nil? [[] =] def
+        "( x -- bool ) Test if value is empty list" doc
 
         \\ Mathematical constants
         'i 0+1i def
+        "Imaginary unit constant (0+1i)" doc
 
         \\ List processing primitives
         'length [
@@ -33,13 +48,16 @@ pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             [tail length 1 +]
             if
         ] def
+        "( list -- n ) Calculate list length recursively" doc
 
         'null? [null =] def
+        "( x -- bool ) Test if value is null" doc
 
         \\ Conditional duplication from Forth
         '?dup [
             dup truthy? [dup] [] if
         ] def
+        "( x -- x x | x ) Duplicate if truthy, otherwise leave unchanged" doc
 
         \\ Short-circuiting logical operations
         'and [
@@ -55,6 +73,7 @@ pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             ]
             if
         ] def
+        "( [cond1] [cond2] -- result ) Short-circuit AND: executes cond2 only if cond1 is truthy" doc
 
         'or [
             swap                          \\ Move first quotation to top
@@ -69,6 +88,7 @@ pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             ]
             if
         ] def
+        "( [cond1] [cond2] -- result ) Short-circuit OR: executes cond2 only if cond1 is falsy" doc
 
         \\ Control flow primitives
         'while [
@@ -82,34 +102,34 @@ pub fn load_stdlib(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             [ r> r> drop drop ]
             if
         ] def
+        "( [condition] [body] -- ) Loop: executes body while condition returns truthy" doc
     "#;
 
-    // RUST CONCEPT: Execute the stdlib code directly
+    // RUST CONCEPT: Execute the prelude code directly
     // This uses the normal execution path - no special handling needed
-    execute_string(stdlib_code, interp)?;
+    execute_string(prelude_code, interp)?;
 
     Ok(())
 }
 
-// RUST CONCEPT: Testing the standard library
+// RUST CONCEPT: Testing the prelude
 #[cfg(test)]
 mod tests {
     use super::*;
-    // use crate::builtins::register_builtins;  // No longer needed
     use crate::value::Value;
 
     // RUST CONCEPT: Test helper function
-    fn setup_interpreter_with_stdlib() -> Interpreter {
-        // RUST CONCEPT: Manual stdlib loading for debugging
-        // Interpreter::new() now automatically loads builtins only
+    fn setup_interpreter_with_prelude() -> Interpreter {
+        // RUST CONCEPT: Manual prelude loading for testing
+        // Interpreter::new() now automatically loads builtins and prelude
         let mut interp = Interpreter::new();
-        load_stdlib(&mut interp).unwrap();
+        load_prelude(&mut interp).unwrap();
         interp
     }
 
     #[test]
-    fn test_stdlib_dup() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_dup() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: 42 dup should give us 42 42
         execute_string("42 dup", &mut interp).unwrap();
@@ -122,8 +142,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_swap() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_swap() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: 1 2 swap should give us 2 1
         execute_string("1 2 swap", &mut interp).unwrap();
@@ -136,8 +156,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_over() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_over() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: 1 2 over should give us 1 2 1
         execute_string("1 2 over", &mut interp).unwrap();
@@ -152,8 +172,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_rot() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_rot() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: 1 2 3 rot should give us 2 3 1
         execute_string("1 2 3 rot", &mut interp).unwrap();
@@ -168,8 +188,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_nip() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_nip() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: 1 2 3 nip should give us 1 3 (removes second item)
         execute_string("1 2 3 nip", &mut interp).unwrap();
@@ -185,8 +205,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_tuck() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_tuck() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: 5 6 tuck should give us 6 5 6 (insert copy of top below second)
         execute_string("5 6 tuck", &mut interp).unwrap();
@@ -204,8 +224,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_length() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_length() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: [1 2 3 4 5] length should give us 5
         execute_string("[1 2 3 4 5] length", &mut interp).unwrap();
@@ -221,8 +241,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_null_predicate() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_null_predicate() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: null null? should give us true
         execute_string("null null?", &mut interp).unwrap();
@@ -244,8 +264,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_while_loop_counter() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_while_loop_counter() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: while loop that counts from 1 and leaves 5 on the stack
         // Start with 1, condition checks if counter < 5, body increments counter
@@ -268,8 +288,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_while_sum_accumulator() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_while_sum_accumulator() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: while loop that sums numbers 1+2+3+4+5 = 15
         // Stack: [counter sum]
@@ -292,8 +312,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_while_empty_body() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_while_empty_body() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: while loop with false condition - body should never execute
         let code = r#"
@@ -314,8 +334,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_question_dup() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_question_dup() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: truthy value should be duplicated
         execute_string("42 ?dup", &mut interp).unwrap();
@@ -342,8 +362,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_and_short_circuit() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_and_short_circuit() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: true and true -> returns second value
         execute_string("[5] [10] and", &mut interp).unwrap();
@@ -369,8 +389,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_or_short_circuit() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_or_short_circuit() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: false or true -> returns second value
         execute_string("[0] [42] or", &mut interp).unwrap();
@@ -394,8 +414,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_and_or_chaining() {
-        let mut interp = setup_interpreter_with_stdlib();
+    fn test_prelude_and_or_chaining() {
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: chaining and operations - all true
         execute_string("[1] [2] and [3] and", &mut interp).unwrap();
@@ -417,9 +437,9 @@ mod tests {
     }
 
     #[test]
-    fn test_stdlib_imaginary_constant() {
+    fn test_prelude_imaginary_constant() {
         use num_bigint::BigInt;
-        let mut interp = setup_interpreter_with_stdlib();
+        let mut interp = setup_interpreter_with_prelude();
 
         // Test: 'i' should be defined as 0+1i (GaussianInt)
         execute_string("i", &mut interp).unwrap();

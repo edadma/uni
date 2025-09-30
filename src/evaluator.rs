@@ -310,7 +310,7 @@ mod tests {
     // DRY principle - Don't Repeat Yourself
     fn setup_interpreter() -> Interpreter {
         // RUST CONCEPT: Automatic initialization
-        // Interpreter::new() now automatically loads builtins and stdlib
+        // Interpreter::new() now automatically loads builtins and prelude
         Interpreter::new()
     }
 

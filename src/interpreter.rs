@@ -37,11 +37,11 @@ impl Interpreter {
         // Load builtins first (primitives and core operations)
         crate::builtins::register_builtins(&mut interpreter);
 
-        // Then load stdlib (higher-level operations built on primitives)
-        if let Err(_e) = crate::stdlib::load_stdlib(&mut interpreter) {
+        // Then load prelude (higher-level operations built on primitives)
+        if let Err(_e) = crate::prelude::load_prelude(&mut interpreter) {
             // In a constructor, we can't easily return errors
-            // For now, just continue without stdlib
-            // TODO: Better error handling for stdlib loading
+            // For now, just continue without prelude
+            // TODO: Better error handling for prelude loading
         }
 
         interpreter

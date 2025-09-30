@@ -1360,7 +1360,6 @@ mod tests {
     #[test]
     fn test_parse_mixed_number_types() {
         use num_bigint::BigInt;
-        use num_complex::Complex64;
         use num_rational::BigRational;
         let mut interp = Interpreter::new();
 
@@ -1514,7 +1513,6 @@ mod tests {
     #[test]
     fn test_parse_complex_large_numbers() {
         use num_bigint::BigInt;
-        use num_complex::Complex64;
         let mut interp = Interpreter::new();
 
         // Test large integer values (integers -> GaussianInt)

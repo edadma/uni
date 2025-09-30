@@ -82,8 +82,8 @@ mod tests {
     }
 
     #[test]
-    fn test_list_processing_stdlib() {
-        // RUST CONCEPT: Testing stdlib list processing functions
+    fn test_list_processing_prelude() {
+        // RUST CONCEPT: Testing prelude list processing functions
         // This tests length and null? predicates properly
         let list_processing_code = r#"
             \ Test length function on various lists
