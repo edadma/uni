@@ -99,8 +99,7 @@ uni --help                 # Show usage information
 stack           \ Display current stack contents
 clear           \ Clear the stack
 words           \ List all defined words
-help            \ Show help for all built-in operations
-'word help      \ Show help for a specific word (e.g., 'if help)
+'word help      \ Show help for a specific word (e.g., 'if help, '+ help)
 quit            \ Exit the REPL (or Ctrl-D)
 ```
 
@@ -303,16 +302,16 @@ r@              \ Peek return stack (non-destructive)
 
 ### Getting Help
 
-Uni has built-in documentation for all operations:
+Uni has built-in documentation for operations:
 
 ```uni
-help            \ Show all available operations with descriptions
+words           \ List all available words/operations
 
 '/ help         \ Show help for division operator
 'if help        \ Show help for conditional execution
 'map help       \ Show help for map function (from prelude)
 
-\ Each operation includes:
+\ Each operation's help includes:
 \ - Brief description
 \ - Usage pattern
 \ - Example usage
