@@ -69,6 +69,7 @@ use crate::primitives::{
     to_string_builtin,
     // Predicate operations
     truthy_predicate_builtin,
+    trunc_div_builtin,
     // Type introspection
     type_of_builtin,
     val_builtin,
@@ -152,6 +153,18 @@ pub fn register_builtins(interp: &mut Interpreter) {
             is_executable: true,
             doc: Some(Rc::<str>::from(
                 "Calculate modulo (remainder after division).\nUsage: a b mod => remainder\nExample: 10 3 mod => 1",
+            )),
+        },
+    );
+
+    let trunc_div_atom = interp.intern_atom("div");
+    interp.dictionary.insert(
+        trunc_div_atom,
+        DictEntry {
+            value: Value::Builtin(trunc_div_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Truncating integer division (rounds toward zero).\nUsage: a b div => result\nExample: 7 2 div => 3, -7 2 div => -3",
             )),
         },
     );
@@ -800,7 +813,7 @@ mod tests {
 
         let expected_builtins = [
             // Basic arithmetic
-            "+", "-", "*", "/", "//", "mod", "=", // Comparison operations
+            "+", "-", "*", "/", "//", "div", "mod", "=", // Comparison operations
             "<", ">", "<=", ">=", "!=", // Basic math functions
             "abs", "min", "max", "sqrt", // Advanced math functions
             "pow", "floor", "ceil", "round", // Trigonometric functions

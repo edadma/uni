@@ -9,6 +9,7 @@ pub mod minus;
 pub mod modulo;
 pub mod multiply;
 pub mod plus;
+pub mod trunc_div;
 
 // Comparison operations
 pub mod greater_equal;
@@ -98,6 +99,7 @@ pub use minus::sub_builtin;
 pub use modulo::mod_builtin;
 pub use multiply::mul_builtin;
 pub use plus::add_builtin;
+pub use trunc_div::trunc_div_builtin;
 
 // Comparison operations
 pub use greater_equal::greater_equal_builtin;
