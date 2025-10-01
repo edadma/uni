@@ -88,9 +88,6 @@ uni -f script.uni          # Explicit file flag
 # Execute code directly
 uni -c "5 3 + pr"          # Execute code (prints 8)
 uni -e "10 2 /"            # Execute and auto-print result (prints 5)
-
-# Help
-uni --help                 # Show usage information
 ```
 
 ### Interactive REPL Commands
