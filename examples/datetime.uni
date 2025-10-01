@@ -1,0 +1,93 @@
+#!/usr/bin/env cargo run --quiet -- -f
+
+\ Uni Date/Time Example
+\ Demonstrates date/time operations using chrono
+
+\ Get current date/time
+"Current date/time:" pr
+now
+dup pr
+
+\ Extract components
+"Year:" pr
+dup year pr
+
+"Month:" pr
+dup month pr
+
+"Day:" pr
+dup day pr
+
+"Hour:" pr
+dup hour pr
+
+"Minute:" pr
+dup minute pr
+
+"Second:" pr
+dup second pr
+
+"Weekday (0=Mon, 6=Sun):" pr
+weekday pr
+
+\ Create a specific datetime
+"Creating datetime: October 1, 2025 at 14:30:00" pr
+2025 10 1 14 30 0 datetime
+dup pr
+
+\ Create duration (1 day, 2 hours, 30 minutes, 0 seconds)
+"Creating duration: 1 day, 2 hours, 30 minutes" pr
+1 2 30 0 duration
+dup pr
+
+\ Convert duration to seconds
+"Duration in seconds:" pr
+dup duration->seconds pr
+
+\ Add duration to datetime
+"Adding duration to datetime:" pr
+date+
+dup pr
+
+\ Create another datetime for comparison
+"Creating second datetime: October 5, 2025 at 12:00:00" pr
+2025 10 5 12 0 0 datetime
+dup pr
+
+\ Compare datetimes
+"First datetime < second datetime?" pr
+over over date< pr
+
+\ Calculate time difference
+"Time difference between datetimes:" pr
+date-
+dup pr
+
+\ Convert to seconds
+"Difference in seconds:" pr
+duration->seconds pr
+
+\ Timezone conversions
+"Converting to UTC:" pr
+2025 10 1 14 30 0 datetime
+dup to-utc pr
+
+\ Converting to local
+"Converting to local:" pr
+to-local pr
+
+\ Timestamp operations
+"Converting to Unix timestamp:" pr
+2025 10 1 12 0 0 0 datetime-with-offset
+dup timestamp pr
+
+\ Converting back from timestamp
+"Converting timestamp back to datetime:" pr
+timestamp->datetime pr
+
+\ String formatting
+"Formatting as ISO 8601 string:" pr
+2025 10 1 14 30 0 0 datetime-with-offset
+datetime->string pr
+
+"Date/time example complete!" pr

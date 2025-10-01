@@ -1,4 +1,5 @@
 use crate::tokenizer::SourcePos;
+use chrono::{DateTime, Duration as ChronoDuration, FixedOffset};
 use num_bigint::BigInt;
 use num_complex::Complex64;
 use num_rational::BigRational;
@@ -44,6 +45,15 @@ pub enum Value {
         type_name: Rc<str>,
         field_names: Rc<Vec<Rc<str>>>,
     },
+    // RUST CONCEPT: Date/time support using chrono
+    // DateTime stores an instant in time with timezone offset information
+    // Uses DateTime<FixedOffset> which can represent any timezone
+    // The offset is stored alongside the instant (e.g., "-05:00", "+00:00")
+    DateTime(DateTime<FixedOffset>),
+    // RUST CONCEPT: Duration represents a time span
+    // Can be positive (future) or negative (past)
+    // Supports days, hours, minutes, seconds, milliseconds, etc.
+    Duration(ChronoDuration),
 }
 
 impl Value {
@@ -67,6 +77,8 @@ impl Value {
             Value::Builtin(_) => "builtin",
             Value::Record { .. } => "record",
             Value::RecordType { .. } => "record-type",
+            Value::DateTime(_) => "datetime",
+            Value::Duration(_) => "duration",
         }
     }
 
@@ -248,6 +260,46 @@ impl std::fmt::Display for Value {
                     write!(f, " {}", field_name)?;
                 }
                 write!(f, ">")
+            }
+            // RUST CONCEPT: Display for datetime values
+            // Uses chrono's RFC3339 format (ISO 8601 with timezone)
+            // Example: "2025-10-01T14:30:00-05:00"
+            Value::DateTime(dt) => write!(f, "#<datetime:{}>", dt.to_rfc3339()),
+            // RUST CONCEPT: Display for duration values
+            // Shows duration in a human-readable format
+            Value::Duration(d) => {
+                // Convert to total seconds for display
+                let total_secs = d.num_seconds();
+                if total_secs == 0 {
+                    write!(f, "#<duration:0s>")
+                } else {
+                    let days = total_secs / 86400;
+                    let hours = (total_secs % 86400) / 3600;
+                    let mins = (total_secs % 3600) / 60;
+                    let secs = total_secs % 60;
+
+                    write!(f, "#<duration:")?;
+                    let mut first = true;
+                    if days != 0 {
+                        write!(f, "{}d", days)?;
+                        first = false;
+                    }
+                    if hours != 0 {
+                        if !first { write!(f, " ")?; }
+                        write!(f, "{}h", hours)?;
+                        first = false;
+                    }
+                    if mins != 0 {
+                        if !first { write!(f, " ")?; }
+                        write!(f, "{}m", mins)?;
+                        first = false;
+                    }
+                    if secs != 0 || first {
+                        if !first { write!(f, " ")?; }
+                        write!(f, "{}s", secs)?;
+                    }
+                    write!(f, ">")
+                }
             }
         }
     }

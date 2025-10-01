@@ -140,6 +140,8 @@ impl Interpreter {
             Value::Builtin(_) => true,         // builtins are truthy
             Value::Record { .. } => true,      // records are truthy
             Value::RecordType { .. } => true,  // record types are truthy
+            Value::DateTime(_) => true,        // datetimes are truthy
+            Value::Duration(_) => true,        // durations are truthy
         }
     }
 

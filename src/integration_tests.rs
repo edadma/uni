@@ -458,4 +458,212 @@ mod tests {
             y
         );
     }
+
+    // RUST CONCEPT: Date/time integration tests
+    // These tests verify the complete date/time system works end-to-end
+
+    #[test]
+    fn test_datetime_creation_and_accessors() {
+        let code = r#"
+            2025 10 1 14 30 45 datetime
+            dup year
+            swap dup month
+            swap dup day
+            swap dup hour
+            swap dup minute
+            swap second
+        "#;
+
+        let mut interp = setup_interpreter();
+        execute_string(code, &mut interp).unwrap();
+
+        use num_bigint::BigInt;
+
+        let second = interp.pop().unwrap();
+        let minute = interp.pop().unwrap();
+        let hour = interp.pop().unwrap();
+        let day = interp.pop().unwrap();
+        let month = interp.pop().unwrap();
+        let year = interp.pop().unwrap();
+
+        assert!(matches!(year, Value::Integer(ref i) if i == &BigInt::from(2025)));
+        assert!(matches!(month, Value::Integer(ref i) if i == &BigInt::from(10)));
+        assert!(matches!(day, Value::Integer(ref i) if i == &BigInt::from(1)));
+        assert!(matches!(hour, Value::Integer(ref i) if i == &BigInt::from(14)));
+        assert!(matches!(minute, Value::Integer(ref i) if i == &BigInt::from(30)));
+        assert!(matches!(second, Value::Integer(ref i) if i == &BigInt::from(45)));
+    }
+
+    #[test]
+    fn test_datetime_with_offset() {
+        let code = r#"
+            2025 10 1 14 30 0 -5 datetime-with-offset
+        "#;
+
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::DateTime(_)));
+    }
+
+    #[test]
+    fn test_duration_creation() {
+        let code = r#"
+            1 2 30 45 duration
+            duration->seconds
+        "#;
+
+        let result = execute_and_get_top(code).unwrap();
+
+        use num_bigint::BigInt;
+        // 1 day = 86400s, 2 hours = 7200s, 30 min = 1800s, 45s = 45s
+        // Total = 95445 seconds
+        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(95445)));
+    }
+
+    #[test]
+    fn test_date_arithmetic_add() {
+        let code = r#"
+            2025 10 1 12 0 0 datetime
+            1 0 0 0 duration
+            date+
+            day
+        "#;
+
+        let result = execute_and_get_top(code).unwrap();
+
+        use num_bigint::BigInt;
+        // Adding 1 day to Oct 1 should give Oct 2
+        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(2)));
+    }
+
+    #[test]
+    fn test_date_arithmetic_subtract_duration() {
+        let code = r#"
+            2025 10 5 12 0 0 datetime
+            2 0 0 0 duration
+            date-
+            day
+        "#;
+
+        let result = execute_and_get_top(code).unwrap();
+
+        use num_bigint::BigInt;
+        // Subtracting 2 days from Oct 5 should give Oct 3
+        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(3)));
+    }
+
+    #[test]
+    fn test_date_arithmetic_subtract_datetime() {
+        let code = r#"
+            2025 10 5 12 0 0 datetime
+            2025 10 1 12 0 0 datetime
+            date-
+            duration->seconds
+        "#;
+
+        let result = execute_and_get_top(code).unwrap();
+
+        use num_bigint::BigInt;
+        // 4 days difference = 4 * 86400 = 345600 seconds
+        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(345600)));
+    }
+
+    #[test]
+    fn test_date_comparisons() {
+        let mut interp = setup_interpreter();
+
+        // Test date< (less than)
+        execute_string("2025 10 1 12 0 0 datetime 2025 10 2 12 0 0 datetime date<", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test date> (greater than)
+        execute_string("2025 10 2 12 0 0 datetime 2025 10 1 12 0 0 datetime date>", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test date= (equal)
+        execute_string("2025 10 1 12 0 0 datetime 2025 10 1 12 0 0 datetime date=", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+    }
+
+    #[test]
+    fn test_timezone_conversions() {
+        let code = r#"
+            2025 10 1 14 30 0 datetime
+            dup to-utc
+            swap to-local
+        "#;
+
+        let mut interp = setup_interpreter();
+        execute_string(code, &mut interp).unwrap();
+
+        // Both should be datetime values
+        let local = interp.pop().unwrap();
+        let utc = interp.pop().unwrap();
+
+        assert!(matches!(local, Value::DateTime(_)));
+        assert!(matches!(utc, Value::DateTime(_)));
+    }
+
+    #[test]
+    fn test_datetime_string_conversion() {
+        let code = r#"
+            2025 10 1 14 30 0 0 datetime-with-offset
+            datetime->string
+        "#;
+
+        let result = execute_and_get_top(code).unwrap();
+
+        // Should be a string in ISO 8601 format
+        assert!(matches!(result, Value::String(_)));
+    }
+
+    #[test]
+    fn test_timestamp_conversion() {
+        let code = r#"
+            2025 10 1 12 0 0 0 datetime-with-offset
+            timestamp
+            timestamp->datetime
+        "#;
+
+        let result = execute_and_get_top(code).unwrap();
+
+        // Should get a datetime back
+        assert!(matches!(result, Value::DateTime(_)));
+    }
+
+    #[test]
+    fn test_weekday() {
+        let code = r#"
+            2025 10 1 12 0 0 datetime
+            weekday
+        "#;
+
+        let result = execute_and_get_top(code).unwrap();
+
+        // October 1, 2025 is a Wednesday (weekday = 2)
+        use num_bigint::BigInt;
+        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(2)));
+    }
+
+    #[test]
+    fn test_duration_comparisons() {
+        let mut interp = setup_interpreter();
+
+        // Test duration<
+        execute_string("1 0 0 0 duration 2 0 0 0 duration duration<", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test duration>
+        execute_string("2 0 0 0 duration 1 0 0 0 duration duration>", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test duration=
+        execute_string("1 0 0 0 duration 1 0 0 0 duration duration=", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+    }
 }

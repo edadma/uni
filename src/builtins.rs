@@ -17,12 +17,27 @@ use crate::primitives::{
     cons_builtin,
     construct_record_builtin,
     cos_builtin,
+    // Date/time operations
+    date_add_builtin,
+    date_equal_builtin,
+    date_greater_than_builtin,
+    date_less_than_builtin,
+    date_sub_builtin,
+    datetime_builtin,
+    datetime_to_string_builtin,
+    datetime_with_offset_builtin,
+    day_builtin,
     // Meta operations
     def_builtin,
     div_builtin,
     doc_builtin,
     // Stack operations
     drop_builtin,
+    duration_builtin,
+    duration_equal_builtin,
+    duration_greater_than_builtin,
+    duration_less_than_builtin,
+    duration_to_seconds_builtin,
     eq_builtin,
     exp_builtin,
     floor_builtin,
@@ -33,6 +48,7 @@ use crate::primitives::{
     greater_than_builtin,
     head_builtin,
     help_builtin,
+    hour_builtin,
     is_record_type_builtin,
     less_equal_builtin,
     // Comparison operations
@@ -45,9 +61,12 @@ use crate::primitives::{
     make_vector_builtin,
     max_builtin,
     min_builtin,
+    minute_builtin,
     mod_builtin,
+    month_builtin,
     mul_builtin,
     not_equal_builtin,
+    now_builtin,
     null_predicate_builtin,
     pick_builtin,
     // Advanced math functions
@@ -59,6 +78,7 @@ use crate::primitives::{
     record_type_of_builtin,
     roll_builtin,
     round_builtin,
+    second_builtin,
     set_record_field_builtin,
     // Shift operations
     shl_builtin,
@@ -66,13 +86,18 @@ use crate::primitives::{
     // Trigonometric functions
     sin_builtin,
     sqrt_builtin,
+    string_to_datetime_builtin,
     sub_builtin,
     tail_builtin,
     tan_builtin,
+    timestamp_builtin,
+    timestamp_to_datetime_builtin,
     // Return stack operations
+    to_local_builtin,
     to_r_builtin,
     // String operations
     to_string_builtin,
+    to_utc_builtin,
     // Predicate operations
     truthy_predicate_builtin,
     trunc_div_builtin,
@@ -84,6 +109,8 @@ use crate::primitives::{
     vector_ref_builtin,
     vector_set_builtin,
     vector_to_list_builtin,
+    weekday_builtin,
+    year_builtin,
 };
 
 // RUST CONCEPT: Registering all builtins with the interpreter
@@ -872,6 +899,320 @@ pub fn register_builtins(interp: &mut Interpreter) {
             is_executable: true,
             doc: Some(Rc::<str>::from(
                 "Get type name from record instance.\nUsage: record record-type-of => \"type-name\"",
+            )),
+        },
+    );
+
+    // Date/time operations
+    let now_atom = interp.intern_atom("now");
+    interp.dictionary.insert(
+        now_atom,
+        DictEntry {
+            value: Value::Builtin(now_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Get current date/time in local timezone.\nUsage: now => datetime",
+            )),
+        },
+    );
+
+    let datetime_atom = interp.intern_atom("datetime");
+    interp.dictionary.insert(
+        datetime_atom,
+        DictEntry {
+            value: Value::Builtin(datetime_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Create datetime in local timezone.\nUsage: year month day hour minute second datetime => datetime\nExample: 2025 10 1 14 30 0 datetime",
+            )),
+        },
+    );
+
+    let datetime_with_offset_atom = interp.intern_atom("datetime-with-offset");
+    interp.dictionary.insert(
+        datetime_with_offset_atom,
+        DictEntry {
+            value: Value::Builtin(datetime_with_offset_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Create datetime with specific offset.\nUsage: year month day hour minute second offset-hours datetime-with-offset => datetime\nExample: 2025 10 1 14 30 0 -5 datetime-with-offset",
+            )),
+        },
+    );
+
+    let year_atom = interp.intern_atom("year");
+    interp.dictionary.insert(
+        year_atom,
+        DictEntry {
+            value: Value::Builtin(year_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Extract year from datetime.\nUsage: datetime year => year",
+            )),
+        },
+    );
+
+    let month_atom = interp.intern_atom("month");
+    interp.dictionary.insert(
+        month_atom,
+        DictEntry {
+            value: Value::Builtin(month_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Extract month (1-12) from datetime.\nUsage: datetime month => month",
+            )),
+        },
+    );
+
+    let day_atom = interp.intern_atom("day");
+    interp.dictionary.insert(
+        day_atom,
+        DictEntry {
+            value: Value::Builtin(day_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Extract day (1-31) from datetime.\nUsage: datetime day => day",
+            )),
+        },
+    );
+
+    let hour_atom = interp.intern_atom("hour");
+    interp.dictionary.insert(
+        hour_atom,
+        DictEntry {
+            value: Value::Builtin(hour_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Extract hour (0-23) from datetime.\nUsage: datetime hour => hour",
+            )),
+        },
+    );
+
+    let minute_atom = interp.intern_atom("minute");
+    interp.dictionary.insert(
+        minute_atom,
+        DictEntry {
+            value: Value::Builtin(minute_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Extract minute (0-59) from datetime.\nUsage: datetime minute => minute",
+            )),
+        },
+    );
+
+    let second_atom = interp.intern_atom("second");
+    interp.dictionary.insert(
+        second_atom,
+        DictEntry {
+            value: Value::Builtin(second_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Extract second (0-59) from datetime.\nUsage: datetime second => second",
+            )),
+        },
+    );
+
+    let weekday_atom = interp.intern_atom("weekday");
+    interp.dictionary.insert(
+        weekday_atom,
+        DictEntry {
+            value: Value::Builtin(weekday_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Get day of week (0=Monday, 6=Sunday) from datetime.\nUsage: datetime weekday => weekday",
+            )),
+        },
+    );
+
+    let timestamp_atom = interp.intern_atom("timestamp");
+    interp.dictionary.insert(
+        timestamp_atom,
+        DictEntry {
+            value: Value::Builtin(timestamp_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Convert datetime to Unix timestamp (seconds since epoch).\nUsage: datetime timestamp => timestamp",
+            )),
+        },
+    );
+
+    let timestamp_to_datetime_atom = interp.intern_atom("timestamp->datetime");
+    interp.dictionary.insert(
+        timestamp_to_datetime_atom,
+        DictEntry {
+            value: Value::Builtin(timestamp_to_datetime_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Convert Unix timestamp to datetime in local timezone.\nUsage: timestamp timestamp->datetime => datetime",
+            )),
+        },
+    );
+
+    let to_utc_atom = interp.intern_atom("to-utc");
+    interp.dictionary.insert(
+        to_utc_atom,
+        DictEntry {
+            value: Value::Builtin(to_utc_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Convert datetime to UTC.\nUsage: datetime to-utc => datetime",
+            )),
+        },
+    );
+
+    let to_local_atom = interp.intern_atom("to-local");
+    interp.dictionary.insert(
+        to_local_atom,
+        DictEntry {
+            value: Value::Builtin(to_local_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Convert datetime to local timezone.\nUsage: datetime to-local => datetime",
+            )),
+        },
+    );
+
+    let datetime_to_string_atom = interp.intern_atom("datetime->string");
+    interp.dictionary.insert(
+        datetime_to_string_atom,
+        DictEntry {
+            value: Value::Builtin(datetime_to_string_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Format datetime as ISO 8601 string.\nUsage: datetime datetime->string => string",
+            )),
+        },
+    );
+
+    let string_to_datetime_atom = interp.intern_atom("string->datetime");
+    interp.dictionary.insert(
+        string_to_datetime_atom,
+        DictEntry {
+            value: Value::Builtin(string_to_datetime_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Parse ISO 8601 string to datetime.\nUsage: string string->datetime => datetime",
+            )),
+        },
+    );
+
+    let date_less_than_atom = interp.intern_atom("date<");
+    interp.dictionary.insert(
+        date_less_than_atom,
+        DictEntry {
+            value: Value::Builtin(date_less_than_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Compare datetimes (less than).\nUsage: datetime1 datetime2 date< => boolean",
+            )),
+        },
+    );
+
+    let date_greater_than_atom = interp.intern_atom("date>");
+    interp.dictionary.insert(
+        date_greater_than_atom,
+        DictEntry {
+            value: Value::Builtin(date_greater_than_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Compare datetimes (greater than).\nUsage: datetime1 datetime2 date> => boolean",
+            )),
+        },
+    );
+
+    let date_equal_atom = interp.intern_atom("date=");
+    interp.dictionary.insert(
+        date_equal_atom,
+        DictEntry {
+            value: Value::Builtin(date_equal_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Compare datetimes (equal).\nUsage: datetime1 datetime2 date= => boolean",
+            )),
+        },
+    );
+
+    // Duration operations
+    let duration_atom = interp.intern_atom("duration");
+    interp.dictionary.insert(
+        duration_atom,
+        DictEntry {
+            value: Value::Builtin(duration_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Create duration from components.\nUsage: days hours minutes seconds duration => duration\nExample: 1 2 30 0 duration",
+            )),
+        },
+    );
+
+    let duration_to_seconds_atom = interp.intern_atom("duration->seconds");
+    interp.dictionary.insert(
+        duration_to_seconds_atom,
+        DictEntry {
+            value: Value::Builtin(duration_to_seconds_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Convert duration to total seconds.\nUsage: duration duration->seconds => seconds",
+            )),
+        },
+    );
+
+    let date_add_atom = interp.intern_atom("date+");
+    interp.dictionary.insert(
+        date_add_atom,
+        DictEntry {
+            value: Value::Builtin(date_add_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Add duration to datetime.\nUsage: datetime duration date+ => datetime",
+            )),
+        },
+    );
+
+    let date_sub_atom = interp.intern_atom("date-");
+    interp.dictionary.insert(
+        date_sub_atom,
+        DictEntry {
+            value: Value::Builtin(date_sub_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Subtract datetime or duration.\nUsage: datetime1 datetime2 date- => duration (time between)\nUsage: datetime duration date- => datetime (subtract duration)",
+            )),
+        },
+    );
+
+    let duration_less_than_atom = interp.intern_atom("duration<");
+    interp.dictionary.insert(
+        duration_less_than_atom,
+        DictEntry {
+            value: Value::Builtin(duration_less_than_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Compare durations (less than).\nUsage: duration1 duration2 duration< => boolean",
+            )),
+        },
+    );
+
+    let duration_greater_than_atom = interp.intern_atom("duration>");
+    interp.dictionary.insert(
+        duration_greater_than_atom,
+        DictEntry {
+            value: Value::Builtin(duration_greater_than_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Compare durations (greater than).\nUsage: duration1 duration2 duration> => boolean",
+            )),
+        },
+    );
+
+    let duration_equal_atom = interp.intern_atom("duration=");
+    interp.dictionary.insert(
+        duration_equal_atom,
+        DictEntry {
+            value: Value::Builtin(duration_equal_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Compare durations (equal).\nUsage: duration1 duration2 duration= => boolean",
             )),
         },
     );

@@ -203,6 +203,11 @@ fn execute_value_direct(
             interp.push(value.clone());
             Ok(())
         }
+        // RUST CONCEPT: DateTime and Duration push themselves
+        Value::DateTime(_) | Value::Duration(_) => {
+            interp.push(value.clone());
+            Ok(())
+        }
     }
 }
 

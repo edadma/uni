@@ -68,6 +68,10 @@ pub mod vector;
 // Record operations
 pub mod record;
 
+// Date/time operations
+pub mod datetime;
+pub mod duration;
+
 // Meta operations
 pub mod def;
 pub mod doc;
@@ -175,6 +179,35 @@ pub use record::is_record_type_builtin;
 pub use record::make_record_type_builtin;
 pub use record::record_type_of_builtin;
 pub use record::set_record_field_builtin;
+
+// Date/time operations
+pub use datetime::date_equal_builtin;
+pub use datetime::date_greater_than_builtin;
+pub use datetime::date_less_than_builtin;
+pub use datetime::datetime_builtin;
+pub use datetime::datetime_to_string_builtin;
+pub use datetime::datetime_with_offset_builtin;
+pub use datetime::day_builtin;
+pub use datetime::hour_builtin;
+pub use datetime::minute_builtin;
+pub use datetime::month_builtin;
+pub use datetime::now_builtin;
+pub use datetime::second_builtin;
+pub use datetime::string_to_datetime_builtin;
+pub use datetime::timestamp_builtin;
+pub use datetime::timestamp_to_datetime_builtin;
+pub use datetime::to_local_builtin;
+pub use datetime::to_utc_builtin;
+pub use datetime::weekday_builtin;
+pub use datetime::year_builtin;
+
+pub use duration::date_add_builtin;
+pub use duration::date_sub_builtin;
+pub use duration::duration_builtin;
+pub use duration::duration_equal_builtin;
+pub use duration::duration_greater_than_builtin;
+pub use duration::duration_less_than_builtin;
+pub use duration::duration_to_seconds_builtin;
 
 // Meta operations
 pub use def::def_builtin;
