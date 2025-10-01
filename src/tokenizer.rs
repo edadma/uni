@@ -45,7 +45,12 @@ impl Token {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
-    Number(f64),
+    Number(f64),           // Float literal (has decimal point or scientific notation)
+    Integer(String),       // Integer literal (no decimal point)
+    BigInt(String),        // Explicit BigInt with 'n' suffix (e.g., 123n)
+    Rational(String, String), // Rational literal (e.g., 3/4 -> ("3", "4"))
+    GaussianInt(String, String), // Gaussian integer (e.g., 3+4i -> ("3", "4"))
+    Complex(String, String),     // Complex float (e.g., 3.0+4.0i -> ("3.0", "4.0"))
     Atom(String),
     String(String), // Quoted strings - not interned
     Boolean(bool),  // Boolean literals: true, false
@@ -61,6 +66,11 @@ impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TokenKind::Number(n) => write!(f, "{}", n),
+            TokenKind::Integer(s) => write!(f, "{}", s),
+            TokenKind::BigInt(s) => write!(f, "{}n", s),
+            TokenKind::Rational(n, d) => write!(f, "{}/{}", n, d),
+            TokenKind::GaussianInt(re, im) => write!(f, "{}+{}i", re, im),
+            TokenKind::Complex(re, im) => write!(f, "{}+{}i", re, im),
             TokenKind::Atom(s) => write!(f, "{}", s),
             TokenKind::String(s) => write!(f, "\"{}\"", s),
             TokenKind::Boolean(b) => write!(f, "{}", if *b { "true" } else { "false" }),
@@ -96,6 +106,67 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
             *column += 1;
         }
         *offset += ch.len_utf8();
+    }
+
+    // Helper function to classify atom-like strings into appropriate token types
+    fn classify_atom(s: String) -> TokenKind {
+        // Check for BigInt suffix (e.g., 123n, -456n, 123456789012345678901234567890n)
+        if s.ends_with('n') && s.len() > 1 {
+            let num_part = &s[..s.len() - 1];
+            // Check if it looks like a valid integer (all digits, optionally with leading -)
+            let is_integer = if num_part.starts_with('-') {
+                num_part.len() > 1 && num_part[1..].chars().all(|c| c.is_ascii_digit())
+            } else {
+                num_part.chars().all(|c| c.is_ascii_digit())
+            };
+
+            if is_integer {
+                return TokenKind::BigInt(num_part.to_string());
+            }
+        }
+
+        // Check for rational (e.g., 3/4)
+        if s.contains('/') {
+            let parts: Vec<&str> = s.split('/').collect();
+            if parts.len() == 2 {
+                if let (Ok(_), Ok(_)) = (parts[0].parse::<i64>(), parts[1].parse::<i64>()) {
+                    return TokenKind::Rational(parts[0].to_string(), parts[1].to_string());
+                }
+            }
+        }
+
+        // Check for complex/gaussian (e.g., 3+4i, 3.0+4.0i, 5i)
+        if s.ends_with('i') && s.len() > 1 {
+            let num_part = &s[..s.len() - 1];
+            // Find the last + or - that's not at the start
+            if let Some(op_pos) = num_part.char_indices().skip(1).find(|(_, c)| *c == '+' || *c == '-').map(|(pos, _)| pos) {
+                let real_part = &num_part[..op_pos];
+                let imag_part = &num_part[op_pos..];
+
+                // Check if both parts are integers (Gaussian)
+                if let (Ok(_), Ok(_)) = (real_part.parse::<i64>(), imag_part.parse::<i64>()) {
+                    return TokenKind::GaussianInt(real_part.to_string(), imag_part.to_string());
+                }
+
+                // Check if either part is a float (Complex)
+                if real_part.parse::<f64>().is_ok() && imag_part.parse::<f64>().is_ok() {
+                    return TokenKind::Complex(real_part.to_string(), imag_part.to_string());
+                }
+            } else {
+                // Pure imaginary (e.g., 5i, -5i, 3.5i)
+                // Try integer first
+                if num_part.parse::<i64>().is_ok() {
+                    return TokenKind::GaussianInt("0".to_string(), num_part.to_string());
+                }
+                // Try float
+                else if num_part.parse::<f64>().is_ok() {
+                    return TokenKind::Complex("0".to_string(), num_part.to_string());
+                }
+            }
+        }
+
+        // Default: it's just an atom
+        TokenKind::Atom(s)
     }
 
     while let Some(&ch) = chars.peek() {
@@ -144,7 +215,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                             advance_pos(consumed, &mut line, &mut column, &mut offset);
                         }
                         tokens.push(Token::new(
-                            TokenKind::Atom(atom),
+                            classify_atom(atom),
                             SourcePos::new(start_line, start_column, start_offset),
                             SourcePos::new(line, column, offset),
                         ));
@@ -243,7 +314,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                         advance_pos(consumed, &mut line, &mut column, &mut offset);
                     }
                     tokens.push(Token::new(
-                        TokenKind::Atom(atom),
+                        classify_atom(atom),
                         SourcePos::new(start_line, start_column, start_offset),
                         SourcePos::new(line, column, offset),
                     ));
@@ -320,7 +391,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                 });
 
                 if has_suffix {
-                    // Continue collecting as an atom (extended number literal)
+                    // Continue collecting as an atom-like string (extended number literal)
                     // Don't break on '.' since we might have decimal complex numbers like "-1.5+2.5i"
                     while let Some(&ch) = chars.peek() {
                         if ch.is_whitespace() || "[]\'\"\\\\".contains(ch) {
@@ -331,34 +402,46 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                         advance_pos(consumed, &mut line, &mut column, &mut offset);
                     }
                     tokens.push(Token::new(
-                        TokenKind::Atom(num_str),
+                        classify_atom(num_str),
                         SourcePos::new(start_line, start_column, start_offset),
                         SourcePos::new(line, column, offset),
                     ));
                 } else {
-                    // Regular signed number
-                    match num_str.parse::<f64>() {
-                        Ok(num) => tokens.push(Token::new(
-                            TokenKind::Number(num),
+                    // Regular signed number - check if it's an integer or float based on syntax
+                    let has_decimal = num_str.contains('.') || num_str.contains('e') || num_str.contains('E');
+
+                    if !has_decimal {
+                        // Integer literal - use dedicated Integer token type
+                        tokens.push(Token::new(
+                            TokenKind::Integer(num_str),
                             SourcePos::new(start_line, start_column, start_offset),
                             SourcePos::new(line, column, offset),
-                        )),
-                        Err(_) => {
-                            // If it's not a valid number, treat it as an atom
-                            // Continue collecting non-whitespace chars
-                            while let Some(&ch) = chars.peek() {
-                                if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
-                                    break;
-                                }
-                                num_str.push(ch);
-                                let consumed = chars.next().unwrap();
-                                advance_pos(consumed, &mut line, &mut column, &mut offset);
-                            }
-                            tokens.push(Token::new(
-                                TokenKind::Atom(num_str),
+                        ));
+                    } else {
+                        // Floating point number
+                        match num_str.parse::<f64>() {
+                            Ok(num) => tokens.push(Token::new(
+                                TokenKind::Number(num),
                                 SourcePos::new(start_line, start_column, start_offset),
                                 SourcePos::new(line, column, offset),
-                            ));
+                            )),
+                            Err(_) => {
+                                // If it's not a valid number, treat it as an atom
+                                // Continue collecting non-whitespace chars
+                                while let Some(&ch) = chars.peek() {
+                                    if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
+                                        break;
+                                    }
+                                    num_str.push(ch);
+                                    let consumed = chars.next().unwrap();
+                                    advance_pos(consumed, &mut line, &mut column, &mut offset);
+                                }
+                                tokens.push(Token::new(
+                                    TokenKind::Atom(num_str),
+                                    SourcePos::new(start_line, start_column, start_offset),
+                                    SourcePos::new(line, column, offset),
+                                ));
+                            }
                         }
                     }
                 }
@@ -396,7 +479,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                 });
 
                 if has_suffix {
-                    // Continue collecting as an atom (extended number literal)
+                    // Continue collecting as an atom-like string (extended number literal)
                     // Don't break on '.' since we might have decimal complex numbers like "1.5+2.5i"
                     while let Some(&ch) = chars.peek() {
                         if ch.is_whitespace() || "[]\'\"\\\\".contains(ch) {
@@ -407,34 +490,47 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                         advance_pos(consumed, &mut line, &mut column, &mut offset);
                     }
                     tokens.push(Token::new(
-                        TokenKind::Atom(num_str),
+                        classify_atom(num_str),
                         SourcePos::new(start_line, start_column, start_offset),
                         SourcePos::new(line, column, offset),
                     ));
                 } else {
-                    // Regular number
-                    match num_str.parse::<f64>() {
-                        Ok(num) => tokens.push(Token::new(
-                            TokenKind::Number(num),
+                    // Regular number - check if it's an integer or float based on syntax
+                    // If no decimal point and no scientific notation, treat as integer
+                    let has_decimal = num_str.contains('.') || num_str.contains('e') || num_str.contains('E');
+
+                    if !has_decimal {
+                        // Integer literal - use dedicated Integer token type
+                        tokens.push(Token::new(
+                            TokenKind::Integer(num_str),
                             SourcePos::new(start_line, start_column, start_offset),
                             SourcePos::new(line, column, offset),
-                        )),
-                        Err(_) => {
-                            // If it's not a valid number, treat it as an atom
-                            // Continue collecting non-whitespace chars
-                            while let Some(&ch) = chars.peek() {
-                                if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
-                                    break;
-                                }
-                                num_str.push(ch);
-                                let consumed = chars.next().unwrap();
-                                advance_pos(consumed, &mut line, &mut column, &mut offset);
-                            }
-                            tokens.push(Token::new(
-                                TokenKind::Atom(num_str),
+                        ));
+                    } else {
+                        // Floating point number
+                        match num_str.parse::<f64>() {
+                            Ok(num) => tokens.push(Token::new(
+                                TokenKind::Number(num),
                                 SourcePos::new(start_line, start_column, start_offset),
                                 SourcePos::new(line, column, offset),
-                            ));
+                            )),
+                            Err(_) => {
+                                // If it's not a valid number, treat it as an atom
+                                // Continue collecting non-whitespace chars
+                                while let Some(&ch) = chars.peek() {
+                                    if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
+                                        break;
+                                    }
+                                    num_str.push(ch);
+                                    let consumed = chars.next().unwrap();
+                                    advance_pos(consumed, &mut line, &mut column, &mut offset);
+                                }
+                                tokens.push(Token::new(
+                                    TokenKind::Atom(num_str),
+                                    SourcePos::new(start_line, start_column, start_offset),
+                                    SourcePos::new(line, column, offset),
+                                ));
+                            }
                         }
                     }
                 }
@@ -480,19 +576,22 @@ mod tests {
 
     #[test]
     fn test_tokenize_numbers() {
+        // Integer literal
         let tokens = tokenize("42").unwrap();
         assert_eq!(tokens.len(), 1);
-        assert!(matches!(tokens[0].kind, TokenKind::Number(n) if n == 42.0));
+        assert!(matches!(&tokens[0].kind, TokenKind::Integer(s) if s == "42"));
         assert_eq!(tokens[0].pos.line, 1);
         assert_eq!(tokens[0].pos.column, 1);
 
+        // Float literal
         let tokens = tokenize("3.14").unwrap();
         assert_eq!(tokens.len(), 1);
         assert!(matches!(tokens[0].kind, TokenKind::Number(n) if n == 3.14));
 
+        // Negative integer
         let tokens = tokenize("-17").unwrap();
         assert_eq!(tokens.len(), 1);
-        assert!(matches!(tokens[0].kind, TokenKind::Number(n) if n == -17.0));
+        assert!(matches!(&tokens[0].kind, TokenKind::Integer(s) if s == "-17"));
     }
 
     #[test]
@@ -518,9 +617,9 @@ mod tests {
         let tokens = tokenize("[1 2 3]").unwrap();
         assert_eq!(tokens.len(), 5);
         assert!(matches!(tokens[0].kind, TokenKind::LeftBracket));
-        assert!(matches!(tokens[1].kind, TokenKind::Number(n) if n == 1.0));
-        assert!(matches!(tokens[2].kind, TokenKind::Number(n) if n == 2.0));
-        assert!(matches!(tokens[3].kind, TokenKind::Number(n) if n == 3.0));
+        assert!(matches!(&tokens[1].kind, TokenKind::Integer(s) if s == "1"));
+        assert!(matches!(&tokens[2].kind, TokenKind::Integer(s) if s == "2"));
+        assert!(matches!(&tokens[3].kind, TokenKind::Integer(s) if s == "3"));
         assert!(matches!(tokens[4].kind, TokenKind::RightBracket));
     }
 
@@ -529,8 +628,8 @@ mod tests {
         let tokens = tokenize("#[1 2]").unwrap();
         assert_eq!(tokens.len(), 4);
         assert!(matches!(tokens[0].kind, TokenKind::ArrayLeftBracket));
-        assert!(matches!(tokens[1].kind, TokenKind::Number(n) if n == 1.0));
-        assert!(matches!(tokens[2].kind, TokenKind::Number(n) if n == 2.0));
+        assert!(matches!(&tokens[1].kind, TokenKind::Integer(s) if s == "1"));
+        assert!(matches!(&tokens[2].kind, TokenKind::Integer(s) if s == "2"));
         assert!(matches!(tokens[3].kind, TokenKind::RightBracket));
     }
 

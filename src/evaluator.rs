@@ -395,6 +395,7 @@ mod tests {
 
     #[test]
     fn test_execute_string_simple() {
+        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // RUST CONCEPT: Testing integration between parser and evaluator
@@ -405,11 +406,12 @@ mod tests {
         let result2 = interp.pop().unwrap();
 
         assert!(matches!(result1, Value::Number(n) if n == 3.14));
-        assert!(matches!(result2, Value::Number(n) if n == 42.0));
+        assert!(matches!(result2, Value::Integer(ref i) if i == &BigInt::from(42)));
     }
 
     #[test]
     fn test_execute_string_with_builtin() {
+        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // RUST CONCEPT: Testing complete execution flow
@@ -417,7 +419,7 @@ mod tests {
 
         // Should have executed: push 5, push 3, execute +
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 8.0));
+        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(8)));
 
         // Stack should be empty
         assert!(interp.pop().is_err());
@@ -429,6 +431,7 @@ mod tests {
 
     #[test]
     fn test_tail_recursive_factorial() {
+        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // Define simple tail-recursive countdown
@@ -441,11 +444,12 @@ mod tests {
         // Test with small value
         execute_string("5 count-down", &mut interp).unwrap();
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 999.0));
+        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(999)));
     }
 
     #[test]
     fn test_deep_tail_recursion() {
+        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // Define a tail-recursive countdown that would overflow regular recursion
@@ -458,7 +462,7 @@ mod tests {
         // Test with moderately deep recursion (this would cause stack overflow without TCO)
         execute_string("1000 countdown", &mut interp).unwrap();
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 42.0));
+        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(42)));
     }
 
     #[test]
@@ -481,6 +485,7 @@ mod tests {
 
     #[test]
     fn test_tail_call_in_if_branches() {
+        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // Test that both branches of if are tail-call optimized
@@ -492,11 +497,12 @@ mod tests {
 
         execute_string("5 branch-test", &mut interp).unwrap();
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Number(n) if n == 99.0));
+        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(99)));
     }
 
     #[test]
     fn test_execute_string_with_list() {
+        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // RUST CONCEPT: Testing that lists remain as data
@@ -506,7 +512,7 @@ mod tests {
         let number = interp.pop().unwrap();
         let list = interp.pop().unwrap();
 
-        assert!(matches!(number, Value::Number(n) if n == 42.0));
+        assert!(matches!(number, Value::Integer(ref i) if i == &BigInt::from(42)));
         assert!(matches!(list, Value::Pair(_, _)));
     }
 

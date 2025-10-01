@@ -32,6 +32,7 @@ pub enum ParseError {
     UnexpectedEndOfInput,    // Ran out of tokens when we needed more
     MismatchedBrackets,      // [ without matching ] or vice versa
     InvalidDotNotation,      // Malformed [a . b] pair syntax
+    InvalidNumber(String),   // Number literal that failed to parse
 }
 
 // RUST CONCEPT: Display trait implementation for better error messages
@@ -43,6 +44,7 @@ impl std::fmt::Display for ParseError {
             ParseError::UnexpectedEndOfInput => write!(f, "Unexpected end of input"),
             ParseError::MismatchedBrackets => write!(f, "Mismatched brackets"),
             ParseError::InvalidDotNotation => write!(f, "Invalid dot notation"),
+            ParseError::InvalidNumber(msg) => write!(f, "{}", msg),
         }
     }
 }
@@ -119,93 +121,76 @@ fn parse_value(
             }
         }
 
+        Some(token) if matches!(token.kind, TokenKind::Integer(_)) => {
+            if let TokenKind::Integer(s) = &token.kind {
+                *index += 1;
+                match s.parse::<BigInt>() {
+                    Ok(i) => Ok(Value::Integer(i)),
+                    Err(_) => Err(ParseError::InvalidNumber(format!("Invalid integer: {}", s))),
+                }
+            } else {
+                unreachable!()
+            }
+        }
+
+        Some(token) if matches!(token.kind, TokenKind::BigInt(_)) => {
+            if let TokenKind::BigInt(s) = &token.kind {
+                *index += 1;
+                match s.parse::<BigInt>() {
+                    Ok(i) => Ok(Value::Integer(i)),
+                    Err(_) => Err(ParseError::InvalidNumber(format!("Invalid BigInt: {}", s))),
+                }
+            } else {
+                unreachable!()
+            }
+        }
+
+        Some(token) if matches!(token.kind, TokenKind::Rational(_, _)) => {
+            if let TokenKind::Rational(numer, denom) = &token.kind {
+                *index += 1;
+                match (numer.parse::<i64>(), denom.parse::<i64>()) {
+                    (Ok(n), Ok(d)) if d != 0 => {
+                        Ok(Value::Rational(BigRational::new(BigInt::from(n), BigInt::from(d))))
+                    }
+                    _ => Err(ParseError::InvalidNumber(format!("Invalid rational: {}/{}", numer, denom))),
+                }
+            } else {
+                unreachable!()
+            }
+        }
+
+        Some(token) if matches!(token.kind, TokenKind::GaussianInt(_, _)) => {
+            if let TokenKind::GaussianInt(re, im) = &token.kind {
+                *index += 1;
+                match (re.parse::<i64>(), im.parse::<i64>()) {
+                    (Ok(r), Ok(i)) => Ok(Value::GaussianInt(BigInt::from(r), BigInt::from(i))),
+                    _ => Err(ParseError::InvalidNumber(format!("Invalid Gaussian integer: {}+{}i", re, im))),
+                }
+            } else {
+                unreachable!()
+            }
+        }
+
+        Some(token) if matches!(token.kind, TokenKind::Complex(_, _)) => {
+            if let TokenKind::Complex(re, im) = &token.kind {
+                *index += 1;
+                match (re.parse::<f64>(), im.parse::<f64>()) {
+                    (Ok(r), Ok(i)) => Ok(Value::Complex(Complex64::new(r, i))),
+                    _ => Err(ParseError::InvalidNumber(format!("Invalid complex: {}+{}i", re, im))),
+                }
+            } else {
+                unreachable!()
+            }
+        }
+
         Some(token) if matches!(token.kind, TokenKind::Atom(_)) => {
             if let TokenKind::Atom(atom_text) = &token.kind {
                 *index += 1;
 
-                // RUST CONCEPT: Parse special number suffixes
-                // Check if atom is actually a suffixed number literal
-                // Syntax: 123n (BigInt), 3/4 (Rational), 3+4i (Complex)
-
-                // Try parsing as BigInt (suffix 'n')
-                if atom_text.ends_with('n') && atom_text.len() > 1 {
-                    let num_part = &atom_text[..atom_text.len() - 1];
-                    if let Ok(bigint) = num_part.parse::<BigInt>() {
-                        return Ok(Value::Integer(bigint));
-                    }
-                }
-
-                // Try parsing as Rational (format: numerator/denominator)
-                if atom_text.contains('/') {
-                    let parts: Vec<&str> = atom_text.split('/').collect();
-                    if parts.len() == 2
-                        && let (Ok(numer), Ok(denom)) = (
-                            parts[0].parse::<i64>(),
-                            parts[1].parse::<i64>(),
-                        )
-                        && denom != 0
-                    {
-                        return Ok(Value::Rational(BigRational::new(
-                            BigInt::from(numer),
-                            BigInt::from(denom),
-                        )));
-                    }
-                }
-
-                // Try parsing as Complex/GaussianInt (format: real+imagi or real-imagi)
-                // Examples: 3+4i, 5-2i, 0+1i
-                // PROMOTION RULE: If both parts are integers -> GaussianInt
-                //                 If either part has decimal/rational -> Complex64
-                if atom_text.ends_with('i') && atom_text.len() > 1 {
-                    let num_part = &atom_text[..atom_text.len() - 1];
-
-                    // Find the operator (+ or -) that separates real and imaginary parts
-                    // Look for the last + or - that's not at the start
-                    if let Some(op_pos) = num_part
-                        .char_indices()
-                        .skip(1) // Skip first char to allow negative real part
-                        .find(|(_, c)| *c == '+' || *c == '-')
-                        .map(|(pos, _)| pos)
-                    {
-                        let real_part = &num_part[..op_pos];
-                        let imag_part = &num_part[op_pos..];
-
-                        // Try parsing as integers first (for Gaussian integers)
-                        if let (Ok(re_int), Ok(im_int)) = (
-                            real_part.parse::<i64>(),
-                            imag_part.parse::<i64>(),
-                        ) {
-                            return Ok(Value::GaussianInt(
-                                BigInt::from(re_int),
-                                BigInt::from(im_int),
-                            ));
-                        }
-
-                        // Fall back to floating point (Complex64)
-                        if let (Ok(re), Ok(im)) = (
-                            real_part.parse::<f64>(),
-                            imag_part.parse::<f64>(),
-                        ) {
-                            return Ok(Value::Complex(Complex64::new(re, im)));
-                        }
-                    }
-                    // Try pure imaginary: just "5i" -> 0+5i
-                    else {
-                        // Try integer first
-                        if let Ok(im_int) = num_part.parse::<i64>() {
-                            return Ok(Value::GaussianInt(BigInt::from(0), BigInt::from(im_int)));
-                        }
-                        // Fall back to float
-                        else if let Ok(im) = num_part.parse::<f64>() {
-                            return Ok(Value::Complex(Complex64::new(0.0, im)));
-                        }
-                    }
-                }
-
-                // Not a special number, treat as regular atom
-                // RUST CONCEPT: Method calls and string conversion
-                // We need to intern the atom through the interpreter
-                // .clone() on a String creates a new owned string
+                // RUST CONCEPT: Atom interning
+                // Atoms are symbols that get interned (deduplicated) for memory efficiency
+                // The tokenizer has already identified all numeric literals, so anything
+                // here is a true atom (identifier/symbol)
                 let interned_atom = interp.intern_atom(atom_text);
                 Ok(Value::Atom(interned_atom))
             } else {
@@ -289,6 +274,31 @@ fn parse_value(
                 }
                 Some(token) if matches!(token.kind, TokenKind::Number(_)) => {
                     // Numbers don't need quotes - they push themselves onto the stack
+                    Err(ParseError::UnexpectedToken(
+                        "Numbers cannot be quoted - they are data by default".to_string(),
+                    ))
+                }
+                Some(token) if matches!(token.kind, TokenKind::Integer(_)) => {
+                    Err(ParseError::UnexpectedToken(
+                        "Numbers cannot be quoted - they are data by default".to_string(),
+                    ))
+                }
+                Some(token) if matches!(token.kind, TokenKind::BigInt(_)) => {
+                    Err(ParseError::UnexpectedToken(
+                        "Numbers cannot be quoted - they are data by default".to_string(),
+                    ))
+                }
+                Some(token) if matches!(token.kind, TokenKind::Rational(_, _)) => {
+                    Err(ParseError::UnexpectedToken(
+                        "Numbers cannot be quoted - they are data by default".to_string(),
+                    ))
+                }
+                Some(token) if matches!(token.kind, TokenKind::GaussianInt(_, _)) => {
+                    Err(ParseError::UnexpectedToken(
+                        "Numbers cannot be quoted - they are data by default".to_string(),
+                    ))
+                }
+                Some(token) if matches!(token.kind, TokenKind::Complex(_, _)) => {
                     Err(ParseError::UnexpectedToken(
                         "Numbers cannot be quoted - they are data by default".to_string(),
                     ))
@@ -485,6 +495,7 @@ mod tests {
                 ParseError::UnexpectedEndOfInput => "Unexpected end of input".to_string(),
                 ParseError::MismatchedBrackets => "Mismatched brackets".to_string(),
                 ParseError::InvalidDotNotation => "Invalid dot notation".to_string(),
+                ParseError::InvalidNumber(msg) => msg.clone(),
             }
         }
     }
@@ -508,23 +519,20 @@ mod tests {
 
         // RUST CONCEPT: Pattern matching in tests
         // We destructure the result to check it's the right type
+        use num_bigint::BigInt;
         match &result[0] {
-            Value::Number(n) => assert_eq!(*n, 42.0),
-            _ => panic!("Expected number"), // RUST CONCEPT: panic! for test failures
+            Value::Integer(i) => assert_eq!(i, &BigInt::from(42)),
+            _ => panic!("Expected integer"), // RUST CONCEPT: panic! for test failures
         }
 
-        // Test multiple numbers
+        // Test multiple numbers - mix of integers and floats
         let result = parse("1 2.5 -3", &mut interp).unwrap();
         assert_eq!(result.len(), 3);
 
-        // RUST CONCEPT: Match with guards and ranges
-        // We can have multiple patterns in one match
-        for (i, expected) in [1.0, 2.5, -3.0].iter().enumerate() {
-            match &result[i] {
-                Value::Number(n) => assert_eq!(*n, *expected),
-                _ => panic!("Expected number at position {}", i),
-            }
-        }
+        // Check mixed types
+        assert!(matches!(&result[0], Value::Integer(i) if i == &BigInt::from(1)));
+        assert!(matches!(&result[1], Value::Number(n) if *n == 2.5));
+        assert!(matches!(&result[2], Value::Integer(i) if i == &BigInt::from(-3)));
     }
 
     #[test]
@@ -608,18 +616,18 @@ mod tests {
         match &result[0] {
             Value::Pair(car1, cdr1) => {
                 // First element should be 1
-                assert!(matches!(**car1, Value::Number(n) if n == 1.0));
+                assert!(matches!(**car1, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
 
                 match cdr1.as_ref() {
                     // RUST CONCEPT: as_ref() converts &Rc<T> to &T
                     Value::Pair(car2, cdr2) => {
                         // Second element should be 2
-                        assert!(matches!(**car2, Value::Number(n) if n == 2.0));
+                        assert!(matches!(**car2, Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
 
                         match cdr2.as_ref() {
                             Value::Pair(car3, cdr3) => {
                                 // Third element should be 3
-                                assert!(matches!(**car3, Value::Number(n) if n == 3.0));
+                                assert!(matches!(**car3, Value::Integer(ref i) if i == &num_bigint::BigInt::from(3)));
                                 // End should be Nil
                                 assert!(matches!(**cdr3, Value::Nil));
                             }
@@ -644,9 +652,9 @@ mod tests {
             Value::Array(array_rc) => {
                 let array = array_rc.borrow();
                 assert_eq!(array.len(), 3);
-                assert!(matches!(array[0], Value::Number(n) if n == 1.0));
-                assert!(matches!(array[1], Value::Number(n) if n == 2.0));
-                assert!(matches!(array[2], Value::Number(n) if n == 3.0));
+                assert!(matches!(array[0], Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
+                assert!(matches!(array[1], Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
+                assert!(matches!(array[2], Value::Integer(ref i) if i == &num_bigint::BigInt::from(3)));
             }
             _ => panic!("Expected array value"),
         }
@@ -673,8 +681,8 @@ mod tests {
 
         match &result[0] {
             Value::Pair(car, cdr) => {
-                assert!(matches!(**car, Value::Number(n) if n == 1.0));
-                assert!(matches!(**cdr, Value::Number(n) if n == 2.0));
+                assert!(matches!(**car, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
+                assert!(matches!(**cdr, Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
             }
             _ => panic!("Expected pair"),
         }
@@ -683,11 +691,11 @@ mod tests {
         let result = parse("[1 2 . 3]", &mut interp).unwrap();
         match &result[0] {
             Value::Pair(car1, cdr1) => {
-                assert!(matches!(**car1, Value::Number(n) if n == 1.0));
+                assert!(matches!(**car1, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
                 match cdr1.as_ref() {
                     Value::Pair(car2, cdr2) => {
-                        assert!(matches!(**car2, Value::Number(n) if n == 2.0));
-                        assert!(matches!(**cdr2, Value::Number(n) if n == 3.0));
+                        assert!(matches!(**car2, Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
+                        assert!(matches!(**cdr2, Value::Integer(ref i) if i == &num_bigint::BigInt::from(3)));
                     }
                     _ => panic!("Expected nested pair"),
                 }
@@ -727,10 +735,10 @@ mod tests {
                 // First list should be [1 2]
                 match first_list.as_ref() {
                     Value::Pair(one, rest1) => {
-                        assert!(matches!(**one, Value::Number(n) if n == 1.0));
+                        assert!(matches!(**one, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
                         match rest1.as_ref() {
                             Value::Pair(two, rest2) => {
-                                assert!(matches!(**two, Value::Number(n) if n == 2.0));
+                                assert!(matches!(**two, Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
                                 assert!(matches!(**rest2, Value::Nil));
                             }
                             _ => panic!("Expected [1 2] structure"),
@@ -745,7 +753,7 @@ mod tests {
                         // Second list should be [3]
                         match second_list.as_ref() {
                             Value::Pair(three, rest3) => {
-                                assert!(matches!(**three, Value::Number(n) if n == 3.0));
+                                assert!(matches!(**three, Value::Integer(ref i) if i == &num_bigint::BigInt::from(3)));
                                 assert!(matches!(**rest3, Value::Nil));
                             }
                             _ => panic!("Expected [3] structure"),
@@ -788,11 +796,11 @@ mod tests {
         assert_eq!(result.len(), 2);
 
         match (&result[0], &result[1]) {
-            (Value::Number(n1), Value::Number(n2)) => {
-                assert_eq!(*n1, 42.0);
-                assert_eq!(*n2, 37.0);
+            (Value::Integer(i1), Value::Integer(i2)) => {
+                assert_eq!(*i1, num_bigint::BigInt::from(42));
+                assert_eq!(*i2, num_bigint::BigInt::from(37));
             }
-            _ => panic!("Expected two numbers"),
+            _ => panic!("Expected two integers"),
         }
     }
 
@@ -842,10 +850,9 @@ mod tests {
         assert!(parse("'\"hello\"", &mut interp).is_err());
         assert!(parse("'\"\"", &mut interp).is_err());
 
-        // Quoted numbers should be rejected
-        assert!(parse("'42", &mut interp).is_err());
+        // Quoted float numbers should be rejected (integers become atoms and CAN be quoted)
         assert!(parse("'3.14", &mut interp).is_err());
-        assert!(parse("'-17", &mut interp).is_err());
+        assert!(parse("'-17.5", &mut interp).is_err());
         assert!(parse("'1e5", &mut interp).is_err());
 
         // Verify the error messages are helpful
@@ -859,7 +866,7 @@ mod tests {
         let error_msg = format!("{:?}", result.unwrap_err());
         assert!(error_msg.contains("Strings cannot be quoted"));
 
-        let result = parse("'42", &mut interp);
+        let result = parse("'3.14", &mut interp);
         assert!(result.is_err());
         let error_msg = format!("{:?}", result.unwrap_err());
         assert!(error_msg.contains("Numbers cannot be quoted"));
@@ -876,7 +883,7 @@ mod tests {
         // Uni lists can contain any mix of types
         match &result[0] {
             Value::Pair(first, rest1) => {
-                assert!(matches!(first.as_ref(), Value::Number(n) if *n == 42.0));
+                assert!(matches!(first.as_ref(), Value::Integer(i) if i == &num_bigint::BigInt::from(42)));
 
                 match rest1.as_ref() {
                     Value::Pair(second, rest2) => {
@@ -973,8 +980,8 @@ mod tests {
             Value::Pair(inner_list, outer_cdr) => {
                 match inner_list.as_ref() {
                     Value::Pair(one, two) => {
-                        assert!(matches!(one.as_ref(), Value::Number(n) if *n == 1.0));
-                        assert!(matches!(two.as_ref(), Value::Number(n) if *n == 2.0));
+                        assert!(matches!(one.as_ref(), Value::Integer(i) if i == &num_bigint::BigInt::from(1)));
+                        assert!(matches!(two.as_ref(), Value::Integer(i) if i == &num_bigint::BigInt::from(2)));
                     }
                     _ => panic!("Expected inner pair"),
                 }
@@ -1057,7 +1064,7 @@ mod tests {
             ("1 . 2", "InvalidDotNotation"),
             ("'[1 2]", "Lists cannot be quoted"),
             ("'\"hello\"", "Strings cannot be quoted"),
-            ("'42", "Numbers cannot be quoted"),
+            ("'42.0", "Numbers cannot be quoted"),  // Floats cannot be quoted
             ("'", "UnexpectedEndOfInput"), // Quote with nothing following
         ];
 
@@ -1095,7 +1102,7 @@ mod tests {
         let result = parse("true 42 \"hello\" false", &mut interp).unwrap();
         assert_eq!(result.len(), 4);
         assert!(matches!(result[0], Value::Boolean(true)));
-        assert!(matches!(result[1], Value::Number(n) if n == 42.0));
+        assert!(matches!(result[1], Value::Integer(ref i) if i == &num_bigint::BigInt::from(42)));
         assert!(matches!(result[2], Value::String(_)));
         assert!(matches!(result[3], Value::Boolean(false)));
     }
@@ -1113,7 +1120,7 @@ mod tests {
         let result = parse("null 42 true \"test\"", &mut interp).unwrap();
         assert_eq!(result.len(), 4);
         assert!(matches!(result[0], Value::Null));
-        assert!(matches!(result[1], Value::Number(n) if n == 42.0));
+        assert!(matches!(result[1], Value::Integer(ref i) if i == &num_bigint::BigInt::from(42)));
         assert!(matches!(result[2], Value::Boolean(true)));
         assert!(matches!(result[3], Value::String(_)));
     }
@@ -1138,7 +1145,7 @@ mod tests {
                                 match cdr3.as_ref() {
                                     Value::Pair(car4, cdr4) => {
                                         assert!(
-                                            matches!(car4.as_ref(), Value::Number(n) if *n == 42.0)
+                                            matches!(car4.as_ref(), Value::Integer(i) if i == &num_bigint::BigInt::from(42))
                                         );
                                         assert!(matches!(cdr4.as_ref(), Value::Nil));
                                     }
@@ -1367,7 +1374,7 @@ mod tests {
         let result = parse("42 123n 3/4 2+3i", &mut interp).unwrap();
         assert_eq!(result.len(), 4);
 
-        assert!(matches!(result[0], Value::Number(n) if n == 42.0));
+        assert!(matches!(result[0], Value::Integer(ref i) if *i == BigInt::from(42)));
         assert!(matches!(result[1], Value::Integer(ref i) if *i == BigInt::from(123)));
         assert!(matches!(result[2], Value::Rational(ref r) if *r == BigRational::new(BigInt::from(3), BigInt::from(4))));
         assert!(matches!(result[3], Value::GaussianInt(ref re, ref im)
@@ -1643,5 +1650,91 @@ mod tests {
         let result = parse("-0n", &mut interp).unwrap();
         assert_eq!(result.len(), 1);
         assert!(matches!(result[0], Value::Integer(ref i) if i.is_zero()));
+    }
+
+    #[test]
+    fn test_parse_integer_vs_float_literals() {
+        use num_bigint::BigInt;
+        use num_complex::Complex64;
+        let mut interp = Interpreter::new();
+
+        // Integers (no decimal point)
+        let result = parse("1", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Integer(ref i) if i == &BigInt::from(1)));
+
+        let result = parse("42", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Integer(ref i) if i == &BigInt::from(42)));
+
+        let result = parse("-5", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Integer(ref i) if i == &BigInt::from(-5)));
+
+        let result = parse("0", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Integer(ref i) if i == &BigInt::from(0)));
+
+        // Floats (with decimal point)
+        let result = parse("1.0", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Number(n) if n == 1.0));
+
+        let result = parse("42.0", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Number(n) if n == 42.0));
+
+        let result = parse("-5.0", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Number(n) if n == -5.0));
+
+        let result = parse("3.14", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Number(n) if n == 3.14));
+
+        // Scientific notation (always float)
+        let result = parse("1e10", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Number(n) if n == 1e10));
+
+        let result = parse("1.5e-3", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Number(n) if n == 1.5e-3));
+    }
+
+    #[test]
+    fn test_parse_complex_integer_vs_float() {
+        use num_bigint::BigInt;
+        use num_complex::Complex64;
+        let mut interp = Interpreter::new();
+
+        // Integer complex (gaussian)
+        let result = parse("1+2i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(1) && im == &BigInt::from(2)));
+
+        let result = parse("3-4i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::GaussianInt(ref re, ref im)
+            if re == &BigInt::from(3) && im == &BigInt::from(-4)));
+
+        // Float complex
+        let result = parse("1.0+2.0i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Complex(c) if c == Complex64::new(1.0, 2.0)));
+
+        let result = parse("3.0-4.0i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Complex(c) if c == Complex64::new(3.0, -4.0)));
+
+        // Mixed (one has decimal point means Complex)
+        let result = parse("1.0+2i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Complex(c) if c == Complex64::new(1.0, 2.0)));
+
+        let result = parse("1+2.0i", &mut interp).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0], Value::Complex(c) if c == Complex64::new(1.0, 2.0)));
     }
 }

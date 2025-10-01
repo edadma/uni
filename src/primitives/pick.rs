@@ -8,7 +8,7 @@ use crate::value::RuntimeError;
 // n=0: dup, n=1: over, n=2: pick third item, etc.
 // Example: 1 2 3 4  2 pick  ->  1 2 3 4 2 (copied item at depth 2 to top)
 pub fn pick_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let n = interp.pop_number()? as usize;
+    let n = interp.pop_integer()?;
 
     // RUST CONCEPT: Bounds checking
     // We need at least n+1 items on the remaining stack

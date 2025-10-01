@@ -1,14 +1,41 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
 use crate::interpreter::Interpreter;
+use crate::primitives::numeric_promotion::promote_pair;
 use crate::value::{RuntimeError, Value};
 
 // RUST CONCEPT: Arithmetic operations with stack semantics
 // Stack-based subtraction: ( n1 n2 -- difference )
+// Supports all numeric types with automatic promotion
 pub fn sub_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let b = interp.pop_number()?;
-    let a = interp.pop_number()?;
-    interp.push(Value::Number(a - b));
+    let b = interp.pop()?;
+    let a = interp.pop()?;
+
+    // Promote both values to a common type
+    let (pa, pb) = promote_pair(&a, &b);
+
+    // Perform subtraction based on the promoted type
+    let result = match (&pa, &pb) {
+        (Value::Integer(i1), Value::Integer(i2)) => Value::Integer(i1 - i2),
+        (Value::Rational(r1), Value::Rational(r2)) => {
+            let result = Value::Rational(r1 - r2);
+            result.demote()
+        }
+        (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 - n2),
+        (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => {
+            let result = Value::GaussianInt(re1 - re2, im1 - im2);
+            result.demote()
+        }
+        (Value::Complex(c1), Value::Complex(c2)) => Value::Complex(c1 - c2),
+        _ => {
+            return Err(RuntimeError::TypeError(format!(
+                "Cannot subtract {:?} and {:?}",
+                a, b
+            )))
+        }
+    };
+
+    interp.push(result);
     Ok(())
 }
 

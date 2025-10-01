@@ -84,6 +84,9 @@ pub mod truthy;
 // Type introspection
 pub mod type_of;
 
+// Numeric type promotion
+pub mod numeric_promotion;
+
 // Re-export all builtin functions for easy access
 
 // Basic arithmetic

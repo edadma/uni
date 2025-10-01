@@ -44,8 +44,9 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(factorial_code).unwrap();
+        use num_bigint::BigInt;
         assert!(
-            matches!(result, Value::Number(120.0)),
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(120)),
             "Expected factorial(5) = 120, got {:?}",
             result
         );
@@ -74,8 +75,9 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(fibonacci_code).unwrap();
+        use num_bigint::BigInt;
         assert!(
-            matches!(result, Value::Number(13.0)),
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(13)),
             "Expected fibonacci(7) = 13, got {:?}",
             result
         );
@@ -99,8 +101,9 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(list_processing_code).unwrap();
+        use num_bigint::BigInt;
         assert!(
-            matches!(result, Value::Number(6.0)),
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(6)),
             "Expected length operations result = 6, got {:?}",
             result
         );
@@ -136,8 +139,9 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(mutual_recursion_code).unwrap();
+        use num_bigint::BigInt;
         assert!(
-            matches!(result, Value::Number(42.0)),
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(42)),
             "Expected mutual recursion result = 42, got {:?}",
             result
         );
@@ -162,8 +166,9 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(deep_recursion_code).unwrap();
+        use num_bigint::BigInt;
         assert!(
-            matches!(result, Value::Number(99.0)),
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(99)),
             "Expected deep recursion result = 99, got {:?}",
             result
         );

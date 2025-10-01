@@ -11,7 +11,14 @@ pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let a = interp.pop()?;
 
     let result = match (&a, &b) {
+        // Numeric types
         (Value::Number(n1), Value::Number(n2)) => n1 == n2,
+        (Value::Integer(i1), Value::Integer(i2)) => i1 == i2,
+        (Value::Rational(r1), Value::Rational(r2)) => r1 == r2,
+        (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => re1 == re2 && im1 == im2,
+        (Value::Complex(c1), Value::Complex(c2)) => c1 == c2,
+
+        // Other types
         (Value::String(s1), Value::String(s2)) => s1 == s2,
         (Value::Atom(a1), Value::Atom(a2)) => a1 == a2,
         (Value::QuotedAtom(a1), Value::QuotedAtom(a2)) => a1 == a2,
@@ -35,7 +42,14 @@ pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 // This avoids stack overflow from the interpreter's stack operations
 fn eq_values(a: &Rc<Value>, b: &Rc<Value>) -> bool {
     match (a.as_ref(), b.as_ref()) {
+        // Numeric types
         (Value::Number(n1), Value::Number(n2)) => n1 == n2,
+        (Value::Integer(i1), Value::Integer(i2)) => i1 == i2,
+        (Value::Rational(r1), Value::Rational(r2)) => r1 == r2,
+        (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => re1 == re2 && im1 == im2,
+        (Value::Complex(c1), Value::Complex(c2)) => c1 == c2,
+
+        // Other types
         (Value::String(s1), Value::String(s2)) => s1 == s2,
         (Value::Atom(a1), Value::Atom(a2)) => a1 == a2,
         (Value::QuotedAtom(a1), Value::QuotedAtom(a2)) => a1 == a2,

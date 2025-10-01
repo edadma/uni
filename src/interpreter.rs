@@ -90,6 +90,24 @@ impl Interpreter {
         }
     }
 
+    pub fn pop_integer(&mut self) -> Result<usize, RuntimeError> {
+        use num_traits::ToPrimitive;
+        let value = self.pop()?;
+        match value {
+            Value::Integer(i) => i.to_usize().ok_or_else(|| {
+                RuntimeError::TypeError("Integer value too large for index".to_string())
+            }),
+            Value::Number(n) => {
+                if n.fract() == 0.0 && n >= 0.0 && n.is_finite() {
+                    Ok(n as usize)
+                } else {
+                    Err(RuntimeError::TypeError("Expected non-negative integer".to_string()))
+                }
+            }
+            _ => Err(RuntimeError::TypeError("Expected integer".to_string())),
+        }
+    }
+
     pub fn make_list(&self, items: Vec<Value>) -> Value {
         items.into_iter().rev().fold(Value::Nil, |acc, item| {
             Value::Pair(Rc::new(item), Rc::new(acc))

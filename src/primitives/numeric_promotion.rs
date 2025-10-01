@@ -1,0 +1,164 @@
+// RUST CONCEPT: Numeric type promotion system
+// This module handles automatic type promotion for arithmetic operations
+// It ensures that operations between different numeric types produce sensible results
+
+use crate::value::Value;
+use num_bigint::BigInt;
+use num_complex::Complex64;
+use num_rational::BigRational;
+use num_traits::ToPrimitive;
+
+// RUST CONCEPT: Type promotion hierarchy
+// The promotion hierarchy is:
+// Integer < Rational < Number (f64) < Complex
+// GaussianInt < Complex
+//
+// When mixing types, we promote to the "higher" type in the hierarchy
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum NumericType {
+    Integer,     // BigInt - exact integers
+    Rational,    // BigRational - exact fractions
+    Number,      // f64 - floating point
+    GaussianInt, // Gaussian integers (a+bi where a,b are integers)
+    Complex,     // Complex64 - complex floating point
+}
+
+// RUST CONCEPT: Determine the type of a numeric value
+fn numeric_type(val: &Value) -> Option<NumericType> {
+    match val {
+        Value::Integer(_) => Some(NumericType::Integer),
+        Value::Rational(_) => Some(NumericType::Rational),
+        Value::Number(_) => Some(NumericType::Number),
+        Value::GaussianInt(_, _) => Some(NumericType::GaussianInt),
+        Value::Complex(_) => Some(NumericType::Complex),
+        _ => None,
+    }
+}
+
+// RUST CONCEPT: Promote a value to a target numeric type
+fn promote_to(val: &Value, target: NumericType) -> Value {
+    match (val, target) {
+        // Already the target type
+        (Value::Integer(_), NumericType::Integer) => val.clone(),
+        (Value::Rational(_), NumericType::Rational) => val.clone(),
+        (Value::Number(_), NumericType::Number) => val.clone(),
+        (Value::GaussianInt(_, _), NumericType::GaussianInt) => val.clone(),
+        (Value::Complex(_), NumericType::Complex) => val.clone(),
+
+        // Promote Integer to higher types
+        (Value::Integer(i), NumericType::Rational) => {
+            Value::Rational(BigRational::from(i.clone()))
+        }
+        (Value::Integer(i), NumericType::Number) => {
+            Value::Number(i.to_f64().unwrap_or(f64::INFINITY))
+        }
+        (Value::Integer(i), NumericType::GaussianInt) => {
+            Value::GaussianInt(i.clone(), BigInt::from(0))
+        }
+        (Value::Integer(i), NumericType::Complex) => {
+            let n = i.to_f64().unwrap_or(f64::INFINITY);
+            Value::Complex(Complex64::new(n, 0.0))
+        }
+
+        // Promote Rational to higher types
+        (Value::Rational(r), NumericType::Number) => {
+            let n = r.to_f64().unwrap_or(f64::INFINITY);
+            Value::Number(n)
+        }
+        (Value::Rational(r), NumericType::Complex) => {
+            let n = r.to_f64().unwrap_or(f64::INFINITY);
+            Value::Complex(Complex64::new(n, 0.0))
+        }
+
+        // Promote Number to Complex
+        (Value::Number(n), NumericType::Complex) => Value::Complex(Complex64::new(*n, 0.0)),
+
+        // Promote GaussianInt to Complex
+        (Value::GaussianInt(re, im), NumericType::Complex) => {
+            let re_f = re.to_f64().unwrap_or(f64::INFINITY);
+            let im_f = im.to_f64().unwrap_or(f64::INFINITY);
+            Value::Complex(Complex64::new(re_f, im_f))
+        }
+
+        // Invalid promotions (can't demote or cross between incompatible types)
+        _ => val.clone(), // Fallback: return unchanged
+    }
+}
+
+// RUST CONCEPT: Promote two values to a common type for arithmetic
+// Returns (promoted_a, promoted_b)
+pub fn promote_pair(a: &Value, b: &Value) -> (Value, Value) {
+    let type_a = numeric_type(a);
+    let type_b = numeric_type(b);
+
+    match (type_a, type_b) {
+        (Some(ta), Some(tb)) => {
+            // Determine the target type (the "higher" one in the hierarchy)
+            let target = if ta >= tb { ta.clone() } else { tb.clone() };
+
+            // Handle special case: GaussianInt + Number should go to Complex
+            let target = match (&ta, &tb) {
+                (NumericType::GaussianInt, NumericType::Number)
+                | (NumericType::Number, NumericType::GaussianInt) => NumericType::Complex,
+                (NumericType::GaussianInt, NumericType::Rational)
+                | (NumericType::Rational, NumericType::GaussianInt) => NumericType::Complex,
+                _ => target,
+            };
+
+            (promote_to(a, target.clone()), promote_to(b, target))
+        }
+        // If either value is not numeric, return unchanged
+        _ => (a.clone(), b.clone()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_promote_same_types() {
+        let a = Value::Integer(BigInt::from(5));
+        let b = Value::Integer(BigInt::from(3));
+        let (pa, pb) = promote_pair(&a, &b);
+        assert!(matches!(pa, Value::Integer(_)));
+        assert!(matches!(pb, Value::Integer(_)));
+    }
+
+    #[test]
+    fn test_promote_integer_to_rational() {
+        let a = Value::Integer(BigInt::from(5));
+        let b = Value::Rational(BigRational::from(BigInt::from(3)));
+        let (pa, pb) = promote_pair(&a, &b);
+        assert!(matches!(pa, Value::Rational(_)));
+        assert!(matches!(pb, Value::Rational(_)));
+    }
+
+    #[test]
+    fn test_promote_integer_to_number() {
+        let a = Value::Integer(BigInt::from(5));
+        let b = Value::Number(3.14);
+        let (pa, pb) = promote_pair(&a, &b);
+        assert!(matches!(pa, Value::Number(_)));
+        assert!(matches!(pb, Value::Number(_)));
+    }
+
+    #[test]
+    fn test_promote_number_to_complex() {
+        let a = Value::Number(5.0);
+        let b = Value::Complex(Complex64::new(3.0, 4.0));
+        let (pa, pb) = promote_pair(&a, &b);
+        assert!(matches!(pa, Value::Complex(_)));
+        assert!(matches!(pb, Value::Complex(_)));
+    }
+
+    #[test]
+    fn test_promote_gaussian_to_complex() {
+        let a = Value::GaussianInt(BigInt::from(5), BigInt::from(2));
+        let b = Value::Number(3.14);
+        let (pa, pb) = promote_pair(&a, &b);
+        assert!(matches!(pa, Value::Complex(_)));
+        assert!(matches!(pb, Value::Complex(_)));
+    }
+}

@@ -8,7 +8,7 @@ use crate::value::RuntimeError;
 // n=0: no-op, n=1: swap top two items, n=2: move third item to top
 // Example: 1 2 3 4  2 roll  ->  1 3 4 2 (item at depth 2 moved to top)
 pub fn roll_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let n = interp.pop_number()? as usize;
+    let n = interp.pop_integer()?;
 
     // RUST CONCEPT: Bounds checking
     // We need at least n+1 items on the stack
