@@ -9,19 +9,21 @@ use num_rational::BigRational;
 use num_traits::ToPrimitive;
 
 // RUST CONCEPT: Type promotion hierarchy
-// The promotion hierarchy is:
-// Integer < Rational < Number (f64) < Complex
-// GaussianInt < Complex
+// The promotion hierarchy prioritizes exactness:
+// Integer < Rational (both exact)
+// Number and Complex (both inexact, same level)
+// GaussianInt < Complex (exact complex to inexact complex)
 //
-// When mixing types, we promote to the "higher" type in the hierarchy
+// Mixing exact and inexact types promotes to inexact
+// Once you introduce a float, precision is lost
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum NumericType {
     Integer,     // BigInt - exact integers
-    Rational,    // BigRational - exact fractions
-    Number,      // f64 - floating point
-    GaussianInt, // Gaussian integers (a+bi where a,b are integers)
-    Complex,     // Complex64 - complex floating point
+    Rational,    // BigRational - exact fractions (still exact)
+    GaussianInt, // Gaussian integers (a+bi where a,b are integers, exact)
+    Number,      // f64 - floating point (inexact, loses precision)
+    Complex,     // Complex64 - complex floating point (inexact)
 }
 
 // RUST CONCEPT: Determine the type of a numeric value
@@ -63,12 +65,14 @@ fn promote_to(val: &Value, target: NumericType) -> Value {
 
         // Promote Rational to higher types
         (Value::Rational(r), NumericType::Number) => {
-            let n = r.to_f64().unwrap_or(f64::INFINITY);
-            Value::Number(n)
+            let numer = r.numer().to_f64().unwrap_or(0.0);
+            let denom = r.denom().to_f64().unwrap_or(1.0);
+            Value::Number(numer / denom)
         }
         (Value::Rational(r), NumericType::Complex) => {
-            let n = r.to_f64().unwrap_or(f64::INFINITY);
-            Value::Complex(Complex64::new(n, 0.0))
+            let numer = r.numer().to_f64().unwrap_or(0.0);
+            let denom = r.denom().to_f64().unwrap_or(1.0);
+            Value::Complex(Complex64::new(numer / denom, 0.0))
         }
 
         // Promote Number to Complex

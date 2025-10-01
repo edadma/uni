@@ -150,7 +150,8 @@ fn parse_value(
                 *index += 1;
                 match (numer.parse::<i64>(), denom.parse::<i64>()) {
                     (Ok(n), Ok(d)) if d != 0 => {
-                        Ok(Value::Rational(BigRational::new(BigInt::from(n), BigInt::from(d))))
+                        let rational = Value::Rational(BigRational::new(BigInt::from(n), BigInt::from(d)));
+                        Ok(rational.demote())
                     }
                     _ => Err(ParseError::InvalidNumber(format!("Invalid rational: {}/{}", numer, denom))),
                 }
@@ -1612,16 +1613,15 @@ mod tests {
         use num_traits::Zero;
         let mut interp = Interpreter::new();
 
-        // Test 1/1 (whole number as fraction)
+        // Test 1/1 (whole number as fraction) - should demote to Integer
         let result = parse("1/1", &mut interp).unwrap();
         assert_eq!(result.len(), 1);
-        let expected = BigRational::new(BigInt::from(1), BigInt::from(1));
-        assert!(matches!(result[0], Value::Rational(ref r) if *r == expected));
+        assert!(matches!(result[0], Value::Integer(ref i) if *i == BigInt::from(1)));
 
-        // Test 0/1 (zero as fraction)
+        // Test 0/1 (zero as fraction) - should demote to Integer(0)
         let result = parse("0/1", &mut interp).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(matches!(result[0], Value::Rational(ref r) if r.is_zero()));
+        assert!(matches!(result[0], Value::Integer(ref i) if i.is_zero()));
 
         // Test large numerator and denominator
         let result = parse("123456789/987654321", &mut interp).unwrap();

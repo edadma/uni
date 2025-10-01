@@ -1,184 +1,57 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
 use crate::interpreter::Interpreter;
+use crate::primitives::numeric_promotion::promote_pair;
 use crate::value::{RuntimeError, Value};
-use num_bigint::BigInt;
-use num_complex::Complex64;
-use num_rational::BigRational;
-use num_traits::{ToPrimitive, Zero};
 
 // RUST CONCEPT: Polymorphic addition - multiple numeric types and string concatenation
 // Stack-based addition: ( n1 n2 -- sum ) or ( str1 any -- concat ) or ( any str2 -- concat )
-// Supports: f64, BigInt, BigRational, Complex64
+// Supports automatic type promotion: Integer < Rational < GaussianInt < Number < Complex
 pub fn add_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Context-aware error messages using position-aware pop
     let b =
         interp.pop_with_context("'+' requires exactly 2 values on the stack (e.g., '5 3 +')")?;
     let a =
         interp.pop_with_context("'+' requires exactly 2 values on the stack (e.g., '5 3 +')")?;
 
-    // RUST CONCEPT: Pattern matching for polymorphic behavior
+    // Handle string concatenation first
     match (&a, &b) {
-        // ========== NUMERIC ADDITIONS ==========
-
-        // Float + Float
-        (Value::Number(n1), Value::Number(n2)) => {
-            interp.push(Value::Number(n1 + n2));
-        }
-
-        // BigInt + BigInt
-        (Value::Integer(i1), Value::Integer(i2)) => {
-            interp.push(Value::Integer(i1 + i2));
-        }
-
-        // BigRational + BigRational
-        (Value::Rational(r1), Value::Rational(r2)) => {
-            let result = Value::Rational(r1 + r2);
-            interp.push(result.demote());
-        }
-
-        // Complex + Complex
-        (Value::Complex(c1), Value::Complex(c2)) => {
-            interp.push(Value::Complex(c1 + c2));
-        }
-
-        // GaussianInt + GaussianInt
-        (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => {
-            let result = Value::GaussianInt(re1 + re2, im1 + im2);
-            interp.push(result.demote());
-        }
-
-        // ========== MIXED NUMERIC TYPE ADDITIONS ==========
-
-        // Float + Integer -> Integer (promote to BigInt)
-        (Value::Number(n), Value::Integer(i)) | (Value::Integer(i), Value::Number(n)) => {
-            if n.fract() == 0.0 && n.is_finite() {
-                let n_int = BigInt::from(*n as i64);
-                interp.push(Value::Integer(&n_int + i));
-            } else {
-                // If float has fractional part, convert to rational
-                let r = float_to_rational(*n);
-                let i_rat = BigRational::from(i.clone());
-                interp.push(Value::Rational(r + i_rat));
-            }
-        }
-
-        // Float + Rational -> Rational
-        (Value::Number(n), Value::Rational(r)) | (Value::Rational(r), Value::Number(n)) => {
-            let n_rat = float_to_rational(*n);
-            interp.push(Value::Rational(n_rat + r));
-        }
-
-        // Float + Complex -> Complex
-        (Value::Number(n), Value::Complex(c)) | (Value::Complex(c), Value::Number(n)) => {
-            interp.push(Value::Complex(Complex64::new(*n, 0.0) + c));
-        }
-
-        // Integer + Rational -> Rational
-        (Value::Integer(i), Value::Rational(r)) | (Value::Rational(r), Value::Integer(i)) => {
-            let i_rat = BigRational::from(i.clone());
-            let result = Value::Rational(i_rat + r);
-            interp.push(result.demote());
-        }
-
-        // Integer + Complex -> Complex
-        (Value::Integer(i), Value::Complex(c)) | (Value::Complex(c), Value::Integer(i)) => {
-            let i_float = i.to_f64().unwrap_or(f64::INFINITY);
-            interp.push(Value::Complex(Complex64::new(i_float, 0.0) + c));
-        }
-
-        // Rational + Complex -> Complex
-        (Value::Rational(r), Value::Complex(c)) | (Value::Complex(c), Value::Rational(r)) => {
-            let r_float = rational_to_float(r);
-            interp.push(Value::Complex(Complex64::new(r_float, 0.0) + c));
-        }
-
-        // GaussianInt + Integer -> GaussianInt
-        (Value::GaussianInt(re, im), Value::Integer(i))
-        | (Value::Integer(i), Value::GaussianInt(re, im)) => {
-            let result = Value::GaussianInt(re + i, im.clone());
-            interp.push(result.demote());
-        }
-
-        // GaussianInt + Float -> Complex64 (promote)
-        (Value::GaussianInt(re, im), Value::Number(n))
-        | (Value::Number(n), Value::GaussianInt(re, im)) => {
-            let re_float = re.to_f64().unwrap_or(f64::INFINITY);
-            let im_float = im.to_f64().unwrap_or(f64::INFINITY);
-            interp.push(Value::Complex(Complex64::new(re_float, im_float) + Complex64::new(*n, 0.0)));
-        }
-
-        // GaussianInt + Rational -> Complex64 (promote)
-        (Value::GaussianInt(re, im), Value::Rational(r))
-        | (Value::Rational(r), Value::GaussianInt(re, im)) => {
-            let re_float = re.to_f64().unwrap_or(f64::INFINITY);
-            let im_float = im.to_f64().unwrap_or(f64::INFINITY);
-            let r_float = rational_to_float(r);
-            interp.push(Value::Complex(Complex64::new(re_float, im_float) + Complex64::new(r_float, 0.0)));
-        }
-
-        // GaussianInt + Complex -> Complex64
-        (Value::GaussianInt(re, im), Value::Complex(c))
-        | (Value::Complex(c), Value::GaussianInt(re, im)) => {
-            let re_float = re.to_f64().unwrap_or(f64::INFINITY);
-            let im_float = im.to_f64().unwrap_or(f64::INFINITY);
-            interp.push(Value::Complex(Complex64::new(re_float, im_float) + c));
-        }
-
-        // ========== STRING CONCATENATION ==========
-
-        // At least one string - do string concatenation
         (Value::String(_), _) | (_, Value::String(_)) => {
-            // For string concatenation, extract the actual string content
             let str_a = match &a {
                 Value::String(s) => s.as_ref(),
-                _ => &a.to_string(), // Convert non-strings using Display
+                _ => &a.to_string(),
             };
             let str_b = match &b {
                 Value::String(s) => s.as_ref(),
-                _ => &b.to_string(), // Convert non-strings using Display
+                _ => &b.to_string(),
             };
             let result = format!("{}{}", str_a, str_b);
             interp.push(Value::String(result.into()));
+            return Ok(());
         }
+        _ => {}
+    }
 
-        // Neither numeric nor string - type error
+    // For numeric types, use type promotion
+    let (pa, pb) = promote_pair(&a, &b);
+
+    let result = match (&pa, &pb) {
+        (Value::Integer(i1), Value::Integer(i2)) => Value::Integer(i1 + i2),
+        (Value::Rational(r1), Value::Rational(r2)) => Value::Rational(r1 + r2).demote(),
+        (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 + n2),
+        (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => {
+            Value::GaussianInt(re1 + re2, im1 + im2).demote()
+        }
+        (Value::Complex(c1), Value::Complex(c2)) => Value::Complex(c1 + c2),
         _ => {
-            return Err(RuntimeError::TypeError(
-                "Addition requires numbers or at least one string".to_string(),
-            ));
+            return Err(RuntimeError::TypeError(format!(
+                "Cannot add {:?} and {:?}",
+                a, b
+            )))
         }
-    }
+    };
 
+    interp.push(result);
     Ok(())
-}
-
-// RUST CONCEPT: Helper function to convert f64 to BigRational
-// Approximates floating point as a fraction with reasonable precision
-fn float_to_rational(f: f64) -> BigRational {
-    use num_bigint::ToBigInt;
-
-    if !f.is_finite() {
-        // For infinity/NaN, return 0/1 as fallback
-        return BigRational::zero();
-    }
-
-    // Simple approximation: multiply by 10^9 to preserve precision
-    let denominator = 1_000_000_000i64;
-    let numerator = (f * denominator as f64).round() as i64;
-
-    BigRational::new(
-        numerator.to_bigint().unwrap(),
-        denominator.to_bigint().unwrap(),
-    )
-}
-
-// RUST CONCEPT: Helper function to convert BigRational to f64
-fn rational_to_float(r: &BigRational) -> f64 {
-    // Convert numerator and denominator to f64 and divide
-    let numer = r.numer().to_f64().unwrap_or(0.0);
-    let denom = r.denom().to_f64().unwrap_or(1.0);
-    numer / denom
 }
 
 #[cfg(test)]
@@ -439,13 +312,13 @@ mod tests {
         use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
-        // Test float + BigInt with whole number float: 5.0 + 10n = 15n
+        // Test float + BigInt: 5.0 + 10 = 15.0 (promotes to float since floats are inexact)
         interp.push(Value::Number(5.0));
         interp.push(Value::Integer(BigInt::from(10)));
         add_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(i) if i == BigInt::from(15)));
+        assert!(matches!(result, Value::Number(n) if n == 15.0));
 
         // Test BigInt + float (reversed order)
         interp.push(Value::Integer(BigInt::from(20)));
@@ -453,7 +326,7 @@ mod tests {
         add_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(i) if i == BigInt::from(27)));
+        assert!(matches!(result, Value::Number(n) if n == 27.0));
     }
 
     #[test]
@@ -462,14 +335,14 @@ mod tests {
         use num_rational::BigRational;
         let mut interp = setup_interpreter();
 
-        // Test float + Rational: 0.5 + 1/2 should give rational
+        // Test float + Rational: 0.5 + 1/2 = 1.0 (promotes to float since floats are inexact)
         interp.push(Value::Number(0.5));
         interp.push(Value::Rational(BigRational::new(BigInt::from(1), BigInt::from(2))));
         add_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        // Result should be rational 1/1
-        assert!(matches!(result, Value::Rational(_)));
+        // Result should be Number (float) since mixing exact and inexact promotes to inexact
+        assert!(matches!(result, Value::Number(n) if n == 1.0));
     }
 
     #[test]
@@ -742,23 +615,16 @@ mod tests {
     #[test]
     fn test_add_mixed_float_bigint_fractional() {
         use num_bigint::BigInt;
-        use num_rational::BigRational;
         let mut interp = setup_interpreter();
 
-        // Test 3.5 + 10n -> should convert to rational since float has fractional part
+        // Test 3.5 + 10 = 13.5 (promotes to float since floats are inexact)
         interp.push(Value::Number(3.5));
         interp.push(Value::Integer(BigInt::from(10)));
         add_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        // Should be rational, not integer
-        assert!(matches!(result, Value::Rational(_)));
-
-        // Verify the value
-        if let Value::Rational(r) = result {
-            let expected = BigRational::new(BigInt::from(27), BigInt::from(2)); // 13.5 = 27/2
-            assert_eq!(r, expected);
-        }
+        // Should be Number (float) since mixing exact and inexact promotes to inexact
+        assert!(matches!(result, Value::Number(n) if n == 13.5));
     }
 
     #[test]
