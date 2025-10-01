@@ -290,20 +290,21 @@ fn print_stack(interp: &Interpreter) {
 
 // RUST CONCEPT: Helper function to display defined words
 fn print_words(interp: &Interpreter) {
-    if interp.dictionary.is_empty() {
-        println!("No words defined");
-    } else {
-        // RUST CONCEPT: Collecting and sorting for display
-        let mut words: Vec<_> = interp.dictionary.keys().map(|k| k.as_ref()).collect();
-        words.sort();
+    // RUST CONCEPT: Collecting and sorting for display
+    let mut words: Vec<_> = interp.dictionary.keys().map(|k| k.as_ref()).collect();
 
-        println!("Defined words ({}):", words.len());
-        // RUST CONCEPT: Chunking for columnar display
-        for chunk in words.chunks(5) {
-            for word in chunk {
-                print!("{:15} ", word);
-            }
-            println!();
+    // Add special forms that are handled in the evaluator
+    words.push("exec");
+    words.push("if");
+
+    words.sort();
+
+    println!("Defined words ({}):", words.len());
+    // RUST CONCEPT: Chunking for columnar display
+    for chunk in words.chunks(5) {
+        for word in chunk {
+            print!("{:15} ", word);
         }
+        println!();
     }
 }
