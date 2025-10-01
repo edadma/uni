@@ -169,7 +169,12 @@ fn execute_code(code: &str, auto_print: bool) {
 // RUST CONCEPT: Function extraction for code organization
 // Run the interactive REPL (Read-Eval-Print Loop)
 fn run_repl() {
-    println!("Uni Language v0.0.1");
+    println!(" _   _       _ ");
+    println!("| | | |_ __ (_)");
+    println!("| | | | '_ \\| |");
+    println!("| |_| | | | | |");
+    println!(" \\___/|_| |_|_| v0.0.1");
+    println!();
     println!("Type 'quit' or press Ctrl-D to exit");
     println!("Type 'stack' to see the current stack");
     println!("Type 'clear' to clear the stack");
