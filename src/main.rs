@@ -260,7 +260,7 @@ fn execute_repl_line(line: &str, interp: &mut Interpreter) {
             if !interp.stack.is_empty() {
                 // RUST CONCEPT: Getting the last element without removing it
                 if let Some(top) = interp.stack.last() {
-                    println!(" => {}", top);
+                    println!(" => {} : {}", top, top.type_name());
                 }
             }
         }

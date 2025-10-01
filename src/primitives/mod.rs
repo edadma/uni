@@ -81,6 +81,9 @@ pub mod to_string;
 pub mod null;
 pub mod truthy;
 
+// Type introspection
+pub mod type_of;
+
 // Re-export all builtin functions for easy access
 
 // Basic arithmetic
@@ -172,6 +175,9 @@ pub use to_string::to_string_builtin;
 // Predicate operations
 pub use null::null_predicate_builtin;
 pub use truthy::truthy_predicate_builtin;
+
+// Type introspection
+pub use type_of::type_of_builtin;
 
 // RUST CONCEPT: Module-level documentation
 // This explains the organization strategy for the primitives

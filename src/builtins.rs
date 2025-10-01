@@ -68,6 +68,8 @@ use crate::primitives::{
     to_string_builtin,
     // Predicate operations
     truthy_predicate_builtin,
+    // Type introspection
+    type_of_builtin,
     val_builtin,
     vector_builtin,
     vector_length_builtin,
@@ -421,6 +423,18 @@ pub fn register_builtins(interp: &mut Interpreter) {
             is_executable: true,
             doc: Some(Rc::<str>::from(
                 "Test if value is truthy (non-null, non-false, non-zero).\nUsage: value truthy? => boolean\nExample: 5 truthy? => true",
+            )),
+        },
+    );
+
+    let type_of_atom = interp.intern_atom("type");
+    interp.dictionary.insert(
+        type_of_atom,
+        DictEntry {
+            value: Value::Builtin(type_of_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "( x -- string ) Return type name of value as a string.\nTypes: number, integer, rational, gaussian, complex, atom, string, boolean, null, list, vector, nil, builtin",
             )),
         },
     );

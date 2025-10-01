@@ -31,6 +31,27 @@ pub enum Value {
 }
 
 impl Value {
+    // RUST CONCEPT: Get the type name of a value
+    // Returns a string describing the type for display and debugging
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            Value::Number(_) => "number",
+            Value::Integer(_) => "integer",
+            Value::Rational(_) => "rational",
+            Value::GaussianInt(_, _) => "gaussian",
+            Value::Complex(_) => "complex",
+            Value::Atom(_) => "atom",
+            Value::QuotedAtom(_) => "quoted-atom",
+            Value::String(_) => "string",
+            Value::Boolean(_) => "boolean",
+            Value::Null => "null",
+            Value::Pair(_, _) => "list",
+            Value::Array(_) => "vector",
+            Value::Nil => "nil",
+            Value::Builtin(_) => "builtin",
+        }
+    }
+
     // RUST CONCEPT: Automatic numeric type demotion for cleaner results
     // This function attempts to demote numeric types to simpler representations:
     // - Rational with denominator 1 → Integer
