@@ -4,6 +4,7 @@
 // Basic arithmetic operations
 pub mod divide;
 pub mod equals;
+pub mod floor_div;
 pub mod minus;
 pub mod modulo;
 pub mod multiply;
@@ -92,6 +93,7 @@ pub mod numeric_promotion;
 // Basic arithmetic
 pub use divide::div_builtin;
 pub use equals::eq_builtin;
+pub use floor_div::floor_div_builtin;
 pub use minus::sub_builtin;
 pub use modulo::mod_builtin;
 pub use multiply::mul_builtin;

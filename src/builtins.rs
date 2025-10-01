@@ -25,6 +25,7 @@ use crate::primitives::{
     eq_builtin,
     exp_builtin,
     floor_builtin,
+    floor_div_builtin,
     from_r_builtin,
     greater_equal_builtin,
     greater_than_builtin,
@@ -127,6 +128,18 @@ pub fn register_builtins(interp: &mut Interpreter) {
             is_executable: true,
             doc: Some(Rc::<str>::from(
                 "Divide two numbers.\nUsage: a b / => result\nExample: 15 3 / => 5",
+            )),
+        },
+    );
+
+    let floor_div_atom = interp.intern_atom("//");
+    interp.dictionary.insert(
+        floor_div_atom,
+        DictEntry {
+            value: Value::Builtin(floor_div_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Floor division (like Python's //).\nUsage: a b // => result\nExample: 7 2 // => 3, -7 2 // => -4",
             )),
         },
     );
@@ -787,7 +800,7 @@ mod tests {
 
         let expected_builtins = [
             // Basic arithmetic
-            "+", "-", "*", "/", "mod", "=", // Comparison operations
+            "+", "-", "*", "/", "//", "mod", "=", // Comparison operations
             "<", ">", "<=", ">=", "!=", // Basic math functions
             "abs", "min", "max", "sqrt", // Advanced math functions
             "pow", "floor", "ceil", "round", // Trigonometric functions
