@@ -128,8 +128,7 @@ impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Number(n) => write!(f, "{}", n),
-            // RUST CONCEPT: BigInt displays without suffix by default
-            Value::Integer(i) => write!(f, "{}n", i), // Suffix 'n' to indicate bigint
+            Value::Integer(i) => write!(f, "{}", i),
             // RUST CONCEPT: BigRational displays as "numerator/denominator"
             Value::Rational(r) => write!(f, "{}", r), // Shows as fraction like "3/4"
             // RUST CONCEPT: GaussianInt displays as "a+bi" with integer parts
