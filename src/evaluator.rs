@@ -198,6 +198,11 @@ fn execute_value_direct(
         Value::Atom(atom_name) => {
             execute_atom_with_continuations(atom_name, interp, continuation_stack)
         }
+        // RUST CONCEPT: Records and record types push themselves
+        Value::Record { .. } | Value::RecordType { .. } => {
+            interp.push(value.clone());
+            Ok(())
+        }
     }
 }
 

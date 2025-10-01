@@ -1,0 +1,62 @@
+#!/usr/bin/env cargo run --quiet -f
+
+\ Uni Records Example
+\ Demonstrates Scheme-style records with labeled fields
+
+\ Define a person record type with name, age, and occupation fields
+["name" "age" "occupation"] "person" make-record-type drop
+
+\ Create some person instances
+"Alice" 30 "Engineer" make-person
+"Bob" 25 "Designer" make-person
+"Carol" 35 "Manager" make-person
+
+\ Test type predicates
+"Testing person? predicate:" pr
+dup person? pr     \ true
+42 person? pr      \ false
+
+\ Access fields from Carol (top of stack)
+"Carol's data:" pr
+dup person-name pr
+dup person-age pr
+dup person-occupation pr
+
+\ Mutate Carol's age
+"Updating Carol's age to 36:" pr
+36 swap person-age!
+dup person-age pr
+
+\ Get record type name
+"Record type:" pr
+dup record-type-of pr
+
+\ Test general record? predicate
+"Is this a record?" pr
+dup record? pr
+
+\ Drop Carol from stack
+drop
+
+\ Define a different record type - point with x and y coordinates
+["x" "y"] "point" make-record-type drop
+
+\ Create a point
+10 20 make-point
+
+\ Access point fields
+"Point coordinates:" pr
+dup point-x pr
+dup point-y pr
+
+\ Test type predicates - point is not a person
+"Is point a person?" pr
+dup person? pr     \ false
+
+"Is point a point?" pr
+dup point? pr      \ true
+
+\ Clean up
+drop drop drop
+
+"Records example complete!" pr

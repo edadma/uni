@@ -138,6 +138,8 @@ impl Interpreter {
             Value::Pair(_, _) => true,         // non-empty lists are truthy
             Value::Array(_) => true,           // arrays are truthy by default
             Value::Builtin(_) => true,         // builtins are truthy
+            Value::Record { .. } => true,      // records are truthy
+            Value::RecordType { .. } => true,  // record types are truthy
         }
     }
 

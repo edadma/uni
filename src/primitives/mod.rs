@@ -65,6 +65,9 @@ pub mod tail;
 // Vector (array) operations
 pub mod vector;
 
+// Record operations
+pub mod record;
+
 // Meta operations
 pub mod def;
 pub mod doc;
@@ -164,6 +167,14 @@ pub use vector::vector_length_builtin;
 pub use vector::vector_ref_builtin;
 pub use vector::vector_set_builtin;
 pub use vector::vector_to_list_builtin;
+
+// Record operations
+pub use record::construct_record_builtin;
+pub use record::get_record_field_builtin;
+pub use record::is_record_type_builtin;
+pub use record::make_record_type_builtin;
+pub use record::record_type_of_builtin;
+pub use record::set_record_field_builtin;
 
 // Meta operations
 pub use def::def_builtin;

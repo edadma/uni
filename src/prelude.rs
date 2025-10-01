@@ -53,6 +53,9 @@ pub fn load_prelude(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         'null? [null =] def
         "( x -- bool ) Test if value is null" doc
 
+        'record? [type "record" =] def
+        "( x -- bool ) Test if value is any record type" doc
+
         \\ Conditional duplication from Forth
         '?dup [
             dup truthy? [dup] [] if

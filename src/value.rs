@@ -28,6 +28,22 @@ pub enum Value {
     Array(Rc<RefCell<Vec<Value>>>), // Mutable array/vector
     Nil,                            // Empty list marker
     Builtin(fn(&mut crate::interpreter::Interpreter) -> Result<(), RuntimeError>),
+    // RUST CONCEPT: Records (Scheme-style record types)
+    // Records are named product types with labeled fields
+    // type_name: The record type name (e.g., "person")
+    // fields: The field values stored in a mutable vector
+    // Uses Rc<RefCell<...>> for shared ownership with interior mutability
+    Record {
+        type_name: Rc<str>,
+        fields: Rc<RefCell<Vec<Value>>>,
+    },
+    // RUST CONCEPT: Record type descriptors
+    // Stores metadata about record types (field names, field count)
+    // Used to validate and access record instances
+    RecordType {
+        type_name: Rc<str>,
+        field_names: Rc<Vec<Rc<str>>>,
+    },
 }
 
 impl Value {
@@ -49,6 +65,8 @@ impl Value {
             Value::Array(_) => "vector",
             Value::Nil => "nil",
             Value::Builtin(_) => "builtin",
+            Value::Record { .. } => "record",
+            Value::RecordType { .. } => "record-type",
         }
     }
 
@@ -209,6 +227,28 @@ impl std::fmt::Display for Value {
             }
             Value::Nil => write!(f, "[]"),
             Value::Builtin(_) => write!(f, "<builtin>"),
+            // RUST CONCEPT: Display for record instances
+            // Shows the type name and field values
+            Value::Record { type_name, fields } => {
+                let fields_ref = fields.borrow();
+                write!(f, "#<record:{}", type_name)?;
+                for field in fields_ref.iter() {
+                    write!(f, " {}", field)?;
+                }
+                write!(f, ">")
+            }
+            // RUST CONCEPT: Display for record type descriptors
+            // Shows the type name and field names
+            Value::RecordType {
+                type_name,
+                field_names,
+            } => {
+                write!(f, "#<record-type:{}", type_name)?;
+                for field_name in field_names.iter() {
+                    write!(f, " {}", field_name)?;
+                }
+                write!(f, ">")
+            }
         }
     }
 }

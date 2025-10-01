@@ -15,6 +15,7 @@ use crate::primitives::{
     ceil_builtin,
     // List operations
     cons_builtin,
+    construct_record_builtin,
     cos_builtin,
     // Meta operations
     def_builtin,
@@ -27,10 +28,12 @@ use crate::primitives::{
     floor_builtin,
     floor_div_builtin,
     from_r_builtin,
+    get_record_field_builtin,
     greater_equal_builtin,
     greater_than_builtin,
     head_builtin,
     help_builtin,
+    is_record_type_builtin,
     less_equal_builtin,
     // Comparison operations
     less_than_builtin,
@@ -38,6 +41,7 @@ use crate::primitives::{
     list_to_vector_builtin,
     // Logarithmic functions
     log_builtin,
+    make_record_type_builtin,
     make_vector_builtin,
     max_builtin,
     min_builtin,
@@ -52,8 +56,10 @@ use crate::primitives::{
     // I/O operations
     print_builtin,
     r_fetch_builtin,
+    record_type_of_builtin,
     roll_builtin,
     round_builtin,
+    set_record_field_builtin,
     // Shift operations
     shl_builtin,
     shr_builtin,
@@ -793,6 +799,79 @@ pub fn register_builtins(interp: &mut Interpreter) {
             is_executable: true,
             doc: Some(Rc::<str>::from(
                 "Copy top of return stack to data stack.\nUsage: r@ => x\nExample: r@ => (copies top of return stack without removing it)",
+            )),
+        },
+    );
+
+    // Record operations
+    let make_record_type_atom = interp.intern_atom("make-record-type");
+    interp.dictionary.insert(
+        make_record_type_atom,
+        DictEntry {
+            value: Value::Builtin(make_record_type_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Create a record type with named fields.\nUsage: [field-names...] \"type-name\" make-record-type => record-type\nExample: [\"name\" \"age\"] \"person\" make-record-type",
+            )),
+        },
+    );
+
+    let construct_record_atom = interp.intern_atom("construct-record");
+    interp.dictionary.insert(
+        construct_record_atom,
+        DictEntry {
+            value: Value::Builtin(construct_record_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Internal helper to construct record instances.\nUsage: field-values... n \"type-name\" construct-record => record",
+            )),
+        },
+    );
+
+    let is_record_type_atom = interp.intern_atom("is-record-type?");
+    interp.dictionary.insert(
+        is_record_type_atom,
+        DictEntry {
+            value: Value::Builtin(is_record_type_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Check if value is a record of specific type.\nUsage: value \"type-name\" is-record-type? => boolean",
+            )),
+        },
+    );
+
+    let get_record_field_atom = interp.intern_atom("get-record-field");
+    interp.dictionary.insert(
+        get_record_field_atom,
+        DictEntry {
+            value: Value::Builtin(get_record_field_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Get field value from record.\nUsage: record \"type-name\" field-index get-record-field => value",
+            )),
+        },
+    );
+
+    let set_record_field_atom = interp.intern_atom("set-record-field!");
+    interp.dictionary.insert(
+        set_record_field_atom,
+        DictEntry {
+            value: Value::Builtin(set_record_field_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Set field value in record.\nUsage: new-value record \"type-name\" field-index set-record-field! => record",
+            )),
+        },
+    );
+
+    let record_type_of_atom = interp.intern_atom("record-type-of");
+    interp.dictionary.insert(
+        record_type_of_atom,
+        DictEntry {
+            value: Value::Builtin(record_type_of_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Get type name from record instance.\nUsage: record record-type-of => \"type-name\"",
             )),
         },
     );
