@@ -1655,7 +1655,6 @@ mod tests {
     #[test]
     fn test_parse_integer_vs_float_literals() {
         use num_bigint::BigInt;
-        use num_complex::Complex64;
         let mut interp = Interpreter::new();
 
         // Integers (no decimal point)
