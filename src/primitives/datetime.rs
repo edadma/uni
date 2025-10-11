@@ -440,27 +440,27 @@ mod tests {
         // Test month
         execute_string("dup month", &mut interp).unwrap();
         let month = interp.pop().unwrap();
-        assert!(matches!(month, Value::Integer(ref i) if i == &BigInt::from(10)));
+        assert!(matches!(month, Value::Int32(10)));
 
         // Test day
         execute_string("dup day", &mut interp).unwrap();
         let day = interp.pop().unwrap();
-        assert!(matches!(day, Value::Integer(ref i) if i == &BigInt::from(1)));
+        assert!(matches!(day, Value::Int32(1)));
 
         // Test hour
         execute_string("dup hour", &mut interp).unwrap();
         let hour = interp.pop().unwrap();
-        assert!(matches!(hour, Value::Integer(ref i) if i == &BigInt::from(14)));
+        assert!(matches!(hour, Value::Int32(14)));
 
         // Test minute
         execute_string("dup minute", &mut interp).unwrap();
         let minute = interp.pop().unwrap();
-        assert!(matches!(minute, Value::Integer(ref i) if i == &BigInt::from(30)));
+        assert!(matches!(minute, Value::Int32(30)));
 
         // Test second
         execute_string("second", &mut interp).unwrap();
         let second = interp.pop().unwrap();
-        assert!(matches!(second, Value::Integer(ref i) if i == &BigInt::from(45)));
+        assert!(matches!(second, Value::Int32(45)));
     }
 
     #[test]

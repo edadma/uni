@@ -466,14 +466,14 @@ mod tests {
         use num_rational::BigRational;
         let mut interp = setup_interpreter();
 
-        // Test 0/1 + 0/1 (should demote to Integer(0))
+        // Test 0/1 + 0/1 (should demote to Int32(0))
         let zero = BigRational::new(BigInt::from(0), BigInt::from(1));
         interp.push(Value::Rational(zero.clone()));
         interp.push(Value::Rational(zero.clone()));
         add_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(i) if i == BigInt::from(0)));
+        assert!(matches!(result, Value::Int32(0)));
 
         // Test 0/1 + 3/4
         let frac = BigRational::new(BigInt::from(3), BigInt::from(4));
@@ -491,7 +491,7 @@ mod tests {
         use num_rational::BigRational;
         let mut interp = setup_interpreter();
 
-        // Test -1/2 + 1/2 = 0 (demoted to Integer)
+        // Test -1/2 + 1/2 = 0 (demoted to Int32)
         let neg_half = BigRational::new(BigInt::from(-1), BigInt::from(2));
         let pos_half = BigRational::new(BigInt::from(1), BigInt::from(2));
         interp.push(Value::Rational(neg_half));
@@ -499,9 +499,9 @@ mod tests {
         add_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(i) if i == BigInt::from(0)));
+        assert!(matches!(result, Value::Int32(0)));
 
-        // Test -3/4 + -1/4 = -1 (demoted to Integer)
+        // Test -3/4 + -1/4 = -1 (demoted to Int32)
         let r1 = BigRational::new(BigInt::from(-3), BigInt::from(4));
         let r2 = BigRational::new(BigInt::from(-1), BigInt::from(4));
         interp.push(Value::Rational(r1));
@@ -509,7 +509,7 @@ mod tests {
         add_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(i) if i == BigInt::from(-1)));
+        assert!(matches!(result, Value::Int32(-1)));
     }
 
     #[test]
@@ -761,13 +761,13 @@ mod tests {
         use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
-        // Test 0+0i + 0+0i = 0 (demoted to Integer)
+        // Test 0+0i + 0+0i = 0 (demoted to Int32)
         interp.push(Value::GaussianInt(BigInt::from(0), BigInt::from(0)));
         interp.push(Value::GaussianInt(BigInt::from(0), BigInt::from(0)));
         add_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(i) if i == BigInt::from(0)));
+        assert!(matches!(result, Value::Int32(0)));
 
         // Test 0+0i + 3+4i = 3+4i
         interp.push(Value::GaussianInt(BigInt::from(0), BigInt::from(0)));
@@ -786,13 +786,13 @@ mod tests {
         use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
-        // Test (5+0i) + (3+0i) = 8 (demoted to Integer)
+        // Test (5+0i) + (3+0i) = 8 (demoted to Int32)
         interp.push(Value::GaussianInt(BigInt::from(5), BigInt::from(0)));
         interp.push(Value::GaussianInt(BigInt::from(3), BigInt::from(0)));
         add_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(i) if i == BigInt::from(8)));
+        assert!(matches!(result, Value::Int32(8)));
     }
 
     #[test]

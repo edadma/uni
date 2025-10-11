@@ -44,7 +44,7 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(factorial_code).unwrap();
-        use num_bigint::BigInt;
+        
         assert!(
             matches!(result, Value::Int32(120)),
             "Expected factorial(5) = 120, got {:?}",
@@ -75,7 +75,7 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(fibonacci_code).unwrap();
-        use num_bigint::BigInt;
+        
         assert!(
             matches!(result, Value::Int32(13)),
             "Expected fibonacci(7) = 13, got {:?}",
@@ -101,7 +101,7 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(list_processing_code).unwrap();
-        use num_bigint::BigInt;
+        
         assert!(
             matches!(result, Value::Int32(6)),
             "Expected length operations result = 6, got {:?}",
@@ -139,7 +139,7 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(mutual_recursion_code).unwrap();
-        use num_bigint::BigInt;
+        
         assert!(
             matches!(result, Value::Int32(42)),
             "Expected mutual recursion result = 42, got {:?}",
@@ -166,7 +166,7 @@ mod tests {
         "#;
 
         let result = execute_and_get_top(deep_recursion_code).unwrap();
-        use num_bigint::BigInt;
+        
         assert!(
             matches!(result, Value::Int32(99)),
             "Expected deep recursion result = 99, got {:?}",
@@ -250,7 +250,7 @@ mod tests {
             name
         );
 
-        use num_bigint::BigInt;
+        
         assert!(
             matches!(age, Value::Int32(35)),
             "Expected age 35, got {:?}",
@@ -413,7 +413,7 @@ mod tests {
             name
         );
 
-        use num_bigint::BigInt;
+        
         assert!(
             matches!(age, Value::Int32(30)),
             "Expected age 30, got {:?}",
@@ -445,7 +445,7 @@ mod tests {
         let y = interp.pop().unwrap();
         let x = interp.pop().unwrap();
 
-        use num_bigint::BigInt;
+        
         assert!(
             matches!(x, Value::Int32(99)),
             "Expected mutated x to be 99, got {:?}",
@@ -530,7 +530,7 @@ mod tests {
 
         let result = execute_and_get_top(code).unwrap();
 
-        use num_bigint::BigInt;
+        
         // Adding 1 day to Oct 1 should give Oct 2
         assert!(matches!(result, Value::Int32(2)));
     }
@@ -546,7 +546,7 @@ mod tests {
 
         let result = execute_and_get_top(code).unwrap();
 
-        use num_bigint::BigInt;
+        
         // Subtracting 2 days from Oct 5 should give Oct 3
         assert!(matches!(result, Value::Int32(3)));
     }
@@ -643,7 +643,7 @@ mod tests {
         let result = execute_and_get_top(code).unwrap();
 
         // October 1, 2025 is a Wednesday (weekday = 2)
-        use num_bigint::BigInt;
+        
         assert!(matches!(result, Value::Int32(2)));
     }
 

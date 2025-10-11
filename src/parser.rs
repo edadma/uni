@@ -1610,7 +1610,7 @@ mod tests {
     #[test]
     fn test_parse_rational_edge_cases() {
         use num_rational::BigRational;
-        use num_traits::Zero;
+        
         let mut interp = Interpreter::new();
 
         // Test 1/1 (whole number as fraction) - should demote to Int32
@@ -1654,7 +1654,7 @@ mod tests {
 
     #[test]
     fn test_parse_integer_vs_float_literals() {
-        use num_bigint::BigInt;
+        
         let mut interp = Interpreter::new();
 
         // Integers (no decimal point) - small integers use Int32

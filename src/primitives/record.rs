@@ -203,6 +203,7 @@ pub fn construct_record_builtin(interp: &mut Interpreter) -> Result<(), RuntimeE
 
     // Extract field count
     let field_count = match field_count_val {
+        Value::Int32(i) if i >= 0 => i as usize,
         Value::Integer(i) => {
             use num_traits::ToPrimitive;
             i.to_usize().ok_or_else(|| {
@@ -281,6 +282,7 @@ pub fn get_record_field_builtin(interp: &mut Interpreter) -> Result<(), RuntimeE
 
     // Extract field index
     let field_index = match field_index_val {
+        Value::Int32(i) if i >= 0 => i as usize,
         Value::Integer(i) => {
             use num_traits::ToPrimitive;
             i.to_usize().ok_or_else(|| {
@@ -347,6 +349,7 @@ pub fn set_record_field_builtin(interp: &mut Interpreter) -> Result<(), RuntimeE
 
     // Extract field index
     let field_index = match field_index_val {
+        Value::Int32(i) if i >= 0 => i as usize,
         Value::Integer(i) => {
             use num_traits::ToPrimitive;
             i.to_usize().ok_or_else(|| {
@@ -418,7 +421,6 @@ pub fn record_type_of_builtin(interp: &mut Interpreter) -> Result<(), RuntimeErr
 mod tests {
     use super::*;
     use crate::evaluator::execute_string;
-    use num_bigint::BigInt;
 
     #[test]
     fn test_make_record_type() {
@@ -504,7 +506,7 @@ mod tests {
         // Access age field
         execute_string(r#"person-age"#, &mut interp).unwrap();
         let age = interp.pop().unwrap();
-        assert!(matches!(age, Value::Integer(ref i) if i == &BigInt::from(35)));
+        assert!(matches!(age, Value::Int32(35)));
     }
 
     #[test]

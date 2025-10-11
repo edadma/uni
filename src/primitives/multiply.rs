@@ -278,13 +278,13 @@ mod tests {
     fn test_mul_gaussian_int() {
         let mut interp = setup_interpreter();
 
-        // Test i * i = -1 (fundamental property of i, demoted to Integer)
+        // Test i * i = -1 (fundamental property of i, demoted to Int32)
         interp.push(Value::GaussianInt(BigInt::from(0), BigInt::from(1))); // i
         interp.push(Value::GaussianInt(BigInt::from(0), BigInt::from(1))); // i
         mul_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(-1)));
+        assert!(matches!(result, Value::Int32(-1)));
 
         // Test (3+4i) * (2+i) = 6+3i+8i+4i² = 6+11i-4 = 2+11i
         interp.push(Value::GaussianInt(BigInt::from(3), BigInt::from(4)));

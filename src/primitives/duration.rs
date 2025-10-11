@@ -228,7 +228,7 @@ mod tests {
         // Should be October 2, 2025
         execute_string("day", &mut interp).unwrap();
         let day = interp.pop().unwrap();
-        assert!(matches!(day, Value::Integer(ref i) if i == &BigInt::from(2)));
+        assert!(matches!(day, Value::Int32(2)));
     }
 
     #[test]
@@ -254,7 +254,7 @@ mod tests {
         // Should be October 1, 2025
         execute_string("day", &mut interp).unwrap();
         let day = interp.pop().unwrap();
-        assert!(matches!(day, Value::Integer(ref i) if i == &BigInt::from(1)));
+        assert!(matches!(day, Value::Int32(1)));
     }
 
     #[test]

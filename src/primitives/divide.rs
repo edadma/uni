@@ -118,13 +118,13 @@ mod tests {
             panic!("Expected Rational, got {:?}", result);
         }
 
-        // Test Integer / Integer with exact division -> demotes to Integer: 10 / 2 = 5
+        // Test Integer / Integer with exact division -> demotes to Int32: 10 / 2 = 5
         interp.push(Value::Integer(BigInt::from(10)));
         interp.push(Value::Integer(BigInt::from(2)));
         div_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(5)));
+        assert!(matches!(result, Value::Int32(5)));
     }
 
     #[test]
@@ -167,8 +167,8 @@ mod tests {
         div_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        // Should demote to Integer(2)
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(2)));
+        // Should demote to Int32(2)
+        assert!(matches!(result, Value::Int32(2)));
     }
 
     #[test]
@@ -236,28 +236,28 @@ mod tests {
         interp.push(Value::Integer(BigInt::from(10)));
         div_builtin(&mut interp).unwrap();
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(10)));
+        assert!(matches!(result, Value::Int32(10)));
 
         // 1000 / 100 = 10
         interp.push(Value::Integer(BigInt::from(1000)));
         interp.push(Value::Integer(BigInt::from(100)));
         div_builtin(&mut interp).unwrap();
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(10)));
+        assert!(matches!(result, Value::Int32(10)));
 
         // -20 / 4 = -5
         interp.push(Value::Integer(BigInt::from(-20)));
         interp.push(Value::Integer(BigInt::from(4)));
         div_builtin(&mut interp).unwrap();
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(-5)));
+        assert!(matches!(result, Value::Int32(-5)));
 
         // 20 / -4 = -5
         interp.push(Value::Integer(BigInt::from(20)));
         interp.push(Value::Integer(BigInt::from(-4)));
         div_builtin(&mut interp).unwrap();
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(-5)));
+        assert!(matches!(result, Value::Int32(-5)));
     }
 
     #[test]
@@ -371,7 +371,7 @@ mod tests {
         )));
         div_builtin(&mut interp).unwrap();
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(20)));
+        assert!(matches!(result, Value::Int32(20)));
 
         // Test Rational / Integer (should use promotion)
         // (3/4) / 2 = 3/8

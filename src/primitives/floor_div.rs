@@ -181,8 +181,8 @@ mod tests {
         floor_div_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        // (7/2) / (3/2) = 7/3 = 2.333..., floor = 2
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(2)));
+        // (7/2) / (3/2) = 7/3 = 2.333..., floor = 2 (demoted to Int32)
+        assert!(matches!(result, Value::Int32(2)));
 
         // Test (5/2) // (1/2) = 5
         interp.push(Value::Rational(BigRational::new(
@@ -196,7 +196,8 @@ mod tests {
         floor_div_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(5)));
+        // (5/2) / (1/2) = 5 (demoted to Int32)
+        assert!(matches!(result, Value::Int32(5)));
     }
 
     #[test]
@@ -220,8 +221,8 @@ mod tests {
         floor_div_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        // (7/2) / 2 = 7/4 = 1.75, floor = 1
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(1)));
+        // (7/2) / 2 = 7/4 = 1.75, floor = 1 (demoted to Int32)
+        assert!(matches!(result, Value::Int32(1)));
     }
 
     #[test]

@@ -181,8 +181,8 @@ mod tests {
         trunc_div_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        // (7/2) / (3/2) = 7/3 = 2.333..., trunc = 2
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(2)));
+        // (7/2) / (3/2) = 7/3 = 2.333..., trunc = 2 (demoted to Int32)
+        assert!(matches!(result, Value::Int32(2)));
 
         // Test negative: (-7/2) div (3/2) = -2 (truncate toward zero, not floor)
         interp.push(Value::Rational(BigRational::new(
@@ -196,8 +196,8 @@ mod tests {
         trunc_div_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        // (-7/2) / (3/2) = -7/3 = -2.333..., trunc = -2 (not floor which is -3)
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(-2)));
+        // (-7/2) / (3/2) = -7/3 = -2.333..., trunc = -2 (not floor which is -3, demoted to Int32)
+        assert!(matches!(result, Value::Int32(-2)));
     }
 
     #[test]
@@ -221,8 +221,8 @@ mod tests {
         trunc_div_builtin(&mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        // (7/2) / 2 = 7/4 = 1.75, trunc = 1
-        assert!(matches!(result, Value::Integer(ref i) if *i == BigInt::from(1)));
+        // (7/2) / 2 = 7/4 = 1.75, trunc = 1 (demoted to Int32)
+        assert!(matches!(result, Value::Int32(1)));
     }
 
     #[test]
