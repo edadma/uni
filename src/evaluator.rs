@@ -22,27 +22,27 @@ use std::rc::Rc;
 #[derive(Debug, Clone)]
 enum Continuation {
     // Execute a single value (push data or execute atom)
-    ExecuteValue(Value),
+    Value(Value),
 
     // Execute a list of values sequentially with index tracking
     // When index == items.len()-1, we can do tail-call optimization
-    ExecuteList {
+    List {
         items: Vec<Value>,
         index: usize,
     },
 
     // Execute an if statement (condition already evaluated)
-    ExecuteIf {
+    If {
         condition_result: bool,
         true_branch: Value,
         false_branch: Value,
     },
 
     // Execute an exec'd expression
-    ExecuteExec(Value),
+    Exec(Value),
 
     // Execute a defined word's body
-    ExecuteDefinition(Value),
+    Definition(Value),
 }
 
 // RUST CONCEPT: Continuation-based execution loop
@@ -52,15 +52,15 @@ pub fn execute_with_continuations(
     interp: &mut Interpreter,
 ) -> Result<(), RuntimeError> {
     let mut continuation_stack: Vec<Continuation> = Vec::new();
-    continuation_stack.push(Continuation::ExecuteValue(initial_value.clone()));
+    continuation_stack.push(Continuation::Value(initial_value.clone()));
 
     while let Some(continuation) = continuation_stack.pop() {
         match continuation {
-            Continuation::ExecuteValue(value) => {
+            Continuation::Value(value) => {
                 execute_value_direct(&value, interp, &mut continuation_stack)?;
             }
 
-            Continuation::ExecuteList { items, index } => {
+            Continuation::List { items, index } => {
                 if index >= items.len() {
                     continue; // Empty list or finished
                 }
@@ -71,18 +71,18 @@ pub fn execute_with_continuations(
                 if is_tail_call {
                     // TAIL-CALL OPTIMIZATION: Don't push continuation for last item
                     // This reuses the current "stack frame" enabling proper TCO
-                    continuation_stack.push(Continuation::ExecuteValue(item.clone()));
+                    continuation_stack.push(Continuation::Value(item.clone()));
                 } else {
                     // Push continuation for next item, then execute current
-                    continuation_stack.push(Continuation::ExecuteList {
+                    continuation_stack.push(Continuation::List {
                         items: items.clone(),
                         index: index + 1,
                     });
-                    continuation_stack.push(Continuation::ExecuteValue(item.clone()));
+                    continuation_stack.push(Continuation::Value(item.clone()));
                 }
             }
 
-            Continuation::ExecuteIf {
+            Continuation::If {
                 condition_result,
                 true_branch,
                 false_branch,
@@ -96,41 +96,41 @@ pub fn execute_with_continuations(
                 match &branch {
                     Value::Pair(_, _) | Value::Nil => {
                         let items = list_to_vec(&branch)?;
-                        continuation_stack.push(Continuation::ExecuteList { items, index: 0 });
+                        continuation_stack.push(Continuation::List { items, index: 0 });
                     }
                     _ => {
-                        continuation_stack.push(Continuation::ExecuteValue(branch));
+                        continuation_stack.push(Continuation::Value(branch));
                     }
                 }
             }
 
-            Continuation::ExecuteExec(value) => {
+            Continuation::Exec(value) => {
                 // Convert list to continuation or execute single value directly
                 match &value {
                     Value::Pair(_, _) => {
                         let items = list_to_vec(&value)?;
-                        continuation_stack.push(Continuation::ExecuteList { items, index: 0 });
+                        continuation_stack.push(Continuation::List { items, index: 0 });
                     }
                     Value::Nil => {
                         // Empty list - do nothing
                     }
                     _ => {
                         // Single value - execute directly (tail-call optimized)
-                        continuation_stack.push(Continuation::ExecuteValue(value));
+                        continuation_stack.push(Continuation::Value(value));
                     }
                 }
             }
 
-            Continuation::ExecuteDefinition(definition) => {
+            Continuation::Definition(definition) => {
                 match &definition {
                     Value::Pair(_, _) | Value::Nil => {
                         // Execute list as code (tail-call optimized)
                         let items = list_to_vec(&definition)?;
-                        continuation_stack.push(Continuation::ExecuteList { items, index: 0 });
+                        continuation_stack.push(Continuation::List { items, index: 0 });
                     }
                     _ => {
                         // Execute single value directly (tail-call optimized)
-                        continuation_stack.push(Continuation::ExecuteValue(definition));
+                        continuation_stack.push(Continuation::Value(definition));
                     }
                 }
             }
@@ -154,6 +154,10 @@ fn execute_value_direct(
             Ok(())
         }
         // RUST CONCEPT: New number types also push themselves
+        Value::Int32(i) => {
+            interp.push(Value::Int32(*i));
+            Ok(())
+        }
         Value::Integer(i) => {
             interp.push(Value::Integer(i.clone()));
             Ok(())
@@ -243,7 +247,7 @@ fn execute_atom_with_continuations(
     // RUST CONCEPT: Special handling for exec and if
     if &**atom_name == "exec" {
         let value = interp.pop()?;
-        continuation_stack.push(Continuation::ExecuteExec(value));
+        continuation_stack.push(Continuation::Exec(value));
         return Ok(());
     }
 
@@ -253,7 +257,7 @@ fn execute_atom_with_continuations(
         let condition = interp.pop()?;
 
         let condition_result = interp.is_truthy(&condition);
-        continuation_stack.push(Continuation::ExecuteIf {
+        continuation_stack.push(Continuation::If {
             condition_result,
             true_branch,
             false_branch,
@@ -268,7 +272,7 @@ fn execute_atom_with_continuations(
 
             if entry_copy.is_executable {
                 // Push definition execution continuation
-                continuation_stack.push(Continuation::ExecuteDefinition(entry_copy.value));
+                continuation_stack.push(Continuation::Definition(entry_copy.value));
             } else {
                 // Non-executable entry - just push as constant
                 interp.push(entry_copy.value);
@@ -405,7 +409,6 @@ mod tests {
 
     #[test]
     fn test_execute_string_simple() {
-        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // RUST CONCEPT: Testing integration between parser and evaluator
@@ -416,12 +419,11 @@ mod tests {
         let result2 = interp.pop().unwrap();
 
         assert!(matches!(result1, Value::Number(n) if n == 3.14));
-        assert!(matches!(result2, Value::Integer(ref i) if i == &BigInt::from(42)));
+        assert!(matches!(result2, Value::Int32(42))); // Small integers use Int32
     }
 
     #[test]
     fn test_execute_string_with_builtin() {
-        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // RUST CONCEPT: Testing complete execution flow
@@ -429,7 +431,7 @@ mod tests {
 
         // Should have executed: push 5, push 3, execute +
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(8)));
+        assert!(matches!(result, Value::Int32(8))); // Small integers use Int32
 
         // Stack should be empty
         assert!(interp.pop().is_err());
@@ -441,7 +443,6 @@ mod tests {
 
     #[test]
     fn test_tail_recursive_factorial() {
-        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // Define simple tail-recursive countdown
@@ -454,12 +455,11 @@ mod tests {
         // Test with small value
         execute_string("5 count-down", &mut interp).unwrap();
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(999)));
+        assert!(matches!(result, Value::Int32(999))); // Small integers use Int32
     }
 
     #[test]
     fn test_deep_tail_recursion() {
-        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // Define a tail-recursive countdown that would overflow regular recursion
@@ -472,7 +472,7 @@ mod tests {
         // Test with moderately deep recursion (this would cause stack overflow without TCO)
         execute_string("1000 countdown", &mut interp).unwrap();
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(42)));
+        assert!(matches!(result, Value::Int32(42))); // Small integers use Int32
     }
 
     #[test]
@@ -495,7 +495,6 @@ mod tests {
 
     #[test]
     fn test_tail_call_in_if_branches() {
-        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // Test that both branches of if are tail-call optimized
@@ -507,12 +506,11 @@ mod tests {
 
         execute_string("5 branch-test", &mut interp).unwrap();
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(99)));
+        assert!(matches!(result, Value::Int32(99))); // Small integers use Int32
     }
 
     #[test]
     fn test_execute_string_with_list() {
-        use num_bigint::BigInt;
         let mut interp = setup_interpreter();
 
         // RUST CONCEPT: Testing that lists remain as data
@@ -522,7 +520,7 @@ mod tests {
         let number = interp.pop().unwrap();
         let list = interp.pop().unwrap();
 
-        assert!(matches!(number, Value::Integer(ref i) if i == &BigInt::from(42)));
+        assert!(matches!(number, Value::Int32(42))); // Small integers use Int32
         assert!(matches!(list, Value::Pair(_, _)));
     }
 

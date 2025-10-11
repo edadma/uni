@@ -124,9 +124,15 @@ fn parse_value(
         Some(token) if matches!(token.kind, TokenKind::Integer(_)) => {
             if let TokenKind::Integer(s) = &token.kind {
                 *index += 1;
-                match s.parse::<BigInt>() {
-                    Ok(i) => Ok(Value::Integer(i)),
-                    Err(_) => Err(ParseError::InvalidNumber(format!("Invalid integer: {}", s))),
+                // RUST CONCEPT: Try i32 first for embedded-friendly performance
+                // If it fits in i32 range, use Int32; otherwise fall back to BigInt
+                if let Ok(i32_val) = s.parse::<i32>() {
+                    Ok(Value::Int32(i32_val))
+                } else {
+                    match s.parse::<BigInt>() {
+                        Ok(i) => Ok(Value::Integer(i)),
+                        Err(_) => Err(ParseError::InvalidNumber(format!("Invalid integer: {}", s))),
+                    }
                 }
             } else {
                 unreachable!()
@@ -520,20 +526,17 @@ mod tests {
 
         // RUST CONCEPT: Pattern matching in tests
         // We destructure the result to check it's the right type
-        use num_bigint::BigInt;
-        match &result[0] {
-            Value::Integer(i) => assert_eq!(i, &BigInt::from(42)),
-            _ => panic!("Expected integer"), // RUST CONCEPT: panic! for test failures
-        }
+        // Small integers now use Int32
+        assert!(matches!(&result[0], Value::Int32(42)));
 
         // Test multiple numbers - mix of integers and floats
         let result = parse("1 2.5 -3", &mut interp).unwrap();
         assert_eq!(result.len(), 3);
 
         // Check mixed types
-        assert!(matches!(&result[0], Value::Integer(i) if i == &BigInt::from(1)));
+        assert!(matches!(&result[0], Value::Int32(1)));
         assert!(matches!(&result[1], Value::Number(n) if *n == 2.5));
-        assert!(matches!(&result[2], Value::Integer(i) if i == &BigInt::from(-3)));
+        assert!(matches!(&result[2], Value::Int32(-3)));
     }
 
     #[test]
@@ -617,18 +620,18 @@ mod tests {
         match &result[0] {
             Value::Pair(car1, cdr1) => {
                 // First element should be 1
-                assert!(matches!(**car1, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
+                assert!(matches!(**car1, Value::Int32(1)));
 
                 match cdr1.as_ref() {
                     // RUST CONCEPT: as_ref() converts &Rc<T> to &T
                     Value::Pair(car2, cdr2) => {
                         // Second element should be 2
-                        assert!(matches!(**car2, Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
+                        assert!(matches!(**car2, Value::Int32(2)));
 
                         match cdr2.as_ref() {
                             Value::Pair(car3, cdr3) => {
                                 // Third element should be 3
-                                assert!(matches!(**car3, Value::Integer(ref i) if i == &num_bigint::BigInt::from(3)));
+                                assert!(matches!(**car3, Value::Int32(3)));
                                 // End should be Nil
                                 assert!(matches!(**cdr3, Value::Nil));
                             }
@@ -653,9 +656,9 @@ mod tests {
             Value::Array(array_rc) => {
                 let array = array_rc.borrow();
                 assert_eq!(array.len(), 3);
-                assert!(matches!(array[0], Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
-                assert!(matches!(array[1], Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
-                assert!(matches!(array[2], Value::Integer(ref i) if i == &num_bigint::BigInt::from(3)));
+                assert!(matches!(array[0], Value::Int32(1)));
+                assert!(matches!(array[1], Value::Int32(2)));
+                assert!(matches!(array[2], Value::Int32(3)));
             }
             _ => panic!("Expected array value"),
         }
@@ -682,8 +685,8 @@ mod tests {
 
         match &result[0] {
             Value::Pair(car, cdr) => {
-                assert!(matches!(**car, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
-                assert!(matches!(**cdr, Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
+                assert!(matches!(**car, Value::Int32(1)));
+                assert!(matches!(**cdr, Value::Int32(2)));
             }
             _ => panic!("Expected pair"),
         }
@@ -692,11 +695,11 @@ mod tests {
         let result = parse("[1 2 . 3]", &mut interp).unwrap();
         match &result[0] {
             Value::Pair(car1, cdr1) => {
-                assert!(matches!(**car1, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
+                assert!(matches!(**car1, Value::Int32(1)));
                 match cdr1.as_ref() {
                     Value::Pair(car2, cdr2) => {
-                        assert!(matches!(**car2, Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
-                        assert!(matches!(**cdr2, Value::Integer(ref i) if i == &num_bigint::BigInt::from(3)));
+                        assert!(matches!(**car2, Value::Int32(2)));
+                        assert!(matches!(**cdr2, Value::Int32(3)));
                     }
                     _ => panic!("Expected nested pair"),
                 }
@@ -736,10 +739,10 @@ mod tests {
                 // First list should be [1 2]
                 match first_list.as_ref() {
                     Value::Pair(one, rest1) => {
-                        assert!(matches!(**one, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
+                        assert!(matches!(**one, Value::Int32(1)));
                         match rest1.as_ref() {
                             Value::Pair(two, rest2) => {
-                                assert!(matches!(**two, Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
+                                assert!(matches!(**two, Value::Int32(2)));
                                 assert!(matches!(**rest2, Value::Nil));
                             }
                             _ => panic!("Expected [1 2] structure"),
@@ -754,7 +757,7 @@ mod tests {
                         // Second list should be [3]
                         match second_list.as_ref() {
                             Value::Pair(three, rest3) => {
-                                assert!(matches!(**three, Value::Integer(ref i) if i == &num_bigint::BigInt::from(3)));
+                                assert!(matches!(**three, Value::Int32(3)));
                                 assert!(matches!(**rest3, Value::Nil));
                             }
                             _ => panic!("Expected [3] structure"),
@@ -797,11 +800,10 @@ mod tests {
         assert_eq!(result.len(), 2);
 
         match (&result[0], &result[1]) {
-            (Value::Integer(i1), Value::Integer(i2)) => {
-                assert_eq!(*i1, num_bigint::BigInt::from(42));
-                assert_eq!(*i2, num_bigint::BigInt::from(37));
+            (Value::Int32(42), Value::Int32(37)) => {
+                // Values match expected
             }
-            _ => panic!("Expected two integers"),
+            _ => panic!("Expected two Int32 values: 42 and 37"),
         }
     }
 
@@ -884,7 +886,7 @@ mod tests {
         // Uni lists can contain any mix of types
         match &result[0] {
             Value::Pair(first, rest1) => {
-                assert!(matches!(first.as_ref(), Value::Integer(i) if i == &num_bigint::BigInt::from(42)));
+                assert!(matches!(first.as_ref(), Value::Int32(42)));
 
                 match rest1.as_ref() {
                     Value::Pair(second, rest2) => {
@@ -981,8 +983,8 @@ mod tests {
             Value::Pair(inner_list, outer_cdr) => {
                 match inner_list.as_ref() {
                     Value::Pair(one, two) => {
-                        assert!(matches!(one.as_ref(), Value::Integer(i) if i == &num_bigint::BigInt::from(1)));
-                        assert!(matches!(two.as_ref(), Value::Integer(i) if i == &num_bigint::BigInt::from(2)));
+                        assert!(matches!(one.as_ref(), Value::Int32(1)));
+                        assert!(matches!(two.as_ref(), Value::Int32(2)));
                     }
                     _ => panic!("Expected inner pair"),
                 }
@@ -1103,7 +1105,7 @@ mod tests {
         let result = parse("true 42 \"hello\" false", &mut interp).unwrap();
         assert_eq!(result.len(), 4);
         assert!(matches!(result[0], Value::Boolean(true)));
-        assert!(matches!(result[1], Value::Integer(ref i) if i == &num_bigint::BigInt::from(42)));
+        assert!(matches!(result[1], Value::Int32(42))); // Small integers use Int32
         assert!(matches!(result[2], Value::String(_)));
         assert!(matches!(result[3], Value::Boolean(false)));
     }
@@ -1121,7 +1123,7 @@ mod tests {
         let result = parse("null 42 true \"test\"", &mut interp).unwrap();
         assert_eq!(result.len(), 4);
         assert!(matches!(result[0], Value::Null));
-        assert!(matches!(result[1], Value::Integer(ref i) if i == &num_bigint::BigInt::from(42)));
+        assert!(matches!(result[1], Value::Int32(42)));
         assert!(matches!(result[2], Value::Boolean(true)));
         assert!(matches!(result[3], Value::String(_)));
     }
@@ -1145,9 +1147,7 @@ mod tests {
                                 assert!(matches!(car3.as_ref(), Value::Null));
                                 match cdr3.as_ref() {
                                     Value::Pair(car4, cdr4) => {
-                                        assert!(
-                                            matches!(car4.as_ref(), Value::Integer(i) if i == &num_bigint::BigInt::from(42))
-                                        );
+                                        assert!(matches!(car4.as_ref(), Value::Int32(42)));
                                         assert!(matches!(cdr4.as_ref(), Value::Nil));
                                     }
                                     _ => panic!("Expected fourth element"),
@@ -1375,7 +1375,7 @@ mod tests {
         let result = parse("42 123n 3/4 2+3i", &mut interp).unwrap();
         assert_eq!(result.len(), 4);
 
-        assert!(matches!(result[0], Value::Integer(ref i) if *i == BigInt::from(42)));
+        assert!(matches!(result[0], Value::Int32(42)));
         assert!(matches!(result[1], Value::Integer(ref i) if *i == BigInt::from(123)));
         assert!(matches!(result[2], Value::Rational(ref r) if *r == BigRational::new(BigInt::from(3), BigInt::from(4))));
         assert!(matches!(result[3], Value::GaussianInt(ref re, ref im)
@@ -1613,15 +1613,15 @@ mod tests {
         use num_traits::Zero;
         let mut interp = Interpreter::new();
 
-        // Test 1/1 (whole number as fraction) - should demote to Integer
+        // Test 1/1 (whole number as fraction) - should demote to Int32
         let result = parse("1/1", &mut interp).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(matches!(result[0], Value::Integer(ref i) if *i == BigInt::from(1)));
+        assert!(matches!(result[0], Value::Int32(1)));
 
-        // Test 0/1 (zero as fraction) - should demote to Integer(0)
+        // Test 0/1 (zero as fraction) - should demote to Int32(0)
         let result = parse("0/1", &mut interp).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(matches!(result[0], Value::Integer(ref i) if i.is_zero()));
+        assert!(matches!(result[0], Value::Int32(0)));
 
         // Test large numerator and denominator
         let result = parse("123456789/987654321", &mut interp).unwrap();
@@ -1657,22 +1657,22 @@ mod tests {
         use num_bigint::BigInt;
         let mut interp = Interpreter::new();
 
-        // Integers (no decimal point)
+        // Integers (no decimal point) - small integers use Int32
         let result = parse("1", &mut interp).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(matches!(result[0], Value::Integer(ref i) if i == &BigInt::from(1)));
+        assert!(matches!(result[0], Value::Int32(1)));
 
         let result = parse("42", &mut interp).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(matches!(result[0], Value::Integer(ref i) if i == &BigInt::from(42)));
+        assert!(matches!(result[0], Value::Int32(42)));
 
         let result = parse("-5", &mut interp).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(matches!(result[0], Value::Integer(ref i) if i == &BigInt::from(-5)));
+        assert!(matches!(result[0], Value::Int32(-5)));
 
         let result = parse("0", &mut interp).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(matches!(result[0], Value::Integer(ref i) if i == &BigInt::from(0)));
+        assert!(matches!(result[0], Value::Int32(0)));
 
         // Floats (with decimal point)
         let result = parse("1.0", &mut interp).unwrap();

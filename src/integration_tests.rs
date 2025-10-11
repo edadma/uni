@@ -46,7 +46,7 @@ mod tests {
         let result = execute_and_get_top(factorial_code).unwrap();
         use num_bigint::BigInt;
         assert!(
-            matches!(result, Value::Integer(ref i) if i == &BigInt::from(120)),
+            matches!(result, Value::Int32(120)),
             "Expected factorial(5) = 120, got {:?}",
             result
         );
@@ -77,7 +77,7 @@ mod tests {
         let result = execute_and_get_top(fibonacci_code).unwrap();
         use num_bigint::BigInt;
         assert!(
-            matches!(result, Value::Integer(ref i) if i == &BigInt::from(13)),
+            matches!(result, Value::Int32(13)),
             "Expected fibonacci(7) = 13, got {:?}",
             result
         );
@@ -103,7 +103,7 @@ mod tests {
         let result = execute_and_get_top(list_processing_code).unwrap();
         use num_bigint::BigInt;
         assert!(
-            matches!(result, Value::Integer(ref i) if i == &BigInt::from(6)),
+            matches!(result, Value::Int32(6)),
             "Expected length operations result = 6, got {:?}",
             result
         );
@@ -141,7 +141,7 @@ mod tests {
         let result = execute_and_get_top(mutual_recursion_code).unwrap();
         use num_bigint::BigInt;
         assert!(
-            matches!(result, Value::Integer(ref i) if i == &BigInt::from(42)),
+            matches!(result, Value::Int32(42)),
             "Expected mutual recursion result = 42, got {:?}",
             result
         );
@@ -168,7 +168,7 @@ mod tests {
         let result = execute_and_get_top(deep_recursion_code).unwrap();
         use num_bigint::BigInt;
         assert!(
-            matches!(result, Value::Integer(ref i) if i == &BigInt::from(99)),
+            matches!(result, Value::Int32(99)),
             "Expected deep recursion result = 99, got {:?}",
             result
         );
@@ -252,7 +252,7 @@ mod tests {
 
         use num_bigint::BigInt;
         assert!(
-            matches!(age, Value::Integer(ref i) if i == &BigInt::from(35)),
+            matches!(age, Value::Int32(35)),
             "Expected age 35, got {:?}",
             age
         );
@@ -415,7 +415,7 @@ mod tests {
 
         use num_bigint::BigInt;
         assert!(
-            matches!(age, Value::Integer(ref i) if i == &BigInt::from(30)),
+            matches!(age, Value::Int32(30)),
             "Expected age 30, got {:?}",
             age
         );
@@ -447,13 +447,13 @@ mod tests {
 
         use num_bigint::BigInt;
         assert!(
-            matches!(x, Value::Integer(ref i) if i == &BigInt::from(99)),
+            matches!(x, Value::Int32(99)),
             "Expected mutated x to be 99, got {:?}",
             x
         );
 
         assert!(
-            matches!(y, Value::Integer(ref i) if i == &BigInt::from(20)),
+            matches!(y, Value::Int32(20)),
             "Expected y to remain 20, got {:?}",
             y
         );
@@ -487,11 +487,11 @@ mod tests {
         let year = interp.pop().unwrap();
 
         assert!(matches!(year, Value::Integer(ref i) if i == &BigInt::from(2025)));
-        assert!(matches!(month, Value::Integer(ref i) if i == &BigInt::from(10)));
-        assert!(matches!(day, Value::Integer(ref i) if i == &BigInt::from(1)));
-        assert!(matches!(hour, Value::Integer(ref i) if i == &BigInt::from(14)));
-        assert!(matches!(minute, Value::Integer(ref i) if i == &BigInt::from(30)));
-        assert!(matches!(second, Value::Integer(ref i) if i == &BigInt::from(45)));
+        assert!(matches!(month, Value::Int32(10)));
+        assert!(matches!(day, Value::Int32(1)));
+        assert!(matches!(hour, Value::Int32(14)));
+        assert!(matches!(minute, Value::Int32(30)));
+        assert!(matches!(second, Value::Int32(45)));
     }
 
     #[test]
@@ -532,7 +532,7 @@ mod tests {
 
         use num_bigint::BigInt;
         // Adding 1 day to Oct 1 should give Oct 2
-        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(2)));
+        assert!(matches!(result, Value::Int32(2)));
     }
 
     #[test]
@@ -548,7 +548,7 @@ mod tests {
 
         use num_bigint::BigInt;
         // Subtracting 2 days from Oct 5 should give Oct 3
-        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(3)));
+        assert!(matches!(result, Value::Int32(3)));
     }
 
     #[test]
@@ -644,7 +644,7 @@ mod tests {
 
         // October 1, 2025 is a Wednesday (weekday = 2)
         use num_bigint::BigInt;
-        assert!(matches!(result, Value::Integer(ref i) if i == &BigInt::from(2)));
+        assert!(matches!(result, Value::Int32(2)));
     }
 
     #[test]
@@ -665,5 +665,196 @@ mod tests {
         execute_string("1 0 0 0 duration 1 0 0 0 duration duration=", &mut interp).unwrap();
         let result = interp.pop().unwrap();
         assert!(matches!(result, Value::Boolean(true)));
+    }
+
+    // RUST CONCEPT: Int32 type tests for embedded systems
+    // These tests verify that Int32 works correctly for small integers
+
+    #[test]
+    fn test_int32_parsing() {
+        // Test that small integers are parsed as Int32
+        let code = "42";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::Int32(42)), "Expected Int32(42), got {:?}", result);
+
+        // Test negative Int32
+        let code = "-100";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::Int32(-100)), "Expected Int32(-100), got {:?}", result);
+
+        // Test that large integers use BigInt
+        let code = "9999999999";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::Integer(_)), "Expected Integer for large value, got {:?}", result);
+    }
+
+    #[test]
+    fn test_int32_addition() {
+        // Test Int32 + Int32 = Int32
+        let code = "5 3 +";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::Int32(8)), "Expected Int32(8), got {:?}", result);
+
+        // Test Int32 addition with negative
+        let code = "10 -3 +";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::Int32(7)), "Expected Int32(7), got {:?}", result);
+    }
+
+    #[test]
+    fn test_int32_addition_overflow() {
+        // Test Int32 overflow promotes to BigInt
+        let code = "2147483647 1 +"; // i32::MAX + 1
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        assert!(
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(2147483648_i64)),
+            "Expected Integer(2147483648) after overflow, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_subtraction() {
+        // Test Int32 - Int32 = Int32
+        let code = "10 3 -";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::Int32(7)), "Expected Int32(7), got {:?}", result);
+
+        // Test subtraction with negative result
+        let code = "3 10 -";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::Int32(-7)), "Expected Int32(-7), got {:?}", result);
+    }
+
+    #[test]
+    fn test_int32_subtraction_overflow() {
+        // Test Int32 underflow promotes to BigInt
+        let code = "-2147483648 1 -"; // i32::MIN - 1
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        assert!(
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(-2147483649_i64)),
+            "Expected Integer(-2147483649) after underflow, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_multiplication() {
+        // Test Int32 * Int32 = Int32
+        let code = "6 7 *";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::Int32(42)), "Expected Int32(42), got {:?}", result);
+
+        // Test multiplication with negative
+        let code = "-5 4 *";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::Int32(-20)), "Expected Int32(-20), got {:?}", result);
+    }
+
+    #[test]
+    fn test_int32_multiplication_overflow() {
+        // Test Int32 multiplication overflow promotes to BigInt
+        let code = "1000000 1000000 *";
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        assert!(
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(1000000000000_i64)),
+            "Expected Integer after overflow, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_division() {
+        // Test Int32 / Int32 with exact result (demotes to Int32)
+        let code = "10 2 /";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::Int32(5)), "Expected Int32(5), got {:?}", result);
+
+        // Test Int32 / Int32 with fractional result (stays Rational)
+        let code = "7 3 /";
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        if let Value::Rational(r) = result {
+            assert_eq!(*r.numer(), BigInt::from(7));
+            assert_eq!(*r.denom(), BigInt::from(3));
+        } else {
+            panic!("Expected Rational, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_int32_mixed_with_bigint() {
+        // Test Int32 + BigInt promotes to BigInt
+        let code = "5 9999999999 +";
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        assert!(
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(10000000004_i64)),
+            "Expected Integer, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_mixed_with_float() {
+        // Test Int32 + Number promotes to Number
+        let code = "5 3.14 +";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Number(n) if (n - 8.14).abs() < 1e-10),
+            "Expected Number(8.14), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_mixed_with_rational() {
+        // Test Int32 * Rational
+        let code = "5 1 2 / *";  // 5 * 1/2
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        if let Value::Rational(r) = result {
+            assert_eq!(*r.numer(), BigInt::from(5));
+            assert_eq!(*r.denom(), BigInt::from(2));
+        } else {
+            panic!("Expected Rational, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_int32_demotion_from_rational() {
+        // Test that Rational with denominator 1 demotes to Int32
+        let code = "4 2 / 2 *";  // (4/2) * 2 = 2 * 2 = 4
+        let result = execute_and_get_top(code).unwrap();
+        assert!(matches!(result, Value::Int32(4)), "Expected Int32(4), got {:?}", result);
+    }
+
+    #[test]
+    fn test_int32_to_integer_promotion() {
+        // Test that Int32 automatically promotes to Integer when mixed
+        let code = "5 9999999999 +";  // Int32 + BigInt
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        assert!(
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(10000000004_i64)),
+            "Expected Integer(10000000004) after promotion, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_integer_stays_integer() {
+        // Test that large integers stay as Integer
+        let code = "9999999999";
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        assert!(
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(9999999999_i64)),
+            "Expected Integer for large value, got {:?}",
+            result
+        );
     }
 }

@@ -16,6 +16,7 @@ use std::rc::Rc;
 #[derive(Debug, Clone)]
 pub enum Value {
     Number(f64),                    // Floating point number (default)
+    Int32(i32),                     // 32-bit signed integer (embedded-friendly)
     Integer(BigInt),                // Arbitrary precision integer
     Rational(BigRational),          // Exact rational number (fraction)
     GaussianInt(BigInt, BigInt),    // Gaussian integer (real, imaginary) - both integers
@@ -62,6 +63,7 @@ impl Value {
     pub fn type_name(&self) -> &'static str {
         match self {
             Value::Number(_) => "number",
+            Value::Int32(_) => "int32",
             Value::Integer(_) => "integer",
             Value::Rational(_) => "rational",
             Value::GaussianInt(_, _) => "gaussian",
@@ -84,33 +86,54 @@ impl Value {
 
     // RUST CONCEPT: Automatic numeric type demotion for cleaner results
     // This function attempts to demote numeric types to simpler representations:
-    // - Rational with denominator 1 → Integer
-    // - Rational with numerator 0 → Integer(0)
-    // - GaussianInt with imaginary 0 → Integer
+    // - Rational with denominator 1 → Integer or Int32
+    // - Rational with numerator 0 → Int32(0)
+    // - GaussianInt with imaginary 0 → Integer or Int32
+    // - Integer that fits in i32 → Int32
     // This keeps values in their simplest form after arithmetic operations
     pub fn demote(self) -> Self {
+        use num_traits::ToPrimitive;
         match &self {
             // Check Rational: demote if denominator is 1 or numerator is 0
             Value::Rational(r) if r.numer().is_zero() => {
-                // 0/n → 0
-                Value::Integer(BigInt::from(0))
+                // 0/n → Int32(0)
+                Value::Int32(0)
             }
             Value::Rational(r) if r.denom().is_one() => {
-                // n/1 → n
+                // n/1 → Integer or Int32
                 // Extract the inner BigRational and clone its numerator
                 if let Value::Rational(r) = self {
-                    Value::Integer(r.numer().clone())
+                    let big_int = r.numer().clone();
+                    // Try to fit in i32 for embedded systems
+                    if let Some(i32_val) = big_int.to_i32() {
+                        Value::Int32(i32_val)
+                    } else {
+                        Value::Integer(big_int)
+                    }
                 } else {
                     unreachable!()
                 }
             }
             // Check GaussianInt: demote if imaginary part is 0
             Value::GaussianInt(_re, im) if im.is_zero() => {
-                // a+0i → a (move real part out)
+                // a+0i → Integer or Int32 (move real part out)
                 if let Value::GaussianInt(re, _im) = self {
-                    Value::Integer(re)
+                    // Try to fit in i32
+                    if let Some(i32_val) = re.to_i32() {
+                        Value::Int32(i32_val)
+                    } else {
+                        Value::Integer(re)
+                    }
                 } else {
                     unreachable!()
+                }
+            }
+            // Check Integer: demote to Int32 if it fits
+            Value::Integer(i) => {
+                if let Some(i32_val) = i.to_i32() {
+                    Value::Int32(i32_val)
+                } else {
+                    self
                 }
             }
             // All other cases: return unchanged (no deconstruct/reconstruct)
@@ -158,6 +181,7 @@ impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Number(n) => write!(f, "{}", n),
+            Value::Int32(i) => write!(f, "{}", i),
             Value::Integer(i) => write!(f, "{}", i),
             // RUST CONCEPT: BigRational displays as "numerator/denominator"
             Value::Rational(r) => write!(f, "{}", r), // Shows as fraction like "3/4"
@@ -175,11 +199,7 @@ impl std::fmt::Display for Value {
                 }
                 // Special case: 0+ni displays as "ni" (pure imaginary)
                 else if re.is_zero() {
-                    if im >= &BigInt::from(0) {
-                        write!(f, "{}i", im)
-                    } else {
-                        write!(f, "{}i", im)
-                    }
+                    write!(f, "{}i", im)
                 }
                 // Special case: a+0i displays as just "a" (pure real)
                 else if im.is_zero() {

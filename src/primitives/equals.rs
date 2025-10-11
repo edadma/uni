@@ -12,6 +12,7 @@ pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
     let result = match (&a, &b) {
         // Numeric types
+        (Value::Int32(i1), Value::Int32(i2)) => i1 == i2,
         (Value::Number(n1), Value::Number(n2)) => n1 == n2,
         (Value::Integer(i1), Value::Integer(i2)) => i1 == i2,
         (Value::Rational(r1), Value::Rational(r2)) => r1 == r2,
@@ -43,6 +44,7 @@ pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 fn eq_values(a: &Rc<Value>, b: &Rc<Value>) -> bool {
     match (a.as_ref(), b.as_ref()) {
         // Numeric types
+        (Value::Int32(i1), Value::Int32(i2)) => i1 == i2,
         (Value::Number(n1), Value::Number(n2)) => n1 == n2,
         (Value::Integer(i1), Value::Integer(i2)) => i1 == i2,
         (Value::Rational(r1), Value::Rational(r2)) => r1 == r2,

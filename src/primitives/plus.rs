@@ -35,6 +35,14 @@ pub fn add_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let (pa, pb) = promote_pair(&a, &b);
 
     let result = match (&pa, &pb) {
+        // RUST CONCEPT: Fast path for Int32 - checked arithmetic for embedded safety
+        (Value::Int32(i1), Value::Int32(i2)) => {
+            match i1.checked_add(*i2) {
+                Some(result) => Value::Int32(result),
+                // Overflow: promote to BigInt
+                None => Value::Integer(num_bigint::BigInt::from(*i1) + num_bigint::BigInt::from(*i2)),
+            }
+        }
         (Value::Integer(i1), Value::Integer(i2)) => Value::Integer(i1 + i2),
         (Value::Rational(r1), Value::Rational(r2)) => Value::Rational(r1 + r2).demote(),
         (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 + n2),

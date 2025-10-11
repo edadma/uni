@@ -12,6 +12,7 @@ use num_traits::ToPrimitive;
 fn pop_i32(interp: &mut Interpreter, context: &str) -> Result<i32, RuntimeError> {
     let val = interp.pop()?;
     match val {
+        Value::Int32(i) => Ok(i),
         Value::Integer(i) => i
             .to_i32()
             .ok_or_else(|| RuntimeError::TypeError(format!("{}: integer out of range", context))),
@@ -27,6 +28,7 @@ fn pop_i32(interp: &mut Interpreter, context: &str) -> Result<i32, RuntimeError>
 fn pop_u32(interp: &mut Interpreter, context: &str) -> Result<u32, RuntimeError> {
     let val = interp.pop()?;
     match val {
+        Value::Int32(i) if i >= 0 => Ok(i as u32),
         Value::Integer(i) => i
             .to_u32()
             .ok_or_else(|| RuntimeError::TypeError(format!("{}: integer out of range", context))),
@@ -133,7 +135,7 @@ pub fn month_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
     };
 
-    interp.push(Value::Integer(BigInt::from(dt.month())));
+    interp.push(Value::Int32(dt.month() as i32));
     Ok(())
 }
 
@@ -145,7 +147,7 @@ pub fn day_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         _ => return Err(RuntimeError::TypeError("day: expected datetime".to_string())),
     };
 
-    interp.push(Value::Integer(BigInt::from(dt.day())));
+    interp.push(Value::Int32(dt.day() as i32));
     Ok(())
 }
 
@@ -157,7 +159,7 @@ pub fn hour_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         _ => return Err(RuntimeError::TypeError("hour: expected datetime".to_string())),
     };
 
-    interp.push(Value::Integer(BigInt::from(dt.hour())));
+    interp.push(Value::Int32(dt.hour() as i32));
     Ok(())
 }
 
@@ -173,7 +175,7 @@ pub fn minute_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
     };
 
-    interp.push(Value::Integer(BigInt::from(dt.minute())));
+    interp.push(Value::Int32(dt.minute() as i32));
     Ok(())
 }
 
@@ -189,7 +191,7 @@ pub fn second_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
     };
 
-    interp.push(Value::Integer(BigInt::from(dt.second())));
+    interp.push(Value::Int32(dt.second() as i32));
     Ok(())
 }
 
@@ -210,7 +212,7 @@ pub fn weekday_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // Convert to number: Monday=0, Tuesday=1, ..., Sunday=6
     let num = weekday.num_days_from_monday();
 
-    interp.push(Value::Integer(BigInt::from(num)));
+    interp.push(Value::Int32(num as i32));
     Ok(())
 }
 

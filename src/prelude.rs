@@ -140,8 +140,8 @@ mod tests {
         let top = interp.pop().unwrap();
         let second = interp.pop().unwrap();
 
-        assert!(matches!(top, Value::Integer(ref i) if i == &num_bigint::BigInt::from(42)));
-        assert!(matches!(second, Value::Integer(ref i) if i == &num_bigint::BigInt::from(42)));
+        assert!(matches!(top, Value::Int32(42)));
+        assert!(matches!(second, Value::Int32(42)));
     }
 
     #[test]
@@ -154,8 +154,8 @@ mod tests {
         let top = interp.pop().unwrap();
         let second = interp.pop().unwrap();
 
-        assert!(matches!(top, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
-        assert!(matches!(second, Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
+        assert!(matches!(top, Value::Int32(1)));
+        assert!(matches!(second, Value::Int32(2)));
     }
 
     #[test]
@@ -169,9 +169,9 @@ mod tests {
         let second = interp.pop().unwrap();
         let third = interp.pop().unwrap();
 
-        assert!(matches!(top, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
-        assert!(matches!(second, Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
-        assert!(matches!(third, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
+        assert!(matches!(top, Value::Int32(1)));
+        assert!(matches!(second, Value::Int32(2)));
+        assert!(matches!(third, Value::Int32(1)));
     }
 
     #[test]
@@ -185,9 +185,9 @@ mod tests {
         let second = interp.pop().unwrap();
         let third = interp.pop().unwrap();
 
-        assert!(matches!(top, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
-        assert!(matches!(second, Value::Integer(ref i) if i == &num_bigint::BigInt::from(3)));
-        assert!(matches!(third, Value::Integer(ref i) if i == &num_bigint::BigInt::from(2)));
+        assert!(matches!(top, Value::Int32(1)));
+        assert!(matches!(second, Value::Int32(3)));
+        assert!(matches!(third, Value::Int32(2)));
     }
 
     #[test]
@@ -200,8 +200,8 @@ mod tests {
         let top = interp.pop().unwrap();
         let second = interp.pop().unwrap();
 
-        assert!(matches!(top, Value::Integer(ref i) if i == &num_bigint::BigInt::from(3)));
-        assert!(matches!(second, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
+        assert!(matches!(top, Value::Int32(3)));
+        assert!(matches!(second, Value::Int32(1)));
 
         // Stack should be empty now
         assert!(interp.pop().is_err());
@@ -218,9 +218,9 @@ mod tests {
         let second = interp.pop().unwrap();
         let third = interp.pop().unwrap();
 
-        assert!(matches!(top, Value::Integer(ref i) if i == &num_bigint::BigInt::from(6)));
-        assert!(matches!(second, Value::Integer(ref i) if i == &num_bigint::BigInt::from(5)));
-        assert!(matches!(third, Value::Integer(ref i) if i == &num_bigint::BigInt::from(6)));
+        assert!(matches!(top, Value::Int32(6)));
+        assert!(matches!(second, Value::Int32(5)));
+        assert!(matches!(third, Value::Int32(6)));
 
         // Stack should be empty now
         assert!(interp.pop().is_err());
@@ -234,13 +234,13 @@ mod tests {
         execute_string("[1 2 3 4 5] length", &mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(5)));
+        assert!(matches!(result, Value::Int32(5)));
 
         // Test: [] length should give us 0
         execute_string("[] length", &mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(0)));
+        assert!(matches!(result, Value::Int32(0)));
     }
 
     #[test]
@@ -284,7 +284,7 @@ mod tests {
 
         // Should have 5 on stack (started at 1, incremented while < 5)
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(5)));
+        assert!(matches!(result, Value::Int32(5)));
 
         // Stack should be empty now
         assert!(interp.pop().is_err());
@@ -308,7 +308,7 @@ mod tests {
 
         // Should have 15 on stack (sum of 1+2+3+4+5)
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(15)));
+        assert!(matches!(result, Value::Int32(15)));
 
         // Stack should be empty now
         assert!(interp.pop().is_err());
@@ -330,7 +330,7 @@ mod tests {
 
         // Should still have 42 on stack (body never executed)
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(42)));
+        assert!(matches!(result, Value::Int32(42)));
 
         // Stack should be empty now
         assert!(interp.pop().is_err());
@@ -345,14 +345,14 @@ mod tests {
 
         let top = interp.pop().unwrap();
         let second = interp.pop().unwrap();
-        assert!(matches!(top, Value::Integer(ref i) if i == &num_bigint::BigInt::from(42)));
-        assert!(matches!(second, Value::Integer(ref i) if i == &num_bigint::BigInt::from(42)));
+        assert!(matches!(top, Value::Int32(42)));
+        assert!(matches!(second, Value::Int32(42)));
 
         // Test: falsy value (0) should not be duplicated
         execute_string("0 ?dup", &mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(0)));
+        assert!(matches!(result, Value::Int32(0)));
         // Should be empty now - no duplication occurred
         assert!(interp.pop().is_err());
 
@@ -372,13 +372,13 @@ mod tests {
         execute_string("[5] [10] and", &mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(10)));
+        assert!(matches!(result, Value::Int32(10)));
 
         // Test: false and anything -> returns false, doesn't execute second
         execute_string("[0] [99] and", &mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(0)));
+        assert!(matches!(result, Value::Int32(0)));
 
         // Test: short-circuiting - second quotation should not execute
         // This pushes a marker, then does false and [marker-remover]
@@ -387,8 +387,8 @@ mod tests {
 
         let and_result = interp.pop().unwrap();
         let marker = interp.pop().unwrap();
-        assert!(matches!(and_result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(0)));
-        assert!(matches!(marker, Value::Integer(ref i) if i == &num_bigint::BigInt::from(999))); // Marker should still be there
+        assert!(matches!(and_result, Value::Int32(0)));
+        assert!(matches!(marker, Value::Int32(999))); // Marker should still be there
     }
 
     #[test]
@@ -399,21 +399,21 @@ mod tests {
         execute_string("[0] [42] or", &mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(42)));
+        assert!(matches!(result, Value::Int32(42)));
 
         // Test: true or anything -> returns first value, doesn't execute second
         execute_string("[5] [99] or", &mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(5)));
+        assert!(matches!(result, Value::Int32(5)));
 
         // Test: short-circuiting - second quotation should not execute
         execute_string("888 [7] [drop] or", &mut interp).unwrap();
 
         let or_result = interp.pop().unwrap();
         let marker = interp.pop().unwrap();
-        assert!(matches!(or_result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(7)));
-        assert!(matches!(marker, Value::Integer(ref i) if i == &num_bigint::BigInt::from(888))); // Marker should still be there
+        assert!(matches!(or_result, Value::Int32(7)));
+        assert!(matches!(marker, Value::Int32(888))); // Marker should still be there
     }
 
     #[test]
@@ -424,19 +424,19 @@ mod tests {
         execute_string("[1] [2] and [3] and", &mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(3)));
+        assert!(matches!(result, Value::Int32(3)));
 
         // Test: chaining or operations - first true
         execute_string("[1] [2] or [3] or", &mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(1)));
+        assert!(matches!(result, Value::Int32(1)));
 
         // Test: mixed and/or
         execute_string("[0] [5] or [10] and", &mut interp).unwrap();
 
         let result = interp.pop().unwrap();
-        assert!(matches!(result, Value::Integer(ref i) if i == &num_bigint::BigInt::from(10)));
+        assert!(matches!(result, Value::Int32(10)));
     }
 
     #[test]

@@ -19,6 +19,7 @@ use num_traits::ToPrimitive;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum NumericType {
+    Int32,       // i32 - fixed-size signed integer (embedded-friendly)
     Integer,     // BigInt - exact integers
     Rational,    // BigRational - exact fractions (still exact)
     GaussianInt, // Gaussian integers (a+bi where a,b are integers, exact)
@@ -29,6 +30,7 @@ enum NumericType {
 // RUST CONCEPT: Determine the type of a numeric value
 fn numeric_type(val: &Value) -> Option<NumericType> {
     match val {
+        Value::Int32(_) => Some(NumericType::Int32),
         Value::Integer(_) => Some(NumericType::Integer),
         Value::Rational(_) => Some(NumericType::Rational),
         Value::Number(_) => Some(NumericType::Number),
@@ -42,11 +44,23 @@ fn numeric_type(val: &Value) -> Option<NumericType> {
 fn promote_to(val: &Value, target: NumericType) -> Value {
     match (val, target) {
         // Already the target type
+        (Value::Int32(_), NumericType::Int32) => val.clone(),
         (Value::Integer(_), NumericType::Integer) => val.clone(),
         (Value::Rational(_), NumericType::Rational) => val.clone(),
         (Value::Number(_), NumericType::Number) => val.clone(),
         (Value::GaussianInt(_, _), NumericType::GaussianInt) => val.clone(),
         (Value::Complex(_), NumericType::Complex) => val.clone(),
+
+        // Promote Int32 to higher types
+        (Value::Int32(i), NumericType::Integer) => Value::Integer(BigInt::from(*i)),
+        (Value::Int32(i), NumericType::Rational) => {
+            Value::Rational(BigRational::from(BigInt::from(*i)))
+        }
+        (Value::Int32(i), NumericType::Number) => Value::Number(*i as f64),
+        (Value::Int32(i), NumericType::GaussianInt) => {
+            Value::GaussianInt(BigInt::from(*i), BigInt::from(0))
+        }
+        (Value::Int32(i), NumericType::Complex) => Value::Complex(Complex64::new(*i as f64, 0.0)),
 
         // Promote Integer to higher types
         (Value::Integer(i), NumericType::Rational) => {

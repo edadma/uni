@@ -11,6 +11,7 @@ use num_traits::ToPrimitive;
 fn pop_i64(interp: &mut Interpreter, context: &str) -> Result<i64, RuntimeError> {
     let val = interp.pop()?;
     match val {
+        Value::Int32(i) => Ok(i as i64),
         Value::Integer(i) => i
             .to_i64()
             .ok_or_else(|| RuntimeError::TypeError(format!("{}: integer out of range", context))),

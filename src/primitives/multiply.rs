@@ -17,6 +17,16 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     match (&a, &b) {
         // ========== NUMERIC MULTIPLICATIONS ==========
 
+        // RUST CONCEPT: Fast path for Int32 - checked arithmetic for embedded safety
+        // Int32 * Int32
+        (Value::Int32(i1), Value::Int32(i2)) => {
+            match i1.checked_mul(*i2) {
+                Some(result) => interp.push(Value::Int32(result)),
+                // Overflow: promote to BigInt
+                None => interp.push(Value::Integer(BigInt::from(*i1) * BigInt::from(*i2))),
+            }
+        }
+
         // Float * Float
         (Value::Number(n1), Value::Number(n2)) => {
             interp.push(Value::Number(n1 * n2));
@@ -49,6 +59,35 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
 
         // ========== MIXED NUMERIC TYPE MULTIPLICATIONS ==========
+
+        // Int32 * Integer
+        (Value::Int32(i32_val), Value::Integer(i)) | (Value::Integer(i), Value::Int32(i32_val)) => {
+            interp.push(Value::Integer(BigInt::from(*i32_val) * i));
+        }
+
+        // Int32 * Rational
+        (Value::Int32(i32_val), Value::Rational(r)) | (Value::Rational(r), Value::Int32(i32_val)) => {
+            let i_rat = BigRational::from(BigInt::from(*i32_val));
+            let result = Value::Rational(i_rat * r);
+            interp.push(result.demote());
+        }
+
+        // Int32 * Number
+        (Value::Int32(i32_val), Value::Number(n)) | (Value::Number(n), Value::Int32(i32_val)) => {
+            interp.push(Value::Number(*i32_val as f64 * n));
+        }
+
+        // Int32 * Complex
+        (Value::Int32(i32_val), Value::Complex(c)) | (Value::Complex(c), Value::Int32(i32_val)) => {
+            interp.push(Value::Complex(Complex64::new(*i32_val as f64, 0.0) * c));
+        }
+
+        // Int32 * GaussianInt
+        (Value::Int32(i32_val), Value::GaussianInt(re, im))
+        | (Value::GaussianInt(re, im), Value::Int32(i32_val)) => {
+            let result = Value::GaussianInt(re * BigInt::from(*i32_val), im * BigInt::from(*i32_val));
+            interp.push(result.demote());
+        }
 
         // Float * Integer
         (Value::Number(n), Value::Integer(i)) | (Value::Integer(i), Value::Number(n)) => {

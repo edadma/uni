@@ -94,6 +94,13 @@ impl Interpreter {
         use num_traits::ToPrimitive;
         let value = self.pop()?;
         match value {
+            Value::Int32(i) => {
+                if i >= 0 {
+                    Ok(i as usize)
+                } else {
+                    Err(RuntimeError::TypeError("Expected non-negative integer".to_string()))
+                }
+            }
             Value::Integer(i) => i.to_usize().ok_or_else(|| {
                 RuntimeError::TypeError("Integer value too large for index".to_string())
             }),
@@ -127,6 +134,7 @@ impl Interpreter {
             Value::Boolean(b) => *b,           // false is falsy, true is truthy
             Value::Null => false,              // null is falsy (like JS)
             Value::Nil => true,                // empty list is truthy (like [] in JS)
+            Value::Int32(i) => *i != 0,        // 0 is falsy, non-zero is truthy
             Value::Number(n) => *n != 0.0,     // 0 is falsy, everything else truthy (like JS)
             Value::Integer(i) => !i.is_zero(), // 0n is falsy, non-zero is truthy
             Value::Rational(r) => !r.is_zero(), // 0/1 is falsy, non-zero is truthy

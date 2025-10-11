@@ -10,6 +10,7 @@ pub fn less_equal_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> 
     let (pa, pb) = promote_pair(&a, &b);
 
     let result = match (&pa, &pb) {
+        (Value::Int32(i1), Value::Int32(i2)) => i1 <= i2,
         (Value::Integer(i1), Value::Integer(i2)) => i1 <= i2,
         (Value::Rational(r1), Value::Rational(r2)) => r1 <= r2,
         (Value::Number(n1), Value::Number(n2)) => n1 <= n2,

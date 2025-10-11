@@ -114,8 +114,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
         if s.ends_with('n') && s.len() > 1 {
             let num_part = &s[..s.len() - 1];
             // Check if it looks like a valid integer (all digits, optionally with leading -)
-            let is_integer = if num_part.starts_with('-') {
-                num_part.len() > 1 && num_part[1..].chars().all(|c| c.is_ascii_digit())
+            let is_integer = if let Some(stripped) = num_part.strip_prefix('-') {
+                num_part.len() > 1 && stripped.chars().all(|c| c.is_ascii_digit())
             } else {
                 num_part.chars().all(|c| c.is_ascii_digit())
             };
@@ -128,10 +128,10 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
         // Check for rational (e.g., 3/4)
         if s.contains('/') {
             let parts: Vec<&str> = s.split('/').collect();
-            if parts.len() == 2 {
-                if let (Ok(_), Ok(_)) = (parts[0].parse::<i64>(), parts[1].parse::<i64>()) {
-                    return TokenKind::Rational(parts[0].to_string(), parts[1].to_string());
-                }
+            if parts.len() == 2
+                && let (Ok(_), Ok(_)) = (parts[0].parse::<i64>(), parts[1].parse::<i64>())
+            {
+                return TokenKind::Rational(parts[0].to_string(), parts[1].to_string());
             }
         }
 

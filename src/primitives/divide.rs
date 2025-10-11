@@ -15,6 +15,7 @@ pub fn div_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
     // Check for division by zero first
     let is_zero = match &b {
+        Value::Int32(i) => *i == 0,
         Value::Integer(i) => i.is_zero(),
         Value::Rational(r) => r.is_zero(),
         Value::Number(n) => *n == 0.0,
@@ -24,9 +25,16 @@ pub fn div_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         return Err(RuntimeError::DivisionByZero);
     }
 
-    // Special case: Integer / Integer should promote to Rational
+    // Special case: Int32 / Int32 and Integer / Integer should promote to Rational
     // This ensures exact division results (e.g., 1/2 = 1/2, not 0.5)
-    let result = if let (Value::Integer(ia), Value::Integer(ib)) = (&a, &b) {
+    let result = if let (Value::Int32(ia), Value::Int32(ib)) = (&a, &b) {
+        // Int32 / Int32 -> Rational (then demote if denominator is 1)
+        let result = Value::Rational(BigRational::new(
+            num_bigint::BigInt::from(*ia),
+            num_bigint::BigInt::from(*ib),
+        ));
+        result.demote()
+    } else if let (Value::Integer(ia), Value::Integer(ib)) = (&a, &b) {
         let result = Value::Rational(BigRational::new(ia.clone(), ib.clone()));
         result.demote()
     } else {
