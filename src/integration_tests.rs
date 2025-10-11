@@ -857,4 +857,315 @@ mod tests {
             result
         );
     }
+
+    // RUST CONCEPT: Additional Int32 edge case tests
+    // Testing boundary values, complex type interactions, and demotion scenarios
+
+    #[test]
+    fn test_int32_boundary_max() {
+        // Test i32::MAX stays as Int32
+        let code = "2147483647";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(2147483647)),
+            "Expected Int32(i32::MAX), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_boundary_min() {
+        // Test i32::MIN stays as Int32
+        let code = "-2147483648";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(-2147483648)),
+            "Expected Int32(i32::MIN), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_max_plus_one_promotes() {
+        // Test i32::MAX + 1 promotes to Integer
+        let code = "2147483648";
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        assert!(
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(2147483648_i64)),
+            "Expected Integer for i32::MAX + 1, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_min_minus_one_promotes() {
+        // Test i32::MIN - 1 promotes to Integer
+        let code = "-2147483649";
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        assert!(
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(-2147483649_i64)),
+            "Expected Integer for i32::MIN - 1, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_subtraction_to_zero() {
+        // Test Int32 - Int32 = 0 (demotion test)
+        let code = "5 5 -";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(0)),
+            "Expected Int32(0), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_addition_to_zero() {
+        // Test Int32 + Int32 = 0
+        let code = "5 -5 +";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(0)),
+            "Expected Int32(0), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_multiplication_by_zero() {
+        // Test Int32 * 0 = Int32(0)
+        let code = "42 0 *";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(0)),
+            "Expected Int32(0), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_multiplication_by_one() {
+        // Test Int32 * 1 = Int32
+        let code = "42 1 *";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(42)),
+            "Expected Int32(42), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_multiplication_by_negative_one() {
+        // Test Int32 * -1 negates
+        let code = "42 -1 *";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(-42)),
+            "Expected Int32(-42), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_with_complex_from_float() {
+        // Test Int32 + Complex (from float imaginary)
+        let code = "5 3.0 i * +";  // 5 + 3.0i = 5+3i (Complex64)
+        let result = execute_and_get_top(code).unwrap();
+        use num_complex::Complex64;
+        if let Value::Complex(c) = result {
+            assert_eq!(c, Complex64::new(5.0, 3.0));
+        } else {
+            panic!("Expected Complex, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_int32_with_gaussian_int() {
+        // Test Int32 * GaussianInt: 5 * (3+4i)
+        let code = "5 3 4 i * + *";  // 5 * (3+4i) = 15+20i
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        if let Value::GaussianInt(re, im) = result {
+            assert_eq!(re, BigInt::from(15));
+            assert_eq!(im, BigInt::from(20));
+        } else {
+            panic!("Expected GaussianInt, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_int32_addition_with_gaussian_int() {
+        // Test Int32 + GaussianInt: 5 + (3+4i)
+        let code = "5 3 4 i * + +";  // 5 + (3+4i) = 8+4i
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        if let Value::GaussianInt(re, im) = result {
+            assert_eq!(re, BigInt::from(8));
+            assert_eq!(im, BigInt::from(4));
+        } else {
+            panic!("Expected GaussianInt, got {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_gaussian_int_demotes_to_int32() {
+        // Test GaussianInt with zero imaginary part demotes to Int32
+        let code = "5 0 i * + 3 0 i * + +";  // (5+0i) + (3+0i) = 8
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(8)),
+            "Expected Int32(8) after GaussianInt demotion, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_rational_division_demotes_to_int32() {
+        // Test Rational division that results in whole number demotes to Int32
+        let code = "10 5 / 1 *";  // (10/5) * 1 = 2 * 1 = 2
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(2)),
+            "Expected Int32(2) after Rational demotion, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_rational_addition_demotes_to_int32() {
+        // Test Rational addition that results in whole number demotes to Int32
+        let code = "1 2 / 1 2 / +";  // 1/2 + 1/2 = 1
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(1)),
+            "Expected Int32(1) after Rational addition, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_rational_subtraction_to_zero_demotes() {
+        // Test Rational - Rational = 0 demotes to Int32
+        let code = "1 2 / 1 2 / -";  // 1/2 - 1/2 = 0
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(0)),
+            "Expected Int32(0) after Rational subtraction, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_max_operations_stay_in_range() {
+        // Test operations at i32::MAX boundary that stay in range
+        let code = "2147483647 -1 +";  // i32::MAX + (-1) = i32::MAX - 1
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(2147483646)),
+            "Expected Int32(2147483646), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_min_operations_stay_in_range() {
+        // Test operations at i32::MIN boundary that stay in range
+        let code = "-2147483648 1 +";  // i32::MIN + 1 = i32::MIN + 1
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(-2147483647)),
+            "Expected Int32(-2147483647), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_near_boundary_multiplication() {
+        // Test multiplication near boundary that stays in range
+        let code = "46340 46340 *";  // sqrt(i32::MAX) * sqrt(i32::MAX) ≈ 2147395600
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(2147395600)),
+            "Expected Int32(2147395600), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_just_over_boundary_multiplication() {
+        // Test multiplication that overflows promotes to Integer
+        let code = "46341 46341 *";  // Just over sqrt(i32::MAX)
+        let result = execute_and_get_top(code).unwrap();
+        use num_bigint::BigInt;
+        assert!(
+            matches!(result, Value::Integer(ref i) if i == &BigInt::from(2147488281_i64)),
+            "Expected Integer after overflow, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_with_rational_exact_division() {
+        // Test Int32 / Int32 that results in exact Rational then simplifies
+        let code = "8 2 / 1 2 / /";  // (8/2) / (1/2) = 4 / 0.5 = 8
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(8)),
+            "Expected Int32(8), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_negative_zero_is_zero() {
+        // Test that -0 is treated as 0
+        let code = "0 -1 *";  // 0 * -1 = 0 (not -0)
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(0)),
+            "Expected Int32(0), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_chained_operations_stay_int32() {
+        // Test multiple operations that all stay within Int32 range
+        let code = "10 5 + 3 * 2 -";  // ((10 + 5) * 3) - 2 = 45 - 2 = 43
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(43)),
+            "Expected Int32(43), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_int32_mixed_with_float_promotes() {
+        // Test Int32 + Float promotes to Float
+        let code = "10 3.5 +";
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Number(n) if (n - 13.5).abs() < 1e-10),
+            "Expected Number(13.5), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_gaussian_int_multiplication_demotes() {
+        // Test GaussianInt multiplication that yields real result demotes
+        let code = "1 i + 1 -1 i * + *";  // (1+i)*(1-i) = 1-i+i-i² = 1-(-1) = 2
+        let result = execute_and_get_top(code).unwrap();
+        assert!(
+            matches!(result, Value::Int32(2)),
+            "Expected Int32(2) after GaussianInt multiplication demotion, got {:?}",
+            result
+        );
+    }
 }
