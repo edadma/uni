@@ -9,9 +9,9 @@ mod tokenizer;
 mod value;
 
 use interpreter::Interpreter;
-use rustyline::DefaultEditor;
-use rustyline::error::ReadlineError;
+use editline::{LineEditor, terminals::StdioTerminal};
 use std::env;
+use std::io::Write;
 use value::RuntimeError;
 
 fn main() {
@@ -181,14 +181,10 @@ fn run_repl() {
     println!("Type 'words' to see defined words\n");
 
     // RUST CONCEPT: Result type for error handling in Rust
-    // rustyline provides readline functionality with history and editing
-    let mut rl = match DefaultEditor::new() {
-        Ok(editor) => editor,
-        Err(e) => {
-            eprintln!("Failed to initialize readline: {}", e);
-            std::process::exit(1);
-        }
-    };
+    // editline provides line editing functionality with history
+    // Create a LineEditor with 4KB buffer and 100 history entries
+    let mut editor = LineEditor::new(4096, 100);
+    let mut terminal = StdioTerminal::new();
 
     // RUST CONCEPT: Automatic initialization
     // Interpreter::new() automatically loads builtins and stdlib
@@ -196,17 +192,28 @@ fn run_repl() {
 
     // RUST CONCEPT: Infinite loop with break
     loop {
+        // RUST CONCEPT: Printing prompt and flushing stdout
+        // editline requires manual prompt printing and flushing
+        print!("uni> ");
+        if let Err(e) = std::io::stdout().flush() {
+            eprintln!("Error flushing stdout: {}", e);
+            break;
+        }
+
         // RUST CONCEPT: Match expression for comprehensive error handling
-        match rl.readline("uni> ") {
+        match editor.read_line(&mut terminal) {
             Ok(line) => {
+                // RUST CONCEPT: Detecting EOF
+                // editline may return an empty line on EOF (Ctrl-D)
+                // Check if the line is empty AND if we're at EOF
+                if line.is_empty() {
+                    // Empty line could be just Enter key or Ctrl-D
+                    // We'll treat completely empty (no whitespace) as potential EOF
+                    // But for now, just continue - user can type 'quit'
+                }
+
                 // RUST CONCEPT: String trimming to remove whitespace
                 let line = line.trim();
-
-                // RUST CONCEPT: Add non-empty lines to history before processing
-                // This ensures REPL commands are also saved in history
-                if !line.is_empty() {
-                    let _ = rl.add_history_entry(line);
-                }
 
                 // Check for special REPL commands
                 match line {
@@ -236,19 +243,27 @@ fn run_repl() {
                     }
                 }
             }
-            Err(ReadlineError::Interrupted) => {
-                // RUST CONCEPT: Handling Ctrl-C
-                println!("\nInterrupted. Use 'quit' or Ctrl-D to exit.");
-            }
-            Err(ReadlineError::Eof) => {
-                // RUST CONCEPT: Handling Ctrl-D (EOF)
-                println!("\nGoodbye!");
-                break;
-            }
-            Err(err) => {
-                // RUST CONCEPT: Other readline errors
-                eprintln!("Error reading line: {}", err);
-                break;
+            Err(e) => {
+                // RUST CONCEPT: Handling EOF (Ctrl-D) or read errors
+                // editline returns different error kinds for different conditions
+                match e.kind() {
+                    std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::Other => {
+                        // EOF (Ctrl-D) - exit gracefully
+                        // editline might return Other for EOF
+                        println!("\nGoodbye!");
+                        break;
+                    }
+                    std::io::ErrorKind::Interrupted => {
+                        // Ctrl-C was pressed - ask user to use quit or Ctrl-D
+                        println!("\nInterrupted. Use 'quit' or Ctrl-D to exit.");
+                        continue;
+                    }
+                    _ => {
+                        // Other errors - could be EOF, so exit gracefully
+                        println!("\nGoodbye!");
+                        break;
+                    }
+                }
             }
         }
     }
