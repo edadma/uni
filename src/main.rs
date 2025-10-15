@@ -245,21 +245,20 @@ fn run_repl() {
             }
             Err(e) => {
                 // RUST CONCEPT: Handling EOF (Ctrl-D) or read errors
-                // editline returns different error kinds for different conditions
-                match e.kind() {
-                    std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::Other => {
+                // editline returns its own Error type with specific variants
+                match e {
+                    editline::Error::Eof => {
                         // EOF (Ctrl-D) - exit gracefully
-                        // editline might return Other for EOF
                         println!("\nGoodbye!");
                         break;
                     }
-                    std::io::ErrorKind::Interrupted => {
+                    editline::Error::Interrupted => {
                         // Ctrl-C was pressed - ask user to use quit or Ctrl-D
                         println!("\nInterrupted. Use 'quit' or Ctrl-D to exit.");
                         continue;
                     }
                     _ => {
-                        // Other errors - could be EOF, so exit gracefully
+                        // Other errors - could be I/O errors, exit gracefully
                         println!("\nGoodbye!");
                         break;
                     }

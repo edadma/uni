@@ -4,9 +4,18 @@ version = "0.0.1"
 edition = "2024"
 
 [dependencies]
-editline = "0.0.3"
+editline = "0.0.4"
 num-bigint = "0.4"
 num-rational = "0.4"
 num-complex = "0.4"
 num-traits = "0.2"
 chrono = "0.4"
+
+[target.'cfg(target_os = "none")'.dependencies]
+editline = { version = "0.0.4", default-features = false }
+microbit-v2 = "0.15"
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+panic-halt = "0.2"
+alloc-cortex-m = "0.4"
+embedded-io = "0.6"
