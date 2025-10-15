@@ -9,11 +9,38 @@ mod tokenizer;
 mod value;
 
 use interpreter::Interpreter;
-use editline::{LineEditor, terminals::StdioTerminal};
-use std::env;
-use std::io::Write;
+use editline::{LineEditor, Terminal};
 use value::RuntimeError;
 
+// For format! and String which are needed in generic functions
+#[cfg(not(target_os = "none"))]
+use std::string::String;
+#[cfg(target_os = "none")]
+use alloc::string::String;
+
+// Platform-specific imports
+#[cfg(not(target_os = "none"))]
+use editline::terminals::StdioTerminal;
+#[cfg(not(target_os = "none"))]
+use std::env;
+
+#[cfg(target_os = "none")]
+use editline::terminals::microbit::from_board;
+#[cfg(target_os = "none")]
+use cortex_m_rt::entry;
+#[cfg(target_os = "none")]
+use panic_halt as _;
+#[cfg(target_os = "none")]
+use alloc_cortex_m::CortexMHeap;
+
+// Platform-specific line endings
+#[cfg(not(target_os = "none"))]
+const LINE_ENDING: &[u8] = b"\n";
+#[cfg(target_os = "none")]
+const LINE_ENDING: &[u8] = b"\r\n";
+
+// Linux/desktop main function
+#[cfg(not(target_os = "none"))]
 fn main() {
     // RUST CONCEPT: Command-line argument parsing with std::env::args()
     // args() returns an iterator over command-line arguments
@@ -166,20 +193,27 @@ fn execute_code(code: &str, auto_print: bool) {
     }
 }
 
+// Micro:bit main function
+#[cfg(target_os = "none")]
+#[entry]
+fn main() -> ! {
+    // Initialize allocator
+    const HEAP_SIZE: usize = 16384;
+    static mut HEAP: [u8; HEAP_SIZE] = [0; HEAP_SIZE];
+
+    #[global_allocator]
+    static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
+
+    unsafe { ALLOCATOR.init(&raw mut HEAP as *const u8 as usize, HEAP_SIZE) }
+
+    // Just run the REPL - no command-line arguments on micro:bit
+    run_repl()
+}
+
 // RUST CONCEPT: Function extraction for code organization
 // Run the interactive REPL (Read-Eval-Print Loop)
+#[cfg(not(target_os = "none"))]
 fn run_repl() {
-    println!(" _   _       _ ");
-    println!("| | | |_ __ (_)");
-    println!("| | | | '_ \\| |");
-    println!("| |_| | | | | |");
-    println!(" \\___/|_| |_|_| v0.0.1");
-    println!();
-    println!("Type 'quit' or press Ctrl-D to exit");
-    println!("Type 'stack' to see the current stack");
-    println!("Type 'clear' to clear the stack");
-    println!("Type 'words' to see defined words\n");
-
     // RUST CONCEPT: Result type for error handling in Rust
     // editline provides line editing functionality with history
     // Create a LineEditor with 4KB buffer and 100 history entries
@@ -190,76 +224,71 @@ fn run_repl() {
     // Interpreter::new() automatically loads builtins and stdlib
     let mut interp = Interpreter::new();
 
-    // RUST CONCEPT: Infinite loop with break
+    run_repl_loop(&mut editor, &mut terminal, &mut interp);
+}
+
+// Generic REPL loop that works with any Terminal implementation
+fn run_repl_loop<T: Terminal>(editor: &mut LineEditor, terminal: &mut T, interp: &mut Interpreter) {
+    // Print banner
+    let _ = write_line(terminal, " _   _       _ ");
+    let _ = write_line(terminal, "| | | |_ __ (_)");
+    let _ = write_line(terminal, "| | | | '_ \\| |");
+    let _ = write_line(terminal, "| |_| | | | | |");
+    let _ = write_line(terminal, " \\___/|_| |_|_| v0.0.1");
+    let _ = write_line(terminal, "");
+    let _ = write_line(terminal, "Type 'quit' or press Ctrl-D to exit");
+    let _ = write_line(terminal, "Type 'stack' to see the current stack");
+    let _ = write_line(terminal, "Type 'clear' to clear the stack");
+    let _ = write_line(terminal, "Type 'words' to see defined words");
+    let _ = write_line(terminal, "");
+
     loop {
-        // RUST CONCEPT: Printing prompt and flushing stdout
-        // editline requires manual prompt printing and flushing
-        print!("uni> ");
-        if let Err(e) = std::io::stdout().flush() {
-            eprintln!("Error flushing stdout: {}", e);
+        // Print prompt
+        if write_str(terminal, "uni> ").is_err() {
             break;
         }
 
-        // RUST CONCEPT: Match expression for comprehensive error handling
-        match editor.read_line(&mut terminal) {
+        // Read line
+        match editor.read_line(terminal) {
             Ok(line) => {
-                // RUST CONCEPT: Detecting EOF
-                // editline may return an empty line on EOF (Ctrl-D)
-                // Check if the line is empty AND if we're at EOF
-                if line.is_empty() {
-                    // Empty line could be just Enter key or Ctrl-D
-                    // We'll treat completely empty (no whitespace) as potential EOF
-                    // But for now, just continue - user can type 'quit'
-                }
-
-                // RUST CONCEPT: String trimming to remove whitespace
                 let line = line.trim();
 
                 // Check for special REPL commands
                 match line {
                     "quit" => {
-                        println!("Goodbye!");
+                        let _ = write_line(terminal, "Goodbye!");
                         break;
                     }
                     "stack" => {
-                        // Display the current stack
-                        print_stack(&interp);
+                        print_stack(terminal, interp);
                     }
                     "clear" => {
-                        // Clear the stack
                         interp.stack.clear();
-                        println!("Stack cleared");
+                        let _ = write_line(terminal, "Stack cleared");
                     }
                     "words" => {
-                        // Display all defined words
-                        print_words(&interp);
+                        print_words(terminal, interp);
                     }
                     "" => {
                         // Empty line, just continue
                     }
                     _ => {
-                        // Execute the line as Uni code
-                        execute_repl_line(line, &mut interp);
+                        execute_repl_line(terminal, line, interp);
                     }
                 }
             }
             Err(e) => {
-                // RUST CONCEPT: Handling EOF (Ctrl-D) or read errors
-                // editline returns its own Error type with specific variants
                 match e {
                     editline::Error::Eof => {
-                        // EOF (Ctrl-D) - exit gracefully
-                        println!("\nGoodbye!");
+                        let _ = write_line(terminal, "\nGoodbye!");
                         break;
                     }
                     editline::Error::Interrupted => {
-                        // Ctrl-C was pressed - ask user to use quit or Ctrl-D
-                        println!("\nInterrupted. Use 'quit' or Ctrl-D to exit.");
+                        let _ = write_line(terminal, "\nInterrupted. Use 'quit' or Ctrl-D to exit.");
                         continue;
                     }
                     _ => {
-                        // Other errors - could be I/O errors, exit gracefully
-                        println!("\nGoodbye!");
+                        let _ = write_line(terminal, "\nGoodbye!");
                         break;
                     }
                 }
@@ -268,62 +297,93 @@ fn run_repl() {
     }
 }
 
-// RUST CONCEPT: Helper function for REPL line execution
-fn execute_repl_line(line: &str, interp: &mut Interpreter) {
+// Helper to write a string without newline
+fn write_str<T: Terminal>(terminal: &mut T, s: &str) -> editline::Result<()> {
+    terminal.write(s.as_bytes())?;
+    terminal.flush()
+}
+
+// Helper to write a line with platform-appropriate line ending
+fn write_line<T: Terminal>(terminal: &mut T, s: &str) -> editline::Result<()> {
+    terminal.write(s.as_bytes())?;
+    terminal.write(LINE_ENDING)?;
+    terminal.flush()
+}
+
+// Generic helper for REPL line execution
+fn execute_repl_line<T: Terminal>(terminal: &mut T, line: &str, interp: &mut Interpreter) {
     use evaluator::execute_string;
 
-    // RUST CONCEPT: Match for error handling
     match execute_string(line, interp) {
         Ok(()) => {
-            // Execution succeeded, show top of stack if non-empty
             if !interp.stack.is_empty() {
-                // RUST CONCEPT: Getting the last element without removing it
                 if let Some(top) = interp.stack.last() {
-                    println!(" => {} : {}", top, top.type_name());
+                    let msg = format!(" => {} : {}", top, top.type_name());
+                    let _ = write_line(terminal, &msg);
                 }
             }
         }
         Err(e) => {
-            // RUST CONCEPT: Error formatting with Display trait
-            eprintln!("Error: {:?}", e);
+            let msg = format!("Error: {:?}", e);
+            let _ = write_line(terminal, &msg);
         }
     }
 }
 
-// RUST CONCEPT: Helper function to display the stack
-fn print_stack(interp: &Interpreter) {
+// Generic helper to display the stack
+fn print_stack<T: Terminal>(terminal: &mut T, interp: &Interpreter) {
     if interp.stack.is_empty() {
-        println!("Stack is empty");
+        let _ = write_line(terminal, "Stack is empty");
     } else {
-        println!("Stack ({} items):", interp.stack.len());
-        // RUST CONCEPT: Iterating in reverse to show top first
+        let msg = format!("Stack ({} items):", interp.stack.len());
+        let _ = write_line(terminal, &msg);
+
         for (i, value) in interp.stack.iter().rev().enumerate() {
-            if i >= 10 {
-                println!("  ... and {} more", interp.stack.len() - 10);
+            let limit = if cfg!(target_os = "none") { 5 } else { 10 };
+            if i >= limit {
+                let msg = format!("  ... and {} more", interp.stack.len() - limit);
+                let _ = write_line(terminal, &msg);
                 break;
             }
-            println!("  {}: {}", i, value);
+            let msg = format!("  {}: {}", i, value);
+            let _ = write_line(terminal, &msg);
         }
     }
 }
 
-// RUST CONCEPT: Helper function to display defined words
-fn print_words(interp: &Interpreter) {
-    // RUST CONCEPT: Collecting and sorting for display
+// Generic helper to display defined words
+fn print_words<T: Terminal>(terminal: &mut T, interp: &Interpreter) {
     let mut words: Vec<_> = interp.dictionary.keys().map(|k| k.as_ref()).collect();
 
-    // Add special forms that are handled in the evaluator
     words.push("exec");
     words.push("if");
-
     words.sort();
 
-    println!("Defined words ({}):", words.len());
-    // RUST CONCEPT: Chunking for columnar display
+    let msg = format!("Defined words ({}):", words.len());
+    let _ = write_line(terminal, &msg);
+
     for chunk in words.chunks(5) {
+        let mut line = String::new();
         for word in chunk {
-            print!("{:15} ", word);
+            use core::fmt::Write;
+            let _ = write!(&mut line, "{:15} ", word);
         }
-        println!();
+        let _ = write_line(terminal, &line);
     }
+}
+
+// Micro:bit REPL function
+#[cfg(target_os = "none")]
+fn run_repl() -> ! {
+    let board = editline::terminals::microbit::Board::take().unwrap();
+    let mut terminal = from_board(board);
+
+    let mut editor = LineEditor::new(1024, 20);
+    let mut interp = Interpreter::new();
+
+    // Run the shared REPL loop
+    run_repl_loop(&mut editor, &mut terminal, &mut interp);
+
+    // REPL exited, enter infinite loop (embedded requirement)
+    loop {}
 }

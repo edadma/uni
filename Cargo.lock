@@ -153,11 +153,13 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "editline"
-version = "0.0.4"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "444b4f216a2491a08c425892110d49172f09525a4079acd41748250a82594d99"
+checksum = "770ee266604f7902ceae8bcb713dba7843f2c158ef9dc2df9086961c86408ea7"
 dependencies = [
+ "embedded-io",
  "libc",
+ "microbit-v2",
  "winapi",
 ]
 
@@ -551,8 +553,6 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "editline",
- "embedded-io",
- "microbit-v2",
  "num-bigint",
  "num-complex",
  "num-rational",
