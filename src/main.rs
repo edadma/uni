@@ -438,11 +438,17 @@ fn print_words<T: Terminal>(terminal: &mut T, interp: &Interpreter) {
     let msg = format!("Defined words ({}):", words.len());
     let _ = write_line(terminal, &msg);
 
+    // RUST CONCEPT: Calculate column width dynamically based on longest word
+    // Find the maximum word length and add padding
+    let max_len = words.iter().map(|w| w.len()).max().unwrap_or(0);
+    let col_width = max_len + 3; // Add extra padding for readability
+
     for chunk in words.chunks(5) {
         let mut line = String::new();
         for word in chunk {
             use core::fmt::Write;
-            let _ = write!(&mut line, "{:15} ", word);
+            // Use dynamic width instead of fixed 15
+            let _ = write!(&mut line, "{:width$} ", word, width = col_width);
         }
         let _ = write_line(terminal, &line);
     }
