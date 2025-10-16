@@ -47,6 +47,7 @@ use crate::primitives::{
     // Control flow - if is now special in evaluator
     // I/O operations
     print_builtin,
+    words_builtin,
     r_fetch_builtin,
     record_type_of_builtin,
     roll_builtin,
@@ -302,6 +303,18 @@ pub fn register_builtins(interp: &mut Interpreter) {
             is_executable: true,
             doc: Some(Rc::<str>::from(
                 "Print top stack value to output.\nUsage: value pr => (prints value)\nExample: \"Hello\" pr => Hello",
+            )),
+        },
+    );
+
+    let words_atom = interp.intern_atom("words");
+    interp.dictionary.insert(
+        words_atom,
+        DictEntry {
+            value: Value::Builtin(words_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Display all defined words in the dictionary.\nUsage: words => (displays all words)\nExample: words => Defined words (120): ...",
             )),
         },
     );

@@ -15,7 +15,7 @@ mod primitives; // RUST CONCEPT: New modular primitives organization
 mod tokenizer;
 mod value;
 
-use compat::{String, Vec, format, Rc, Box};
+use compat::{format, Rc, Box};
 use interpreter::Interpreter;
 use editline::{LineEditor, Terminal};
 
@@ -344,7 +344,9 @@ fn run_repl_loop<T: Terminal + 'static>(editor: &mut LineEditor, terminal: T, in
                         let _ = write_line(&mut repl_term, "Stack cleared");
                     }
                     "words" => {
-                        print_words(&mut repl_term, interp);
+                        // Call the words primitive
+                        use primitives::words_builtin;
+                        let _ = words_builtin(interp);
                     }
                     "" => {
                         // Empty line, just continue
@@ -424,33 +426,6 @@ fn print_stack<T: Terminal>(terminal: &mut T, interp: &Interpreter) {
             let msg = format!("  {}: {}", i, value);
             let _ = write_line(terminal, &msg);
         }
-    }
-}
-
-// Generic helper to display defined words
-fn print_words<T: Terminal>(terminal: &mut T, interp: &Interpreter) {
-    let mut words: Vec<_> = interp.dictionary.keys().map(|k| k.as_ref()).collect();
-
-    words.push("exec");
-    words.push("if");
-    words.sort();
-
-    let msg = format!("Defined words ({}):", words.len());
-    let _ = write_line(terminal, &msg);
-
-    // RUST CONCEPT: Calculate column width dynamically based on longest word
-    // Find the maximum word length and add padding
-    let max_len = words.iter().map(|w| w.len()).max().unwrap_or(0);
-    let col_width = max_len + 3; // Add extra padding for readability
-
-    for chunk in words.chunks(5) {
-        let mut line = String::new();
-        for word in chunk {
-            use core::fmt::Write;
-            // Use dynamic width instead of fixed 15
-            let _ = write!(&mut line, "{:width$} ", word, width = col_width);
-        }
-        let _ = write_line(terminal, &line);
     }
 }
 

@@ -36,8 +36,15 @@ pub fn help_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             let output = format!("{}: documentation is empty", name_str);
             let _ = interp.writeln(&output);
         } else {
-            let output = format!("{}:\n{}", name_str, doc_text);
+            // RUST CONCEPT: Split multi-line docs and write each line separately
+            // This ensures proper line handling on all platforms (Linux, micro:bit, etc.)
+            let output = format!("{}:", name_str);
             let _ = interp.writeln(&output);
+
+            // Split by newline and write each line
+            for line in doc_text.split('\n') {
+                let _ = interp.writeln(line);
+            }
         }
     } else {
         let kind = if is_executable { "word" } else { "constant" };

@@ -94,6 +94,7 @@ pub mod val;
 
 // I/O operations
 pub mod print;
+pub mod words;
 
 // String operations
 pub mod to_string;
@@ -270,6 +271,7 @@ pub use val::val_builtin;
 
 // I/O operations
 pub use print::print_builtin;
+pub use words::words_builtin;
 
 // String operations
 pub use to_string::to_string_builtin;
