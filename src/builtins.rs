@@ -22,6 +22,7 @@ use crate::primitives::{
     // Stack operations
     drop_builtin,
     eq_builtin,
+    floor_div_builtin,
     from_r_builtin,
     get_record_field_builtin,
     greater_equal_builtin,
@@ -59,6 +60,7 @@ use crate::primitives::{
     to_r_builtin,
     // String operations
     to_string_builtin,
+    trunc_div_builtin,
     // Predicate operations
     truthy_predicate_builtin,
     // Type introspection
@@ -78,14 +80,12 @@ use crate::primitives::{
     cos_builtin,
     exp_builtin,
     floor_builtin,
-    floor_div_builtin,
     log_builtin,
     pow_builtin,
     round_builtin,
     sin_builtin,
     sqrt_builtin,
     tan_builtin,
-    trunc_div_builtin,
 };
 
 // Date/time operations (only with datetime feature)
@@ -157,8 +157,6 @@ pub fn register_builtins(interp: &mut Interpreter) {
         },
     );
 
-    #[cfg(feature = "advanced_math")]
-    {
     let floor_div_atom = interp.intern_atom("//");
     interp.dictionary.insert(
         floor_div_atom,
@@ -170,7 +168,6 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
-    }
 
     let mod_atom = interp.intern_atom("mod");
     interp.dictionary.insert(
@@ -184,8 +181,6 @@ pub fn register_builtins(interp: &mut Interpreter) {
         },
     );
 
-    #[cfg(feature = "advanced_math")]
-    {
     let trunc_div_atom = interp.intern_atom("div");
     interp.dictionary.insert(
         trunc_div_atom,
@@ -197,7 +192,6 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
-    }
 
     let eq_atom = interp.intern_atom("=");
     interp.dictionary.insert(
