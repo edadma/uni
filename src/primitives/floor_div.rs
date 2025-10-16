@@ -15,6 +15,7 @@ pub fn floor_div_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
     // Check for division by zero
     let is_zero = match &b {
+        Value::Int32(i) => *i == 0,
         Value::Integer(i) => i.is_zero(),
         Value::Rational(r) => r.is_zero(),
         Value::Number(n) => *n == 0.0,
@@ -28,6 +29,19 @@ pub fn floor_div_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let (pa, pb) = promote_pair(&a, &b);
 
     let result = match (&pa, &pb) {
+        (Value::Int32(i1), Value::Int32(i2)) => {
+            // Int32 division in Rust uses truncation, not floor
+            // For floor division, adjust if signs differ and there's a remainder
+            let quotient = i1 / i2;
+            let remainder = i1 % i2;
+
+            // Adjust for floor semantics if signs differ and there's a remainder
+            if (i1.signum() != i2.signum()) && remainder != 0 {
+                Value::Int32(quotient - 1)
+            } else {
+                Value::Int32(quotient)
+            }
+        }
         (Value::Integer(i1), Value::Integer(i2)) => {
             // Integer division in Rust uses truncation, not floor
             // For floor division: floor(a/b) = (a - (a % b)) / b when signs differ
@@ -69,6 +83,51 @@ mod tests {
 
     fn setup_interpreter() -> Interpreter {
         Interpreter::new()
+    }
+
+    #[test]
+    fn test_floor_div_builtin_int32() {
+        let mut interp = setup_interpreter();
+
+        // Test Int32 // Int32: 10 // 3 = 3
+        interp.push(Value::Int32(10));
+        interp.push(Value::Int32(3));
+        floor_div_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(3)));
+
+        // Test exact division: 10 // 2 = 5
+        interp.push(Value::Int32(10));
+        interp.push(Value::Int32(2));
+        floor_div_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(5)));
+
+        // Test with negative dividend: -7 // 2 = -4 (floor, not truncate)
+        interp.push(Value::Int32(-7));
+        interp.push(Value::Int32(2));
+        floor_div_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(-4)));
+
+        // Test with negative divisor: 7 // -2 = -4
+        interp.push(Value::Int32(7));
+        interp.push(Value::Int32(-2));
+        floor_div_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(-4)));
+
+        // Test with both negative: -7 // -2 = 3
+        interp.push(Value::Int32(-7));
+        interp.push(Value::Int32(-2));
+        floor_div_builtin(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(3)));
     }
 
     #[test]
@@ -229,6 +288,12 @@ mod tests {
     #[test]
     fn test_floor_div_builtin_division_by_zero() {
         let mut interp = setup_interpreter();
+
+        // Test division by zero with Int32
+        interp.push(Value::Int32(5));
+        interp.push(Value::Int32(0));
+        let result = floor_div_builtin(&mut interp);
+        assert!(matches!(result, Err(RuntimeError::DivisionByZero)));
 
         // Test division by zero with floats
         interp.push(Value::Number(5.0));
