@@ -36,9 +36,8 @@ pub struct Interpreter {
     // Hardware peripherals (micro:bit only)
     #[cfg(target_os = "none")]
     pub buttons: Option<microbit::board::Buttons>,
-    // TODO: Add display_pins once we determine the correct type
-    // #[cfg(target_os = "none")]
-    // pub display_pins: Option<???>,
+    #[cfg(target_os = "none")]
+    pub display_buffer: [[u8; 5]; 5],  // Raw pixel buffer for LED matrix
 }
 
 impl Interpreter {
@@ -55,6 +54,8 @@ impl Interpreter {
             // Hardware peripherals start as None, set by main() on micro:bit
             #[cfg(target_os = "none")]
             buttons: None,
+            #[cfg(target_os = "none")]
+            display_buffer: [[0u8; 5]; 5],  // All LEDs off initially
         };
 
         // RUST CONCEPT: Automatic initialization

@@ -300,7 +300,7 @@ pub use type_of::type_of_builtin;
 
 // Hardware operations
 #[cfg(target_os = "none")]
-pub use hardware::button_read_builtin;
+pub use hardware::{button_read_builtin, led_on_builtin, led_off_builtin, led_clear_builtin, led_show_builtin};
 
 // I16 buffer operations
 pub use i16_buffer::i16_buffer_builtin;

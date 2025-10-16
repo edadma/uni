@@ -88,9 +88,29 @@ use std::env;
 #[cfg(target_os = "none")]
 use cortex_m_rt::entry;
 #[cfg(target_os = "none")]
+use microbit::pac::interrupt;
+#[cfg(target_os = "none")]
 use panic_halt as _;
 #[cfg(target_os = "none")]
 use alloc_cortex_m::CortexMHeap;
+
+// Global display for interrupt handler (micro:bit only)
+#[cfg(target_os = "none")]
+use cortex_m::interrupt::Mutex;
+#[cfg(target_os = "none")]
+pub static DISPLAY: Mutex<RefCell<Option<microbit::display::nonblocking::Display<microbit::pac::TIMER1>>>> =
+    Mutex::new(RefCell::new(None));
+
+// Timer interrupt handler for LED display
+#[cfg(target_os = "none")]
+#[microbit::pac::interrupt]
+fn TIMER1() {
+    cortex_m::interrupt::free(|cs| {
+        if let Some(display) = DISPLAY.borrow(cs).borrow_mut().as_mut() {
+            display.handle_display_event();
+        }
+    });
+}
 
 // Platform-specific line endings
 #[cfg(not(target_os = "none"))]
@@ -405,13 +425,28 @@ fn execute_repl_line<T: Terminal>(terminal: &mut T, line: &str, interp: &mut Int
 #[cfg(target_os = "none")]
 fn run_repl() -> ! {
     use editline::terminals::microbit::{Baudrate, Parity, Uarte, UarteTerminal};
+    use microbit::display::nonblocking::Display;
 
     let board = editline::terminals::microbit::Board::take().unwrap();
 
     // Extract peripherals we need BEFORE creating terminal
     // This way we keep access to buttons, display, etc.
     let buttons = board.buttons;
-    // TODO: Extract display_pins once we determine the correct type
+    let display_pins = board.display_pins;
+    let timer1 = board.TIMER1;
+
+    // Initialize the LED display with TIMER1
+    let display = Display::new(timer1, display_pins);
+
+    // Store display in global static for interrupt handler
+    cortex_m::interrupt::free(|cs| {
+        *DISPLAY.borrow(cs).borrow_mut() = Some(display);
+    });
+
+    // Enable TIMER1 interrupt
+    unsafe {
+        microbit::pac::NVIC::unmask(microbit::pac::Interrupt::TIMER1);
+    }
 
     // Manually create UART terminal (instead of using from_board)
     // This is what from_board() does internally
@@ -428,6 +463,7 @@ fn run_repl() -> ! {
 
     // Give the interpreter access to hardware peripherals
     interp.buttons = Some(buttons);
+    // Note: display is in the global static, not in interpreter
 
     // Run the shared REPL loop
     run_repl_loop(&mut editor, terminal, &mut interp);

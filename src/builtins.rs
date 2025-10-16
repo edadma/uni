@@ -106,7 +106,7 @@ use crate::primitives::{
 
 // Hardware operations (only on micro:bit)
 #[cfg(target_os = "none")]
-use crate::primitives::button_read_builtin;
+use crate::primitives::{button_read_builtin, led_on_builtin, led_off_builtin, led_clear_builtin, led_show_builtin};
 
 // I16 buffer operations (audio/DSP)
 use crate::primitives::{
@@ -364,6 +364,54 @@ pub fn register_builtins(interp: &mut Interpreter) {
             is_executable: true,
             doc: Some(Rc::<str>::from(
                 "Read button state on micro:bit.\nUsage: button-id button-read => boolean\nExample: 0 button-read => true (button A pressed)\n0=A, 1=B",
+            )),
+        },
+    );
+
+    let led_on_atom = interp.intern_atom("led-on");
+    interp.dictionary.insert(
+        led_on_atom,
+        DictEntry {
+            value: Value::Builtin(led_on_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Turn on LED at coordinates with brightness.\nUsage: x y brightness led-on\nCoords: 0-4 (x=left-right, y=top-bottom), brightness: 0-9\nExample: 2 2 9 led-on (center LED full brightness)",
+            )),
+        },
+    );
+
+    let led_off_atom = interp.intern_atom("led-off");
+    interp.dictionary.insert(
+        led_off_atom,
+        DictEntry {
+            value: Value::Builtin(led_off_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Turn off LED at coordinates.\nUsage: x y led-off\nCoords: 0-4 (x=left-right, y=top-bottom)\nExample: 2 2 led-off (turn off center LED)",
+            )),
+        },
+    );
+
+    let led_clear_atom = interp.intern_atom("led-clear");
+    interp.dictionary.insert(
+        led_clear_atom,
+        DictEntry {
+            value: Value::Builtin(led_clear_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Clear all LEDs on the 5x5 matrix.\nUsage: led-clear\nExample: led-clear (turn off all LEDs)",
+            )),
+        },
+    );
+
+    let led_show_atom = interp.intern_atom("led-show");
+    interp.dictionary.insert(
+        led_show_atom,
+        DictEntry {
+            value: Value::Builtin(led_show_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Display 5x5 image from vector of 25 brightness values.\nUsage: vector led-show\nVector elements (0-9) in row-major order: [row0-col0..row0-col4, row1-col0..row4-col4]\nExample: 25 0 make-vector 'img val  12 9 img vector-set!  img led-show",
             )),
         },
     );

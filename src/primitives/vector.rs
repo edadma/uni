@@ -75,9 +75,10 @@ pub fn vector_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     Ok(())
 }
 
-// Stack effect: ( fill count -- vector )
+// Stack effect: ( count fill -- vector )
 // Creates vector with count copies of fill value
 pub fn make_vector_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
+    let fill_value = interp.pop()?;
     let count_value = interp.pop_number()?;
     if count_value < 0.0 || count_value.fract() != 0.0 {
         return Err(RuntimeError::TypeError(
@@ -85,7 +86,6 @@ pub fn make_vector_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError>
         ));
     }
     let count = count_value as usize;
-    let fill_value = interp.pop()?;
 
     let mut elements = Vec::with_capacity(count);
     for _ in 0..count {
@@ -201,8 +201,8 @@ mod tests {
     fn test_make_vector_builtin() {
         let mut interp = setup_interpreter();
 
-        interp.push(Value::String("fill".into()));
         interp.push(Value::Number(4.0));
+        interp.push(Value::String("fill".into()));
         make_vector_builtin(&mut interp).unwrap();
 
         let array_rc = unwrap_array(interp.pop().unwrap());
