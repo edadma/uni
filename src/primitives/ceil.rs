@@ -1,6 +1,9 @@
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 
+#[cfg(not(feature = "std"))]
+use num_traits::Float;
+
 pub fn ceil_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let n = interp.pop_number()?;
     interp.push(Value::Number(n.ceil()));

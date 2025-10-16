@@ -2,6 +2,12 @@ use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 use crate::compat::ToString;
 
+// RUST CONCEPT: Float trait needed for no_std environments
+// In std environments, f64 has these methods built-in
+// In no_std (like micro:bit), we need the Float trait from num_traits with libm
+#[cfg(not(feature = "std"))]
+use num_traits::Float;
+
 pub fn sqrt_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let n = interp.pop_number()?;
 

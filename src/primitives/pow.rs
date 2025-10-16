@@ -2,6 +2,9 @@ use crate::compat::ToString;
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 
+#[cfg(not(feature = "std"))]
+use num_traits::Float;
+
 pub fn pow_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let exponent = interp.pop_number()?;
     let base = interp.pop_number()?;
