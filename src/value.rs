@@ -261,7 +261,7 @@ impl fmt::Display for Value {
                             current = t;
                         }
                         other => {
-                            write!(f, " . {}", other)?;
+                            write!(f, " | {}", other)?;
                             break;
                         }
                     }
