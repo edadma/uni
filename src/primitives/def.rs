@@ -1,5 +1,6 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
+use crate::compat::ToString;
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 

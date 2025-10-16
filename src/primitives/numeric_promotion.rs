@@ -4,6 +4,7 @@
 
 use crate::value::Value;
 use num_bigint::BigInt;
+#[cfg(feature = "complex_numbers")]
 use num_complex::Complex64;
 use num_rational::BigRational;
 use num_traits::ToPrimitive;
@@ -24,6 +25,7 @@ enum NumericType {
     Rational,    // BigRational - exact fractions (still exact)
     GaussianInt, // Gaussian integers (a+bi where a,b are integers, exact)
     Number,      // f64 - floating point (inexact, loses precision)
+    #[cfg(feature = "complex_numbers")]
     Complex,     // Complex64 - complex floating point (inexact)
 }
 
@@ -35,6 +37,7 @@ fn numeric_type(val: &Value) -> Option<NumericType> {
         Value::Rational(_) => Some(NumericType::Rational),
         Value::Number(_) => Some(NumericType::Number),
         Value::GaussianInt(_, _) => Some(NumericType::GaussianInt),
+        #[cfg(feature = "complex_numbers")]
         Value::Complex(_) => Some(NumericType::Complex),
         _ => None,
     }
@@ -49,6 +52,7 @@ fn promote_to(val: &Value, target: NumericType) -> Value {
         (Value::Rational(_), NumericType::Rational) => val.clone(),
         (Value::Number(_), NumericType::Number) => val.clone(),
         (Value::GaussianInt(_, _), NumericType::GaussianInt) => val.clone(),
+        #[cfg(feature = "complex_numbers")]
         (Value::Complex(_), NumericType::Complex) => val.clone(),
 
         // Promote Int32 to higher types
@@ -60,6 +64,7 @@ fn promote_to(val: &Value, target: NumericType) -> Value {
         (Value::Int32(i), NumericType::GaussianInt) => {
             Value::GaussianInt(BigInt::from(*i), BigInt::from(0))
         }
+        #[cfg(feature = "complex_numbers")]
         (Value::Int32(i), NumericType::Complex) => Value::Complex(Complex64::new(*i as f64, 0.0)),
 
         // Promote Integer to higher types
@@ -72,6 +77,7 @@ fn promote_to(val: &Value, target: NumericType) -> Value {
         (Value::Integer(i), NumericType::GaussianInt) => {
             Value::GaussianInt(i.clone(), BigInt::from(0))
         }
+        #[cfg(feature = "complex_numbers")]
         (Value::Integer(i), NumericType::Complex) => {
             let n = i.to_f64().unwrap_or(f64::INFINITY);
             Value::Complex(Complex64::new(n, 0.0))
@@ -83,6 +89,7 @@ fn promote_to(val: &Value, target: NumericType) -> Value {
             let denom = r.denom().to_f64().unwrap_or(1.0);
             Value::Number(numer / denom)
         }
+        #[cfg(feature = "complex_numbers")]
         (Value::Rational(r), NumericType::Complex) => {
             let numer = r.numer().to_f64().unwrap_or(0.0);
             let denom = r.denom().to_f64().unwrap_or(1.0);
@@ -90,9 +97,11 @@ fn promote_to(val: &Value, target: NumericType) -> Value {
         }
 
         // Promote Number to Complex
+        #[cfg(feature = "complex_numbers")]
         (Value::Number(n), NumericType::Complex) => Value::Complex(Complex64::new(*n, 0.0)),
 
         // Promote GaussianInt to Complex
+        #[cfg(feature = "complex_numbers")]
         (Value::GaussianInt(re, im), NumericType::Complex) => {
             let re_f = re.to_f64().unwrap_or(f64::INFINITY);
             let im_f = im.to_f64().unwrap_or(f64::INFINITY);
@@ -116,6 +125,7 @@ pub fn promote_pair(a: &Value, b: &Value) -> (Value, Value) {
             let target = if ta >= tb { ta.clone() } else { tb.clone() };
 
             // Handle special case: GaussianInt + Number should go to Complex
+            #[cfg(feature = "complex_numbers")]
             let target = match (&ta, &tb) {
                 (NumericType::GaussianInt, NumericType::Number)
                 | (NumericType::Number, NumericType::GaussianInt) => NumericType::Complex,
@@ -123,6 +133,9 @@ pub fn promote_pair(a: &Value, b: &Value) -> (Value, Value) {
                 | (NumericType::Rational, NumericType::GaussianInt) => NumericType::Complex,
                 _ => target,
             };
+
+            #[cfg(not(feature = "complex_numbers"))]
+            let target = target;
 
             (promote_to(a, target.clone()), promote_to(b, target))
         }
@@ -163,6 +176,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_promote_number_to_complex() {
         let a = Value::Number(5.0);
         let b = Value::Complex(Complex64::new(3.0, 4.0));
@@ -172,6 +186,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_promote_gaussian_to_complex() {
         let a = Value::GaussianInt(BigInt::from(5), BigInt::from(2));
         let b = Value::Number(3.14);

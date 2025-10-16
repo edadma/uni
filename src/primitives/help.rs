@@ -1,6 +1,6 @@
+use crate::compat::{Rc, format, ToString};
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
-use std::rc::Rc;
 
 const IF_DOC: &str = "Conditional branching. Usage: condition true-branch false-branch if";
 const EXEC_DOC: &str =
@@ -33,13 +33,16 @@ pub fn help_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
     if let Some(doc_text) = doc {
         if doc_text.trim().is_empty() {
-            println!("{}: documentation is empty", name_str);
+            let output = format!("{}: documentation is empty", name_str);
+            let _ = interp.writeln(&output);
         } else {
-            println!("{}:\n{}", name_str, doc_text);
+            let output = format!("{}:\n{}", name_str, doc_text);
+            let _ = interp.writeln(&output);
         }
     } else {
         let kind = if is_executable { "word" } else { "constant" };
-        println!("{} ({}) has no documentation yet", name_str, kind);
+        let output = format!("{} ({}) has no documentation yet", name_str, kind);
+        let _ = interp.writeln(&output);
     }
 
     Ok(())

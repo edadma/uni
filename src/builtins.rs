@@ -1,6 +1,6 @@
+use crate::compat::Rc;
 use crate::interpreter::Interpreter;
 use crate::value::Value;
-use std::rc::Rc;
 
 use crate::primitives::{
     // Basic math functions
@@ -12,95 +12,55 @@ use crate::primitives::{
     bit_not_builtin,
     bit_or_builtin,
     bit_xor_builtin,
-    ceil_builtin,
     // List operations
     cons_builtin,
     construct_record_builtin,
-    cos_builtin,
-    // Date/time operations
-    date_add_builtin,
-    date_equal_builtin,
-    date_greater_than_builtin,
-    date_less_than_builtin,
-    date_sub_builtin,
-    datetime_builtin,
-    datetime_to_string_builtin,
-    datetime_with_offset_builtin,
-    day_builtin,
     // Meta operations
     def_builtin,
     div_builtin,
     doc_builtin,
     // Stack operations
     drop_builtin,
-    duration_builtin,
-    duration_equal_builtin,
-    duration_greater_than_builtin,
-    duration_less_than_builtin,
-    duration_to_seconds_builtin,
     eq_builtin,
-    exp_builtin,
-    floor_builtin,
-    floor_div_builtin,
     from_r_builtin,
     get_record_field_builtin,
     greater_equal_builtin,
     greater_than_builtin,
     head_builtin,
     help_builtin,
-    hour_builtin,
     is_record_type_builtin,
     less_equal_builtin,
     // Comparison operations
     less_than_builtin,
     list_builtin,
     list_to_vector_builtin,
-    // Logarithmic functions
-    log_builtin,
     make_record_type_builtin,
     make_vector_builtin,
     max_builtin,
     min_builtin,
-    minute_builtin,
     mod_builtin,
-    month_builtin,
     mul_builtin,
     not_equal_builtin,
-    now_builtin,
     null_predicate_builtin,
     pick_builtin,
-    // Advanced math functions
-    pow_builtin,
     // Control flow - if is now special in evaluator
     // I/O operations
     print_builtin,
     r_fetch_builtin,
     record_type_of_builtin,
     roll_builtin,
-    round_builtin,
-    second_builtin,
     set_record_field_builtin,
     // Shift operations
     shl_builtin,
     shr_builtin,
-    // Trigonometric functions
-    sin_builtin,
-    sqrt_builtin,
-    string_to_datetime_builtin,
     sub_builtin,
     tail_builtin,
-    tan_builtin,
-    timestamp_builtin,
-    timestamp_to_datetime_builtin,
     // Return stack operations
-    to_local_builtin,
     to_r_builtin,
     // String operations
     to_string_builtin,
-    to_utc_builtin,
     // Predicate operations
     truthy_predicate_builtin,
-    trunc_div_builtin,
     // Type introspection
     type_of_builtin,
     val_builtin,
@@ -109,8 +69,35 @@ use crate::primitives::{
     vector_ref_builtin,
     vector_set_builtin,
     vector_to_list_builtin,
-    weekday_builtin,
-    year_builtin,
+};
+
+// Advanced math operations (only with advanced_math feature)
+#[cfg(feature = "advanced_math")]
+use crate::primitives::{
+    ceil_builtin,
+    cos_builtin,
+    exp_builtin,
+    floor_builtin,
+    floor_div_builtin,
+    log_builtin,
+    pow_builtin,
+    round_builtin,
+    sin_builtin,
+    sqrt_builtin,
+    tan_builtin,
+    trunc_div_builtin,
+};
+
+// Date/time operations (only with datetime feature)
+#[cfg(feature = "datetime")]
+use crate::primitives::{
+    date_add_builtin, date_equal_builtin, date_greater_than_builtin, date_less_than_builtin,
+    date_sub_builtin, datetime_builtin, datetime_to_string_builtin,
+    datetime_with_offset_builtin, day_builtin, duration_builtin, duration_equal_builtin,
+    duration_greater_than_builtin, duration_less_than_builtin, duration_to_seconds_builtin,
+    hour_builtin, minute_builtin, month_builtin, now_builtin, second_builtin,
+    string_to_datetime_builtin, timestamp_builtin, timestamp_to_datetime_builtin,
+    to_local_builtin, to_utc_builtin, weekday_builtin, year_builtin,
 };
 
 // RUST CONCEPT: Registering all builtins with the interpreter
@@ -166,6 +153,8 @@ pub fn register_builtins(interp: &mut Interpreter) {
         },
     );
 
+    #[cfg(feature = "advanced_math")]
+    {
     let floor_div_atom = interp.intern_atom("//");
     interp.dictionary.insert(
         floor_div_atom,
@@ -177,6 +166,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
     let mod_atom = interp.intern_atom("mod");
     interp.dictionary.insert(
@@ -190,6 +180,8 @@ pub fn register_builtins(interp: &mut Interpreter) {
         },
     );
 
+    #[cfg(feature = "advanced_math")]
+    {
     let trunc_div_atom = interp.intern_atom("div");
     interp.dictionary.insert(
         trunc_div_atom,
@@ -201,6 +193,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
     let eq_atom = interp.intern_atom("=");
     interp.dictionary.insert(
@@ -596,6 +589,8 @@ pub fn register_builtins(interp: &mut Interpreter) {
         },
     );
 
+    #[cfg(feature = "advanced_math")]
+    {
     let sqrt_atom = interp.intern_atom("sqrt");
     interp.dictionary.insert(
         sqrt_atom,
@@ -607,8 +602,11 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
     // Advanced math functions
+    #[cfg(feature = "advanced_math")]
+    {
     let pow_atom = interp.intern_atom("pow");
     interp.dictionary.insert(
         pow_atom,
@@ -620,7 +618,10 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
+    #[cfg(feature = "advanced_math")]
+    {
     let floor_atom = interp.intern_atom("floor");
     interp.dictionary.insert(
         floor_atom,
@@ -632,7 +633,10 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
+    #[cfg(feature = "advanced_math")]
+    {
     let ceil_atom = interp.intern_atom("ceil");
     interp.dictionary.insert(
         ceil_atom,
@@ -644,7 +648,10 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
+    #[cfg(feature = "advanced_math")]
+    {
     let round_atom = interp.intern_atom("round");
     interp.dictionary.insert(
         round_atom,
@@ -656,8 +663,11 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
     // Trigonometric functions
+    #[cfg(feature = "advanced_math")]
+    {
     let sin_atom = interp.intern_atom("sin");
     interp.dictionary.insert(
         sin_atom,
@@ -669,7 +679,10 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
+    #[cfg(feature = "advanced_math")]
+    {
     let cos_atom = interp.intern_atom("cos");
     interp.dictionary.insert(
         cos_atom,
@@ -681,7 +694,10 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
+    #[cfg(feature = "advanced_math")]
+    {
     let tan_atom = interp.intern_atom("tan");
     interp.dictionary.insert(
         tan_atom,
@@ -693,8 +709,11 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
     // Logarithmic functions
+    #[cfg(feature = "advanced_math")]
+    {
     let log_atom = interp.intern_atom("log");
     interp.dictionary.insert(
         log_atom,
@@ -706,7 +725,10 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
+    #[cfg(feature = "advanced_math")]
+    {
     let exp_atom = interp.intern_atom("exp");
     interp.dictionary.insert(
         exp_atom,
@@ -718,6 +740,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    }
 
     // Bitwise operations
     let bit_and_atom = interp.intern_atom("bit-and");
@@ -903,7 +926,9 @@ pub fn register_builtins(interp: &mut Interpreter) {
         },
     );
 
-    // Date/time operations
+    // Date/time operations (only with datetime feature)
+    #[cfg(feature = "datetime")]
+    {
     let now_atom = interp.intern_atom("now");
     interp.dictionary.insert(
         now_atom,
@@ -1216,6 +1241,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+    } // end datetime feature block
 }
 
 #[cfg(test)]

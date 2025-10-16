@@ -1,5 +1,6 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
+use crate::compat::format;
 use crate::interpreter::Interpreter;
 use crate::primitives::numeric_promotion::promote_pair;
 use crate::value::{RuntimeError, Value};
@@ -34,6 +35,7 @@ pub fn sub_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             let result = Value::GaussianInt(re1 - re2, im1 - im2);
             result.demote()
         }
+        #[cfg(feature = "complex_numbers")]
         (Value::Complex(c1), Value::Complex(c2)) => Value::Complex(c1 - c2),
         _ => {
             return Err(RuntimeError::TypeError(format!(

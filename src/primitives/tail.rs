@@ -1,5 +1,6 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
+use crate::compat::ToString;
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 
@@ -160,7 +161,7 @@ mod tests {
         let mut interp = setup_interpreter();
 
         // Test tail of improper list (1 . 2) -> 2
-        use std::rc::Rc;
+        use crate::compat::Rc;
         let improper = Value::Pair(Rc::new(Value::Number(1.0)), Rc::new(Value::Number(2.0)));
 
         interp.push(improper);

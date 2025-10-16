@@ -1,3 +1,4 @@
+use crate::compat::ToString;
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 

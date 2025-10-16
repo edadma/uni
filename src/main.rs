@@ -1,3 +1,10 @@
+#![cfg_attr(target_os = "none", no_std)]
+#![cfg_attr(target_os = "none", no_main)]
+
+#[cfg(target_os = "none")]
+extern crate alloc;
+
+mod compat;
 mod builtins;
 mod evaluator;
 mod integration_tests;
@@ -8,15 +15,67 @@ mod primitives; // RUST CONCEPT: New modular primitives organization
 mod tokenizer;
 mod value;
 
+use compat::{String, Vec, format, Rc, Box};
 use interpreter::Interpreter;
 use editline::{LineEditor, Terminal};
 use value::RuntimeError;
 
-// For format! and String which are needed in generic functions
 #[cfg(not(target_os = "none"))]
-use std::string::String;
+use std::cell::RefCell;
 #[cfg(target_os = "none")]
-use alloc::string::String;
+use core::cell::RefCell;
+
+// Wrapper to share a terminal reference with the interpreter
+// In C this would just be a pointer, but Rust requires Rc<RefCell<>> for shared mutable access
+struct SharedTerminal<T> {
+    inner: Rc<RefCell<T>>,
+}
+
+impl<T> Clone for SharedTerminal<T> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+impl<T: Terminal> Terminal for SharedTerminal<T> {
+    fn read_byte(&mut self) -> editline::Result<u8> {
+        self.inner.borrow_mut().read_byte()
+    }
+
+    fn write(&mut self, data: &[u8]) -> editline::Result<()> {
+        self.inner.borrow_mut().write(data)
+    }
+
+    fn flush(&mut self) -> editline::Result<()> {
+        self.inner.borrow_mut().flush()
+    }
+
+    fn enter_raw_mode(&mut self) -> editline::Result<()> {
+        self.inner.borrow_mut().enter_raw_mode()
+    }
+
+    fn exit_raw_mode(&mut self) -> editline::Result<()> {
+        self.inner.borrow_mut().exit_raw_mode()
+    }
+
+    fn cursor_left(&mut self) -> editline::Result<()> {
+        self.inner.borrow_mut().cursor_left()
+    }
+
+    fn cursor_right(&mut self) -> editline::Result<()> {
+        self.inner.borrow_mut().cursor_right()
+    }
+
+    fn clear_eol(&mut self) -> editline::Result<()> {
+        self.inner.borrow_mut().clear_eol()
+    }
+
+    fn parse_key_event(&mut self) -> editline::Result<editline::KeyEvent> {
+        self.inner.borrow_mut().parse_key_event()
+    }
+}
 
 // Platform-specific imports
 #[cfg(not(target_os = "none"))]
@@ -111,6 +170,7 @@ fn main() {
 
 // RUST CONCEPT: File I/O and error handling
 // Execute a Uni source file
+#[cfg(not(target_os = "none"))]
 fn execute_file(filename: &str) {
     use evaluator::execute_string;
     use std::fs;
@@ -158,6 +218,7 @@ fn execute_file(filename: &str) {
 // RUST CONCEPT: Function extraction for code organization
 // Execute a single line of Uni code
 // auto_print: if true, automatically prints the top stack value after execution
+#[cfg(not(target_os = "none"))]
 fn execute_code(code: &str, auto_print: bool) {
     // RUST CONCEPT: Automatic initialization
     // Interpreter::new() now automatically loads builtins and stdlib
@@ -196,9 +257,10 @@ fn execute_code(code: &str, auto_print: bool) {
 // Micro:bit main function
 #[cfg(target_os = "none")]
 #[entry]
-fn main() -> ! {
-    // Initialize allocator
-    const HEAP_SIZE: usize = 16384;
+fn mb_main() -> ! {
+    // Initialize allocator - micro:bit v2 has 128KB RAM
+    // Use ~112KB for heap, leaving 16KB for stack
+    const HEAP_SIZE: usize = 114688; // 112 * 1024
     static mut HEAP: [u8; HEAP_SIZE] = [0; HEAP_SIZE];
 
     #[global_allocator]
@@ -218,77 +280,92 @@ fn run_repl() {
     // editline provides line editing functionality with history
     // Create a LineEditor with 4KB buffer and 100 history entries
     let mut editor = LineEditor::new(4096, 100);
-    let mut terminal = StdioTerminal::new();
+    let terminal = StdioTerminal::new();
 
     // RUST CONCEPT: Automatic initialization
     // Interpreter::new() automatically loads builtins and stdlib
     let mut interp = Interpreter::new();
 
-    run_repl_loop(&mut editor, &mut terminal, &mut interp);
+    run_repl_loop(&mut editor, terminal, &mut interp);
 }
 
 // Generic REPL loop that works with any Terminal implementation
-fn run_repl_loop<T: Terminal>(editor: &mut LineEditor, terminal: &mut T, interp: &mut Interpreter) {
-    // Print banner
-    let _ = write_line(terminal, " _   _       _ ");
-    let _ = write_line(terminal, "| | | |_ __ (_)");
-    let _ = write_line(terminal, "| | | | '_ \\| |");
-    let _ = write_line(terminal, "| |_| | | | | |");
-    let _ = write_line(terminal, " \\___/|_| |_|_| v0.0.1");
-    let _ = write_line(terminal, "");
-    let _ = write_line(terminal, "Type 'quit' or press Ctrl-D to exit");
-    let _ = write_line(terminal, "Type 'stack' to see the current stack");
-    let _ = write_line(terminal, "Type 'clear' to clear the stack");
-    let _ = write_line(terminal, "Type 'words' to see defined words");
-    let _ = write_line(terminal, "");
+fn run_repl_loop<T: Terminal + 'static>(editor: &mut LineEditor, terminal: T, interp: &mut Interpreter) {
+    // Wrap terminal in Rc<RefCell<>> for shared access
+    let shared = Rc::new(RefCell::new(terminal));
+
+    // Give a clone to the interpreter so primitives like 'pr' can write output
+    let term_for_interp = SharedTerminal {
+        inner: shared.clone(),
+    };
+    interp.set_terminal(Box::new(term_for_interp));
+
+    // Create our own SharedTerminal for REPL operations
+    let mut repl_term = SharedTerminal {
+        inner: shared,
+    };
+
+    // Print banner with blank line first
+    let _ = write_line(&mut repl_term, "");
+    let _ = write_line(&mut repl_term, " _   _       _ ");
+    let _ = write_line(&mut repl_term, "| | | |_ __ (_)");
+    let _ = write_line(&mut repl_term, "| | | | '_ \\| |");
+    let _ = write_line(&mut repl_term, "| |_| | | | | |");
+    let _ = write_line(&mut repl_term, " \\___/|_| |_|_| v0.0.1");
+    let _ = write_line(&mut repl_term, "");
+    let _ = write_line(&mut repl_term, "Type 'quit' or press Ctrl-D to exit");
+    let _ = write_line(&mut repl_term, "Type 'stack' to see the current stack");
+    let _ = write_line(&mut repl_term, "Type 'clear' to clear the stack");
+    let _ = write_line(&mut repl_term, "Type 'words' to see defined words");
+    let _ = write_line(&mut repl_term, "");
 
     loop {
         // Print prompt
-        if write_str(terminal, "uni> ").is_err() {
+        if write_str(&mut repl_term, "uni> ").is_err() {
             break;
         }
 
         // Read line
-        match editor.read_line(terminal) {
+        match editor.read_line(&mut repl_term) {
             Ok(line) => {
                 let line = line.trim();
 
                 // Check for special REPL commands
                 match line {
                     "quit" => {
-                        let _ = write_line(terminal, "Goodbye!");
+                        let _ = write_line(&mut repl_term, "Goodbye!");
                         break;
                     }
                     "stack" => {
-                        print_stack(terminal, interp);
+                        print_stack(&mut repl_term, interp);
                     }
                     "clear" => {
                         interp.stack.clear();
-                        let _ = write_line(terminal, "Stack cleared");
+                        let _ = write_line(&mut repl_term, "Stack cleared");
                     }
                     "words" => {
-                        print_words(terminal, interp);
+                        print_words(&mut repl_term, interp);
                     }
                     "" => {
                         // Empty line, just continue
                     }
                     _ => {
-                        execute_repl_line(terminal, line, interp);
+                        execute_repl_line(&mut repl_term, line, interp);
                     }
                 }
             }
             Err(e) => {
                 match e {
                     editline::Error::Eof => {
-                        let _ = write_line(terminal, "\nGoodbye!");
+                        let _ = write_line(&mut repl_term, "\nGoodbye!");
                         break;
                     }
                     editline::Error::Interrupted => {
-                        let _ = write_line(terminal, "\nInterrupted. Use 'quit' or Ctrl-D to exit.");
+                        let _ = write_line(&mut repl_term, "\nInterrupted. Use 'quit' or Ctrl-D to exit.");
                         continue;
                     }
                     _ => {
-                        let _ = write_line(terminal, "\nGoodbye!");
+                        let _ = write_line(&mut repl_term, "\nGoodbye!");
                         break;
                     }
                 }
@@ -376,13 +453,13 @@ fn print_words<T: Terminal>(terminal: &mut T, interp: &Interpreter) {
 #[cfg(target_os = "none")]
 fn run_repl() -> ! {
     let board = editline::terminals::microbit::Board::take().unwrap();
-    let mut terminal = from_board(board);
+    let terminal = from_board(board);
 
     let mut editor = LineEditor::new(1024, 20);
     let mut interp = Interpreter::new();
 
     // Run the shared REPL loop
-    run_repl_loop(&mut editor, &mut terminal, &mut interp);
+    run_repl_loop(&mut editor, terminal, &mut interp);
 
     // REPL exited, enter infinite loop (embedded requirement)
     loop {}

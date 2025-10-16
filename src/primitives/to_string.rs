@@ -1,5 +1,6 @@
 // RUST CONCEPT: String conversion primitive
 // Converts any value to its string representation using Display trait
+use crate::compat::ToString;
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 

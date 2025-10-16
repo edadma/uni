@@ -2,7 +2,7 @@
 // Each primitive gets its own file with implementation and tests
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
-use std::rc::Rc;
+use crate::compat::Rc;
 
 // RUST CONCEPT: Cons cell construction (fundamental list operation)
 // Stack-based cons: ( element list -- new-list )

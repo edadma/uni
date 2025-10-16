@@ -4,11 +4,13 @@
 // Basic arithmetic operations
 pub mod divide;
 pub mod equals;
+#[cfg(feature = "advanced_math")]
 pub mod floor_div;
 pub mod minus;
 pub mod modulo;
 pub mod multiply;
 pub mod plus;
+#[cfg(feature = "advanced_math")]
 pub mod trunc_div;
 
 // Comparison operations
@@ -22,21 +24,31 @@ pub mod not_equal;
 pub mod abs;
 pub mod max;
 pub mod min;
+#[cfg(feature = "advanced_math")]
 pub mod sqrt;
 
 // Advanced math functions
+#[cfg(feature = "advanced_math")]
 pub mod ceil;
+#[cfg(feature = "advanced_math")]
 pub mod floor;
+#[cfg(feature = "advanced_math")]
 pub mod pow;
+#[cfg(feature = "advanced_math")]
 pub mod round;
 
 // Trigonometric functions
+#[cfg(feature = "advanced_math")]
 pub mod cos;
+#[cfg(feature = "advanced_math")]
 pub mod sin;
+#[cfg(feature = "advanced_math")]
 pub mod tan;
 
 // Logarithmic functions
+#[cfg(feature = "advanced_math")]
 pub mod exp;
+#[cfg(feature = "advanced_math")]
 pub mod log;
 
 // Bitwise operations
@@ -68,8 +80,10 @@ pub mod vector;
 // Record operations
 pub mod record;
 
-// Date/time operations
+// Date/time operations (only with datetime feature)
+#[cfg(feature = "datetime")]
 pub mod datetime;
+#[cfg(feature = "datetime")]
 pub mod duration;
 
 // Meta operations
@@ -101,11 +115,13 @@ pub mod numeric_promotion;
 // Basic arithmetic
 pub use divide::div_builtin;
 pub use equals::eq_builtin;
+#[cfg(feature = "advanced_math")]
 pub use floor_div::floor_div_builtin;
 pub use minus::sub_builtin;
 pub use modulo::mod_builtin;
 pub use multiply::mul_builtin;
 pub use plus::add_builtin;
+#[cfg(feature = "advanced_math")]
 pub use trunc_div::trunc_div_builtin;
 
 // Comparison operations
@@ -119,21 +135,31 @@ pub use not_equal::not_equal_builtin;
 pub use abs::abs_builtin;
 pub use max::max_builtin;
 pub use min::min_builtin;
+#[cfg(feature = "advanced_math")]
 pub use sqrt::sqrt_builtin;
 
 // Advanced math functions
+#[cfg(feature = "advanced_math")]
 pub use ceil::ceil_builtin;
+#[cfg(feature = "advanced_math")]
 pub use floor::floor_builtin;
+#[cfg(feature = "advanced_math")]
 pub use pow::pow_builtin;
+#[cfg(feature = "advanced_math")]
 pub use round::round_builtin;
 
 // Trigonometric functions
+#[cfg(feature = "advanced_math")]
 pub use cos::cos_builtin;
+#[cfg(feature = "advanced_math")]
 pub use sin::sin_builtin;
+#[cfg(feature = "advanced_math")]
 pub use tan::tan_builtin;
 
 // Logarithmic functions
+#[cfg(feature = "advanced_math")]
 pub use exp::exp_builtin;
+#[cfg(feature = "advanced_math")]
 pub use log::log_builtin;
 
 // Bitwise operations
@@ -180,33 +206,59 @@ pub use record::make_record_type_builtin;
 pub use record::record_type_of_builtin;
 pub use record::set_record_field_builtin;
 
-// Date/time operations
+// Date/time operations (only with datetime feature)
+#[cfg(feature = "datetime")]
 pub use datetime::date_equal_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::date_greater_than_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::date_less_than_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::datetime_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::datetime_to_string_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::datetime_with_offset_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::day_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::hour_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::minute_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::month_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::now_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::second_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::string_to_datetime_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::timestamp_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::timestamp_to_datetime_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::to_local_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::to_utc_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::weekday_builtin;
+#[cfg(feature = "datetime")]
 pub use datetime::year_builtin;
 
+#[cfg(feature = "datetime")]
 pub use duration::date_add_builtin;
+#[cfg(feature = "datetime")]
 pub use duration::date_sub_builtin;
+#[cfg(feature = "datetime")]
 pub use duration::duration_builtin;
+#[cfg(feature = "datetime")]
 pub use duration::duration_equal_builtin;
+#[cfg(feature = "datetime")]
 pub use duration::duration_greater_than_builtin;
+#[cfg(feature = "datetime")]
 pub use duration::duration_less_than_builtin;
+#[cfg(feature = "datetime")]
 pub use duration::duration_to_seconds_builtin;
 
 // Meta operations

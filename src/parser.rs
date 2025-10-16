@@ -14,13 +14,14 @@
 // - 'Result<T, E>' is Rust's way of handling errors without exceptions
 // - Pattern matching with 'match' is Rust's equivalent to switch statements but much more powerful
 
+use crate::compat::{Rc, String, Vec, format, ToString};
 use crate::interpreter::Interpreter;
 use crate::tokenizer::{Token, TokenKind, tokenize};
 use crate::value::{RuntimeError, Value};
 use num_bigint::BigInt;
+#[cfg(feature = "complex_numbers")]
 use num_complex::Complex64;
 use num_rational::BigRational;
-use std::rc::Rc;
 
 // RUST CONCEPT: Error types
 // We create our own error type for parser-specific errors
@@ -37,8 +38,8 @@ pub enum ParseError {
 
 // RUST CONCEPT: Display trait implementation for better error messages
 // This ensures the String field in UnexpectedToken is actually used
-impl std::fmt::Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl crate::compat::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut crate::compat::fmt::Formatter<'_>) -> crate::compat::fmt::Result {
         match self {
             ParseError::UnexpectedToken(msg) => write!(f, "{}", msg),
             ParseError::UnexpectedEndOfInput => write!(f, "Unexpected end of input"),
@@ -178,6 +179,7 @@ fn parse_value(
             }
         }
 
+        #[cfg(feature = "complex_numbers")]
         Some(token) if matches!(token.kind, TokenKind::Complex(_, _)) => {
             if let TokenKind::Complex(re, im) = &token.kind {
                 *index += 1;
@@ -305,6 +307,7 @@ fn parse_value(
                         "Numbers cannot be quoted - they are data by default".to_string(),
                     ))
                 }
+                #[cfg(feature = "complex_numbers")]
                 Some(token) if matches!(token.kind, TokenKind::Complex(_, _)) => {
                     Err(ParseError::UnexpectedToken(
                         "Numbers cannot be quoted - they are data by default".to_string(),
@@ -963,6 +966,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_dot_cases() {
         let mut interp = Interpreter::new();
 
@@ -1330,6 +1334,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_literals() {
         use num_bigint::BigInt;
         use num_complex::Complex64;
@@ -1421,6 +1426,7 @@ mod tests {
     // ========== COMPLEX NUMBER PARSING EDGE CASES ==========
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_negative_imaginary() {
         use num_bigint::BigInt;
         let mut interp = Interpreter::new();
@@ -1439,6 +1445,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_zero_parts() {
         use num_bigint::BigInt;
         let mut interp = Interpreter::new();
@@ -1463,6 +1470,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_decimal_parts() {
         use num_complex::Complex64;
         let mut interp = Interpreter::new();
@@ -1489,6 +1497,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_pure_imaginary_edge_cases() {
         use num_bigint::BigInt;
         use num_complex::Complex64;
@@ -1519,6 +1528,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_large_numbers() {
         use num_bigint::BigInt;
         let mut interp = Interpreter::new();
@@ -1542,6 +1552,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_with_spaces_fails() {
         let mut interp = Interpreter::new();
 
@@ -1557,6 +1568,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_not_confused_with_operators() {
         use num_bigint::BigInt;
         let mut interp = Interpreter::new();
@@ -1574,6 +1586,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_multiple_signs() {
         use num_bigint::BigInt;
         let mut interp = Interpreter::new();
@@ -1593,6 +1606,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_scientific_notation() {
         use num_complex::Complex64;
         let mut interp = Interpreter::new();
@@ -1702,6 +1716,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_parse_complex_integer_vs_float() {
         use num_bigint::BigInt;
         use num_complex::Complex64;

@@ -2,7 +2,7 @@
 // Each primitive gets its own file with implementation and tests
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
-use std::rc::Rc;
+use crate::compat::Rc;
 
 // RUST CONCEPT: Equality comparison across all value types
 // Stack-based equality: ( value1 value2 -- boolean )
@@ -17,6 +17,7 @@ pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         (Value::Integer(i1), Value::Integer(i2)) => i1 == i2,
         (Value::Rational(r1), Value::Rational(r2)) => r1 == r2,
         (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => re1 == re2 && im1 == im2,
+        #[cfg(feature = "complex_numbers")]
         (Value::Complex(c1), Value::Complex(c2)) => c1 == c2,
 
         // Other types
@@ -49,6 +50,7 @@ fn eq_values(a: &Rc<Value>, b: &Rc<Value>) -> bool {
         (Value::Integer(i1), Value::Integer(i2)) => i1 == i2,
         (Value::Rational(r1), Value::Rational(r2)) => r1 == r2,
         (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => re1 == re2 && im1 == im2,
+        #[cfg(feature = "complex_numbers")]
         (Value::Complex(c1), Value::Complex(c2)) => c1 == c2,
 
         // Other types

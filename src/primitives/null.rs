@@ -17,7 +17,7 @@ pub fn null_predicate_builtin(interp: &mut Interpreter) -> Result<(), RuntimeErr
 mod tests {
     use super::*;
     use crate::value::Value;
-    use std::rc::Rc;
+    use crate::compat::Rc;
 
     fn setup_interpreter() -> Interpreter {
         Interpreter::new()

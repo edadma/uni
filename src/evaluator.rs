@@ -14,7 +14,7 @@
 
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
-use std::rc::Rc;
+use crate::compat::{Rc, Vec, ToString};
 
 // RUST CONCEPT: Continuation-based evaluation for tail-call optimization
 // Instead of using recursion, we use an explicit continuation stack
@@ -166,6 +166,7 @@ fn execute_value_direct(
             interp.push(Value::Rational(r.clone()));
             Ok(())
         }
+        #[cfg(feature = "complex_numbers")]
         Value::Complex(c) => {
             interp.push(Value::Complex(*c));
             Ok(())
@@ -208,6 +209,7 @@ fn execute_value_direct(
             Ok(())
         }
         // RUST CONCEPT: DateTime and Duration push themselves
+        #[cfg(feature = "datetime")]
         Value::DateTime(_) | Value::Duration(_) => {
             interp.push(value.clone());
             Ok(())

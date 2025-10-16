@@ -1,11 +1,13 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
+use crate::compat::ToString;
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 use num_bigint::BigInt;
+#[cfg(feature = "complex_numbers")]
 use num_complex::Complex64;
 use num_rational::BigRational;
-use num_traits::ToPrimitive;
+use num_traits::{ToPrimitive, Float};
 
 // RUST CONCEPT: Polymorphic multiplication - multiple numeric types
 // Stack-based multiplication: ( n1 n2 -- product )
@@ -44,6 +46,7 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
 
         // Complex * Complex
+        #[cfg(feature = "complex_numbers")]
         (Value::Complex(c1), Value::Complex(c2)) => {
             interp.push(Value::Complex(c1 * c2));
         }
@@ -78,6 +81,7 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
 
         // Int32 * Complex
+        #[cfg(feature = "complex_numbers")]
         (Value::Int32(i32_val), Value::Complex(c)) | (Value::Complex(c), Value::Int32(i32_val)) => {
             interp.push(Value::Complex(Complex64::new(*i32_val as f64, 0.0) * c));
         }
@@ -108,6 +112,7 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
 
         // Float * Complex
+        #[cfg(feature = "complex_numbers")]
         (Value::Number(n), Value::Complex(c)) | (Value::Complex(c), Value::Number(n)) => {
             interp.push(Value::Complex(Complex64::new(*n, 0.0) * c));
         }
@@ -120,12 +125,14 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
 
         // Integer * Complex
+        #[cfg(feature = "complex_numbers")]
         (Value::Integer(i), Value::Complex(c)) | (Value::Complex(c), Value::Integer(i)) => {
             let i_float = i.to_f64().unwrap_or(f64::INFINITY);
             interp.push(Value::Complex(Complex64::new(i_float, 0.0) * c));
         }
 
         // Rational * Complex
+        #[cfg(feature = "complex_numbers")]
         (Value::Rational(r), Value::Complex(c)) | (Value::Complex(c), Value::Rational(r)) => {
             let r_float = rational_to_float(r);
             interp.push(Value::Complex(Complex64::new(r_float, 0.0) * c));
@@ -139,6 +146,7 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
 
         // GaussianInt * Float -> Complex64 (promote)
+        #[cfg(feature = "complex_numbers")]
         (Value::GaussianInt(re, im), Value::Number(n))
         | (Value::Number(n), Value::GaussianInt(re, im)) => {
             let re_float = re.to_f64().unwrap_or(f64::INFINITY);
@@ -149,6 +157,7 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
 
         // GaussianInt * Rational -> Complex64 (promote)
+        #[cfg(feature = "complex_numbers")]
         (Value::GaussianInt(re, im), Value::Rational(r))
         | (Value::Rational(r), Value::GaussianInt(re, im)) => {
             let re_float = re.to_f64().unwrap_or(f64::INFINITY);
@@ -160,6 +169,7 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
 
         // GaussianInt * Complex -> Complex64
+        #[cfg(feature = "complex_numbers")]
         (Value::GaussianInt(re, im), Value::Complex(c))
         | (Value::Complex(c), Value::GaussianInt(re, im)) => {
             let re_float = re.to_f64().unwrap_or(f64::INFINITY);

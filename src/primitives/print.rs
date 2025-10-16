@@ -1,5 +1,6 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
+use crate::compat::format;
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 
@@ -10,16 +11,19 @@ pub fn print_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let value = interp.pop()?;
 
     // RUST CONCEPT: User-friendly printing - strings without quotes for readability
-    match &value {
+    let output = match &value {
         Value::String(s) => {
             // For pr primitive, show strings without quotes for user output
-            println!("{}", s);
+            format!("{}", s)
         }
         _ => {
             // For non-strings, use the standard Display format (with quotes for strings in data structures)
-            println!("{}", value);
+            format!("{}", value)
         }
-    }
+    };
+
+    // Write to terminal if available (silently succeeds if no terminal)
+    let _ = interp.writeln(&output);
 
     Ok(())
 }

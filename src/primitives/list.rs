@@ -1,7 +1,9 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
+use crate::compat::{ToString, Vec};
 use crate::interpreter::Interpreter;
 use crate::value::RuntimeError;
+use num_traits::Float;
 
 // RUST CONCEPT: List construction from multiple stack elements
 // Stack-based list: ( element1 element2 ... elementN count -- list )

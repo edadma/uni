@@ -1,6 +1,6 @@
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
-use std::rc::Rc;
+use crate::compat::Rc;
 
 pub fn type_of_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let value = interp.pop()?;

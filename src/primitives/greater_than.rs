@@ -1,3 +1,4 @@
+use crate::compat::format;
 use crate::interpreter::Interpreter;
 use crate::primitives::numeric_promotion::promote_pair;
 use crate::value::{RuntimeError, Value};

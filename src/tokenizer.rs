@@ -1,5 +1,5 @@
 // Temporary new tokenizer implementation with complete position tracking
-use std::fmt;
+use crate::compat::{fmt, format, String, ToString, Vec};
 
 // RUST CONCEPT: Source position for rich error messages
 #[derive(Debug, Clone, PartialEq)]
@@ -50,6 +50,7 @@ pub enum TokenKind {
     BigInt(String),        // Explicit BigInt with 'n' suffix (e.g., 123n)
     Rational(String, String), // Rational literal (e.g., 3/4 -> ("3", "4"))
     GaussianInt(String, String), // Gaussian integer (e.g., 3+4i -> ("3", "4"))
+    #[cfg(feature = "complex_numbers")]
     Complex(String, String),     // Complex float (e.g., 3.0+4.0i -> ("3.0", "4.0"))
     Atom(String),
     String(String), // Quoted strings - not interned
@@ -70,6 +71,7 @@ impl fmt::Display for TokenKind {
             TokenKind::BigInt(s) => write!(f, "{}n", s),
             TokenKind::Rational(n, d) => write!(f, "{}/{}", n, d),
             TokenKind::GaussianInt(re, im) => write!(f, "{}+{}i", re, im),
+            #[cfg(feature = "complex_numbers")]
             TokenKind::Complex(re, im) => write!(f, "{}+{}i", re, im),
             TokenKind::Atom(s) => write!(f, "{}", s),
             TokenKind::String(s) => write!(f, "\"{}\"", s),
@@ -149,6 +151,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                 }
 
                 // Check if either part is a float (Complex)
+                #[cfg(feature = "complex_numbers")]
                 if real_part.parse::<f64>().is_ok() && imag_part.parse::<f64>().is_ok() {
                     return TokenKind::Complex(real_part.to_string(), imag_part.to_string());
                 }
@@ -159,7 +162,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                     return TokenKind::GaussianInt("0".to_string(), num_part.to_string());
                 }
                 // Try float
-                else if num_part.parse::<f64>().is_ok() {
+                #[cfg(feature = "complex_numbers")]
+                if num_part.parse::<f64>().is_ok() {
                     return TokenKind::Complex("0".to_string(), num_part.to_string());
                 }
             }

@@ -1,5 +1,6 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
+use crate::compat::format;
 use crate::interpreter::Interpreter;
 use crate::primitives::numeric_promotion::promote_pair;
 use crate::value::{RuntimeError, Value};

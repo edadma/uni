@@ -1,8 +1,13 @@
+use crate::compat::{Rc, String, Vec, Box, ToString};
 use crate::tokenizer::SourcePos;
 use crate::value::{RuntimeError, Value};
-use num_traits::Zero;
+use num_traits::{Zero, Float};
+use editline::Terminal;
+
+#[cfg(not(target_os = "none"))]
 use std::collections::HashMap;
-use std::rc::Rc;
+#[cfg(target_os = "none")]
+use alloc::collections::BTreeMap as HashMap;
 
 // RUST CONCEPT: Dictionary entry with metadata
 // Each entry contains the value and a flag indicating execution behavior
@@ -20,6 +25,7 @@ pub struct Interpreter {
     pub atoms: HashMap<String, Rc<str>>,
     pub current_pos: Option<SourcePos>, // Track current execution position for error messages
     pending_doc_target: Option<Rc<str>>, // Remember most recent definition for doc
+    terminal: Option<Box<dyn Terminal>>, // Optional terminal for output (REPL mode)
 }
 
 impl Interpreter {
@@ -31,6 +37,7 @@ impl Interpreter {
             atoms: HashMap::new(),
             current_pos: None, // No position initially
             pending_doc_target: None,
+            terminal: None, // No terminal by default (for file execution, tests)
         };
 
         // RUST CONCEPT: Automatic initialization
@@ -122,7 +129,15 @@ impl Interpreter {
     }
 
     pub fn make_array(&self, items: Vec<Value>) -> Value {
-        Value::Array(Rc::new(std::cell::RefCell::new(items)))
+        #[cfg(not(target_os = "none"))]
+        {
+            Value::Array(Rc::new(std::cell::RefCell::new(items)))
+        }
+        #[cfg(target_os = "none")]
+        {
+            use core::cell::RefCell;
+            Value::Array(Rc::new(RefCell::new(items)))
+        }
     }
 
     pub fn is_null(&self, value: &Value) -> bool {
@@ -139,6 +154,7 @@ impl Interpreter {
             Value::Integer(i) => !i.is_zero(), // 0n is falsy, non-zero is truthy
             Value::Rational(r) => !r.is_zero(), // 0/1 is falsy, non-zero is truthy
             Value::GaussianInt(re, im) => !re.is_zero() || !im.is_zero(), // 0+0i is falsy
+            #[cfg(feature = "complex_numbers")]
             Value::Complex(c) => c.re != 0.0 || c.im != 0.0, // 0+0i is falsy
             Value::String(s) => !s.is_empty(), // "" is falsy, non-empty is truthy (like JS)
             Value::Atom(_) => true,            // atoms are truthy
@@ -148,7 +164,9 @@ impl Interpreter {
             Value::Builtin(_) => true,         // builtins are truthy
             Value::Record { .. } => true,      // records are truthy
             Value::RecordType { .. } => true,  // record types are truthy
+            #[cfg(feature = "datetime")]
             Value::DateTime(_) => true,        // datetimes are truthy
+            #[cfg(feature = "datetime")]
             Value::Duration(_) => true,        // durations are truthy
         }
     }
@@ -190,6 +208,29 @@ impl Interpreter {
         } else {
             self.stack.pop().ok_or(RuntimeError::StackUnderflow)
         }
+    }
+
+    // Terminal management for output (used by print/help builtins)
+    pub fn set_terminal(&mut self, terminal: Box<dyn Terminal>) {
+        self.terminal = Some(terminal);
+    }
+
+    pub fn has_terminal(&self) -> bool {
+        self.terminal.is_some()
+    }
+
+    // Write a line to the terminal if available
+    pub fn writeln(&mut self, text: &str) -> editline::Result<()> {
+        if let Some(terminal) = &mut self.terminal {
+            terminal.write(text.as_bytes())?;
+            // Use platform-appropriate line ending
+            #[cfg(not(target_os = "none"))]
+            terminal.write(b"\n")?;
+            #[cfg(target_os = "none")]
+            terminal.write(b"\r\n")?;
+            terminal.flush()?;
+        }
+        Ok(())
     }
 }
 

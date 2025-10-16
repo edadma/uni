@@ -972,6 +972,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_int32_with_complex_from_float() {
         // Test Int32 + Complex (from float imaginary)
         let code = "5 3.0 i * +";  // 5 + 3.0i = 5+3i (Complex64)

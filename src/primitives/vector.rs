@@ -1,9 +1,14 @@
 // RUST CONCEPT: Vector (array) primitives inspired by Scheme vectors
 // Provides dense, indexed collections alongside existing list structures
+use crate::compat::{format, Rc, ToString, Vec};
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
+use num_traits::Float;
+
+#[cfg(not(target_os = "none"))]
 use std::cell::RefCell;
-use std::rc::Rc;
+#[cfg(target_os = "none")]
+use core::cell::RefCell;
 
 fn expect_array(value: Value, op_name: &str) -> Result<Rc<RefCell<Vec<Value>>>, RuntimeError> {
     match value {

@@ -1,11 +1,19 @@
+use crate::compat::{Rc, String, Vec, fmt};
 use crate::tokenizer::SourcePos;
+
+#[cfg(feature = "datetime")]
 use chrono::{DateTime, Duration as ChronoDuration, FixedOffset};
+
+#[cfg(not(target_os = "none"))]
+use std::cell::RefCell;
+#[cfg(target_os = "none")]
+use core::cell::RefCell;
+
 use num_bigint::BigInt;
+#[cfg(feature = "complex_numbers")]
 use num_complex::Complex64;
 use num_rational::BigRational;
 use num_traits::{One, Zero};
-use std::cell::RefCell;
-use std::rc::Rc;
 
 // RUST CONCEPT: Using the num ecosystem for arbitrary precision and special number types
 // BigInt: Arbitrary precision integers (unlimited size)
@@ -20,6 +28,7 @@ pub enum Value {
     Integer(BigInt),                // Arbitrary precision integer
     Rational(BigRational),          // Exact rational number (fraction)
     GaussianInt(BigInt, BigInt),    // Gaussian integer (real, imaginary) - both integers
+    #[cfg(feature = "complex_numbers")]
     Complex(Complex64),             // Complex number (a + bi) - floating point components
     Atom(Rc<str>),                  // Interned atoms for efficiency
     QuotedAtom(Rc<str>),            // Quoted atoms - push without executing
@@ -46,14 +55,16 @@ pub enum Value {
         type_name: Rc<str>,
         field_names: Rc<Vec<Rc<str>>>,
     },
-    // RUST CONCEPT: Date/time support using chrono
+    // RUST CONCEPT: Date/time support using chrono (only with datetime feature)
     // DateTime stores an instant in time with timezone offset information
     // Uses DateTime<FixedOffset> which can represent any timezone
     // The offset is stored alongside the instant (e.g., "-05:00", "+00:00")
+    #[cfg(feature = "datetime")]
     DateTime(DateTime<FixedOffset>),
     // RUST CONCEPT: Duration represents a time span
     // Can be positive (future) or negative (past)
     // Supports days, hours, minutes, seconds, milliseconds, etc.
+    #[cfg(feature = "datetime")]
     Duration(ChronoDuration),
 }
 
@@ -67,6 +78,7 @@ impl Value {
             Value::Integer(_) => "integer",
             Value::Rational(_) => "rational",
             Value::GaussianInt(_, _) => "gaussian",
+            #[cfg(feature = "complex_numbers")]
             Value::Complex(_) => "complex",
             Value::Atom(_) => "atom",
             Value::QuotedAtom(_) => "quoted-atom",
@@ -79,7 +91,9 @@ impl Value {
             Value::Builtin(_) => "builtin",
             Value::Record { .. } => "record",
             Value::RecordType { .. } => "record-type",
+            #[cfg(feature = "datetime")]
             Value::DateTime(_) => "datetime",
+            #[cfg(feature = "datetime")]
             Value::Duration(_) => "duration",
         }
     }
@@ -155,8 +169,8 @@ pub enum RuntimeError {
 
 // RUST CONCEPT: Implementing traits for custom error types
 // The Display trait allows us to convert errors to strings
-impl std::fmt::Display for RuntimeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RuntimeError::StackUnderflow => write!(f, "Stack underflow"),
             RuntimeError::StackUnderflowAt { pos, context } => {
@@ -177,8 +191,8 @@ impl std::fmt::Display for RuntimeError {
 
 // RUST CONCEPT: Implementing Display for Value types
 // This is the "data display" mode - strings WITH quotes for data structures
-impl std::fmt::Display for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Value::Number(n) => write!(f, "{}", n),
             Value::Int32(i) => write!(f, "{}", i),
@@ -213,6 +227,7 @@ impl std::fmt::Display for Value {
                 }
             }
             // RUST CONCEPT: Complex64 displays as "a+bi" format with floating point
+            #[cfg(feature = "complex_numbers")]
             Value::Complex(c) => {
                 // Custom formatting for complex numbers
                 if c.im >= 0.0 {
@@ -284,9 +299,11 @@ impl std::fmt::Display for Value {
             // RUST CONCEPT: Display for datetime values
             // Uses chrono's RFC3339 format (ISO 8601 with timezone)
             // Example: "2025-10-01T14:30:00-05:00"
+            #[cfg(feature = "datetime")]
             Value::DateTime(dt) => write!(f, "#<datetime:{}>", dt.to_rfc3339()),
             // RUST CONCEPT: Display for duration values
             // Shows duration in a human-readable format
+            #[cfg(feature = "datetime")]
             Value::Duration(d) => {
                 // Convert to total seconds for display
                 let total_secs = d.num_seconds();

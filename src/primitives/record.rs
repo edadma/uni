@@ -2,10 +2,15 @@
 // This module implements record types similar to R7RS Scheme's define-record-type
 // Records are named product types with labeled fields
 
+use crate::compat::{format, Rc, ToString, Vec};
 use crate::interpreter::{DictEntry, Interpreter};
 use crate::value::{RuntimeError, Value};
+use num_traits::Float;
+
+#[cfg(not(target_os = "none"))]
 use std::cell::RefCell;
-use std::rc::Rc;
+#[cfg(target_os = "none")]
+use core::cell::RefCell;
 
 // RUST CONCEPT: make-record-type builtin
 // Creates a record type and defines constructor, predicate, accessors, and mutators

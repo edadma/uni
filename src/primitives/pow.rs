@@ -1,5 +1,7 @@
+use crate::compat::ToString;
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
+use num_traits::Float;
 
 pub fn pow_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let exponent = interp.pop_number()?;

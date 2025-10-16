@@ -1,5 +1,6 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
+use crate::compat::format;
 use crate::interpreter::Interpreter;
 use crate::primitives::numeric_promotion::promote_pair;
 use crate::value::{RuntimeError, Value};
@@ -47,6 +48,7 @@ pub fn div_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
                 result.demote()
             }
             (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 / n2),
+            #[cfg(feature = "complex_numbers")]
             (Value::Complex(c1), Value::Complex(c2)) => Value::Complex(c1 / c2),
             _ => {
                 return Err(RuntimeError::TypeError(format!(
@@ -463,6 +465,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_div_complex_numbers() {
         use num_complex::Complex64;
 

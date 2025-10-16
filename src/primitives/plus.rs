@@ -1,5 +1,6 @@
 // RUST CONCEPT: Modular primitive organization
 // Each primitive gets its own file with implementation and tests
+use crate::compat::{format, ToString};
 use crate::interpreter::Interpreter;
 use crate::primitives::numeric_promotion::promote_pair;
 use crate::value::{RuntimeError, Value};
@@ -49,6 +50,7 @@ pub fn add_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => {
             Value::GaussianInt(re1 + re2, im1 + im2).demote()
         }
+        #[cfg(feature = "complex_numbers")]
         (Value::Complex(c1), Value::Complex(c2)) => Value::Complex(c1 + c2),
         _ => {
             return Err(RuntimeError::TypeError(format!(
@@ -286,6 +288,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_complex() {
         use num_complex::Complex64;
         let mut interp = setup_interpreter();
@@ -354,6 +357,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_mixed_float_complex() {
         use num_complex::Complex64;
         let mut interp = setup_interpreter();
@@ -384,6 +388,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_mixed_bigint_complex() {
         use num_bigint::BigInt;
         use num_complex::Complex64;
@@ -399,6 +404,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_mixed_rational_complex() {
         use num_bigint::BigInt;
         use num_complex::Complex64;
@@ -531,6 +537,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_complex_zero() {
         use num_complex::Complex64;
         let mut interp = setup_interpreter();
@@ -555,6 +562,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_complex_negative() {
         use num_complex::Complex64;
         let mut interp = setup_interpreter();
@@ -585,6 +593,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_complex_pure_real() {
         use num_complex::Complex64;
         let mut interp = setup_interpreter();
@@ -603,6 +612,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_complex_pure_imaginary() {
         use num_complex::Complex64;
         let mut interp = setup_interpreter();
@@ -636,6 +646,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_mixed_types_commutativity() {
         use num_bigint::BigInt;
         use num_complex::Complex64;
@@ -660,6 +671,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_type_error_with_new_types() {
         let mut interp = setup_interpreter();
 
@@ -841,6 +853,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_with_float_promotes_to_complex() {
         use num_bigint::BigInt;
         use num_complex::Complex64;
@@ -864,6 +877,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_with_rational_promotes_to_complex() {
         use num_bigint::BigInt;
         use num_complex::Complex64;
@@ -888,6 +902,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_with_complex() {
         use num_bigint::BigInt;
         use num_complex::Complex64;
