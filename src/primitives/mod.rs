@@ -4,13 +4,11 @@
 // Basic arithmetic operations
 pub mod divide;
 pub mod equals;
-#[cfg(feature = "advanced_math")]
 pub mod floor_div;
 pub mod minus;
 pub mod modulo;
 pub mod multiply;
 pub mod plus;
-#[cfg(feature = "advanced_math")]
 pub mod trunc_div;
 
 // Comparison operations
@@ -118,13 +116,11 @@ pub mod hardware;
 // Basic arithmetic
 pub use divide::div_builtin;
 pub use equals::eq_builtin;
-#[cfg(feature = "advanced_math")]
 pub use floor_div::floor_div_builtin;
 pub use minus::sub_builtin;
 pub use modulo::mod_builtin;
 pub use multiply::mul_builtin;
 pub use plus::add_builtin;
-#[cfg(feature = "advanced_math")]
 pub use trunc_div::trunc_div_builtin;
 
 // Comparison operations
