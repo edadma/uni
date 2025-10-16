@@ -112,6 +112,21 @@ pub fn load_prelude(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // This uses the normal execution path - no special handling needed
     execute_string(prelude_code, interp)?;
 
+    // RUST CONCEPT: Conditional compilation for platform-specific prelude
+    // Hardware convenience wrappers for micro:bit
+    #[cfg(target_os = "none")]
+    {
+        let hardware_prelude = r#"
+            \\ Hardware convenience wrappers (micro:bit only)
+            'button-a? [0 button-read] def
+            "( -- bool ) Read button A state (true = pressed)" doc
+
+            'button-b? [1 button-read] def
+            "( -- bool ) Read button B state (true = pressed)" doc
+        "#;
+        execute_string(hardware_prelude, interp)?;
+    }
+
     Ok(())
 }
 

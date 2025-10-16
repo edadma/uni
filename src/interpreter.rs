@@ -7,6 +7,9 @@ use editline::Terminal;
 #[cfg(target_os = "none")]
 use num_traits::Float;
 
+#[cfg(target_os = "none")]
+extern crate microbit;
+
 #[cfg(not(target_os = "none"))]
 use std::collections::HashMap;
 #[cfg(target_os = "none")]
@@ -29,6 +32,13 @@ pub struct Interpreter {
     pub current_pos: Option<SourcePos>, // Track current execution position for error messages
     pending_doc_target: Option<Rc<str>>, // Remember most recent definition for doc
     terminal: Option<Box<dyn Terminal>>, // Optional terminal for output (REPL mode)
+
+    // Hardware peripherals (micro:bit only)
+    #[cfg(target_os = "none")]
+    pub buttons: Option<microbit::board::Buttons>,
+    // TODO: Add display_pins once we determine the correct type
+    // #[cfg(target_os = "none")]
+    // pub display_pins: Option<???>,
 }
 
 impl Interpreter {
@@ -41,6 +51,10 @@ impl Interpreter {
             current_pos: None, // No position initially
             pending_doc_target: None,
             terminal: None, // No terminal by default (for file execution, tests)
+
+            // Hardware peripherals start as None, set by main() on micro:bit
+            #[cfg(target_os = "none")]
+            buttons: None,
         };
 
         // RUST CONCEPT: Automatic initialization

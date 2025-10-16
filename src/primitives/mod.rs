@@ -110,6 +110,9 @@ pub mod type_of;
 // Numeric type promotion
 pub mod numeric_promotion;
 
+// Hardware operations (micro:bit)
+pub mod hardware;
+
 // Re-export all builtin functions for easy access
 
 // Basic arithmetic
@@ -281,6 +284,10 @@ pub use truthy::truthy_predicate_builtin;
 
 // Type introspection
 pub use type_of::type_of_builtin;
+
+// Hardware operations
+#[cfg(target_os = "none")]
+pub use hardware::button_read_builtin;
 
 // RUST CONCEPT: Module-level documentation
 // This explains the organization strategy for the primitives

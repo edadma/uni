@@ -1,0 +1,1 @@
+cargo run --release --no-default-features --features std,advanced_math,complex_numbers

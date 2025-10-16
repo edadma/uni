@@ -86,8 +86,6 @@ use editline::terminals::StdioTerminal;
 use std::env;
 
 #[cfg(target_os = "none")]
-use editline::terminals::microbit::from_board;
-#[cfg(target_os = "none")]
 use cortex_m_rt::entry;
 #[cfg(target_os = "none")]
 use panic_halt as _;
@@ -395,12 +393,11 @@ fn execute_repl_line<T: Terminal>(terminal: &mut T, line: &str, interp: &mut Int
 
     match execute_string(line, interp) {
         Ok(()) => {
-            if !interp.stack.is_empty() {
-                if let Some(top) = interp.stack.last() {
+            if !interp.stack.is_empty()
+                && let Some(top) = interp.stack.last() {
                     let msg = format!(" => {} : {}", top, top.type_name());
                     let _ = write_line(terminal, &msg);
                 }
-            }
         }
         Err(e) => {
             let msg = format!("Error: {:?}", e);
@@ -454,11 +451,30 @@ fn print_words<T: Terminal>(terminal: &mut T, interp: &Interpreter) {
 // Micro:bit REPL function
 #[cfg(target_os = "none")]
 fn run_repl() -> ! {
+    use editline::terminals::microbit::{Baudrate, Parity, Uarte, UarteTerminal};
+
     let board = editline::terminals::microbit::Board::take().unwrap();
-    let terminal = from_board(board);
+
+    // Extract peripherals we need BEFORE creating terminal
+    // This way we keep access to buttons, display, etc.
+    let buttons = board.buttons;
+    // TODO: Extract display_pins once we determine the correct type
+
+    // Manually create UART terminal (instead of using from_board)
+    // This is what from_board() does internally
+    let serial = Uarte::new(
+        board.UARTE0,
+        board.uart.into(),
+        Parity::EXCLUDED,
+        Baudrate::BAUD115200,
+    );
+    let terminal = UarteTerminal::new(serial);
 
     let mut editor = LineEditor::new(1024, 20);
     let mut interp = Interpreter::new();
+
+    // Give the interpreter access to hardware peripherals
+    interp.buttons = Some(buttons);
 
     // Run the shared REPL loop
     run_repl_loop(&mut editor, terminal, &mut interp);

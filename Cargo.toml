@@ -8,7 +8,7 @@ name = "uni"
 path = "src/main.rs"
 
 [dependencies]
-editline = { version = "0.0.13", default-features = false }
+editline = { version = "0.0.16", default-features = false }
 num-bigint = { version = "0.4", default-features = false }
 num-rational = { version = "0.4", default-features = false, features = ["num-bigint"] }
 num-complex = { version = "0.4", default-features = false, optional = true }
@@ -23,7 +23,9 @@ advanced_math = []  # Trig, exp/log, rounding, advanced division
 complex_numbers = ["num-complex"]  # Complex and Gaussian integer support
 
 [target.'cfg(target_os = "none")'.dependencies]
-editline = { version = "0.0.13", features = ["microbit"], default-features = false }
+editline = { version = "0.0.16", features = ["microbit"], default-features = false }
+microbit = { package = "microbit-v2", version = "0.15" }
+embedded-hal = "1.0"
 cortex-m = "0.7"
 cortex-m-rt = "0.7"
 panic-halt = "0.2"

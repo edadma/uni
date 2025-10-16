@@ -100,6 +100,10 @@ use crate::primitives::{
     to_local_builtin, to_utc_builtin, weekday_builtin, year_builtin,
 };
 
+// Hardware operations (only on micro:bit)
+#[cfg(target_os = "none")]
+use crate::primitives::button_read_builtin;
+
 // RUST CONCEPT: Registering all builtins with the interpreter
 pub fn register_builtins(interp: &mut Interpreter) {
     use crate::interpreter::DictEntry;
@@ -307,6 +311,22 @@ pub fn register_builtins(interp: &mut Interpreter) {
             )),
         },
     );
+
+    // Hardware operations (micro:bit only)
+    #[cfg(target_os = "none")]
+    {
+    let button_read_atom = interp.intern_atom("button-read");
+    interp.dictionary.insert(
+        button_read_atom,
+        DictEntry {
+            value: Value::Builtin(button_read_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Read button state on micro:bit.\nUsage: button-id button-read => boolean\nExample: 0 button-read => true (button A pressed)\n0=A, 1=B",
+            )),
+        },
+    );
+    }
 
     // String operations
     let to_string_atom = interp.intern_atom("->string");
