@@ -3,6 +3,8 @@
 use crate::compat::{ToString, Vec};
 use crate::interpreter::Interpreter;
 use crate::value::RuntimeError;
+
+#[cfg(target_os = "none")]
 use num_traits::Float;
 
 // RUST CONCEPT: List construction from multiple stack elements

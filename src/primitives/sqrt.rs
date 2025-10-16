@@ -1,6 +1,5 @@
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
-use num_traits::Float;
 use crate::compat::ToString;
 
 pub fn sqrt_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {

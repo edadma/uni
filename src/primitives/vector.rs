@@ -3,12 +3,14 @@
 use crate::compat::{format, Rc, ToString, Vec};
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
-use num_traits::Float;
 
 #[cfg(not(target_os = "none"))]
 use std::cell::RefCell;
 #[cfg(target_os = "none")]
 use core::cell::RefCell;
+
+#[cfg(target_os = "none")]
+use num_traits::Float;
 
 fn expect_array(value: Value, op_name: &str) -> Result<Rc<RefCell<Vec<Value>>>, RuntimeError> {
     match value {

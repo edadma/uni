@@ -1,8 +1,11 @@
 use crate::compat::{Rc, String, Vec, Box, ToString};
 use crate::tokenizer::SourcePos;
 use crate::value::{RuntimeError, Value};
-use num_traits::{Zero, Float};
+use num_traits::Zero;
 use editline::Terminal;
+
+#[cfg(target_os = "none")]
+use num_traits::Float;
 
 #[cfg(not(target_os = "none"))]
 use std::collections::HashMap;
@@ -215,6 +218,7 @@ impl Interpreter {
         self.terminal = Some(terminal);
     }
 
+    #[allow(dead_code)]
     pub fn has_terminal(&self) -> bool {
         self.terminal.is_some()
     }

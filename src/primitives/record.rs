@@ -5,12 +5,14 @@
 use crate::compat::{format, Rc, ToString, Vec};
 use crate::interpreter::{DictEntry, Interpreter};
 use crate::value::{RuntimeError, Value};
-use num_traits::Float;
 
 #[cfg(not(target_os = "none"))]
 use std::cell::RefCell;
 #[cfg(target_os = "none")]
 use core::cell::RefCell;
+
+#[cfg(target_os = "none")]
+use num_traits::Float;
 
 // RUST CONCEPT: make-record-type builtin
 // Creates a record type and defines constructor, predicate, accessors, and mutators

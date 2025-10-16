@@ -7,7 +7,11 @@ use num_bigint::BigInt;
 #[cfg(feature = "complex_numbers")]
 use num_complex::Complex64;
 use num_rational::BigRational;
-use num_traits::{ToPrimitive, Float};
+#[cfg(feature = "complex_numbers")]
+use num_traits::ToPrimitive;
+
+#[cfg(target_os = "none")]
+use num_traits::Float;
 
 // RUST CONCEPT: Polymorphic multiplication - multiple numeric types
 // Stack-based multiplication: ( n1 n2 -- product )
@@ -206,6 +210,7 @@ fn float_to_rational(f: f64) -> BigRational {
 }
 
 // Helper function to convert BigRational to f64
+#[cfg(feature = "complex_numbers")]
 fn rational_to_float(r: &BigRational) -> f64 {
     let numer = r.numer().to_f64().unwrap_or(0.0);
     let denom = r.denom().to_f64().unwrap_or(1.0);

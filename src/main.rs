@@ -18,6 +18,8 @@ mod value;
 use compat::{String, Vec, format, Rc, Box};
 use interpreter::Interpreter;
 use editline::{LineEditor, Terminal};
+
+#[cfg(not(target_os = "none"))]
 use value::RuntimeError;
 
 #[cfg(not(target_os = "none"))]

@@ -11,7 +11,6 @@ pub use std::{
     format,
     rc::Rc,
     string::{String, ToString},
-    vec,
     vec::Vec,
 };
 
@@ -21,7 +20,6 @@ pub use self::alloc::{
     format,
     rc::Rc,
     string::{String, ToString},
-    vec,
     vec::Vec,
 };
 

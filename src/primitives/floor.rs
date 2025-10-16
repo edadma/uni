@@ -1,6 +1,5 @@
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
-use num_traits::Float;
 
 pub fn floor_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let n = interp.pop_number()?;

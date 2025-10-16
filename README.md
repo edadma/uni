@@ -9,10 +9,65 @@ A homoiconic stack-based programming language that unifies code and data, featur
 git clone https://github.com/edadma/uni.git
 cd uni
 
-# Build and run
-cargo build --release
+# Build and run (Linux/macOS/Windows)
+cargo build --release --no-default-features --features std,advanced_math,complex_numbers
 ./target/release/uni
 ```
+
+## Platform Support
+
+Uni runs on desktop platforms (Linux, macOS, Windows) and embedded systems (micro:bit v2).
+
+### Desktop (Linux/macOS/Windows)
+
+**Build:**
+```bash
+cargo build --release --no-default-features --features std,advanced_math,complex_numbers
+```
+
+**Run REPL:**
+```bash
+cargo run --release --no-default-features --features std,advanced_math,complex_numbers
+```
+
+**Run a file:**
+```bash
+./target/release/uni examples/fibonacci.uni
+```
+
+**Available features:**
+- `std` - Standard library support (required for desktop)
+- `advanced_math` - Trigonometric functions, exp/log, rounding
+- `complex_numbers` - Complex number support
+
+### Embedded (micro:bit v2)
+
+**Prerequisites:**
+- Rust nightly toolchain: `rustup toolchain install nightly`
+- probe-rs: `cargo install probe-rs-tools --locked`
+- micro:bit v2 board with USB cable
+
+**Build and flash:**
+```bash
+cargo +nightly run --release --target thumbv7em-none-eabihf --no-default-features -Z build-std=core,alloc
+```
+
+This will compile Uni for the ARM Cortex-M4 processor, build the core library from source, and automatically flash it to your micro:bit using probe-rs.
+
+**Build only (no flash):**
+```bash
+cargo +nightly build --release --target thumbv7em-none-eabihf --no-default-features -Z build-std=core,alloc
+```
+
+**Binary size:** ~509KB (fits in micro:bit's 512KB flash)
+**Heap size:** ~112KB (out of 128KB RAM)
+
+**Features on micro:bit:**
+- Interactive REPL over USB serial (115200 baud)
+- Full line editing with history (20 entries)
+- All core language features
+- Exact arithmetic with arbitrary-precision integers and rationals
+- Limited to essential features (no datetime, complex numbers optional)
 
 ## Language Overview
 
