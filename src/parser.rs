@@ -32,7 +32,7 @@ pub enum ParseError {
     UnexpectedToken(String), // Got a token we didn't expect
     UnexpectedEndOfInput,    // Ran out of tokens when we needed more
     MismatchedBrackets,      // [ without matching ] or vice versa
-    InvalidDotNotation,      // Malformed [a . b] pair syntax
+    InvalidPipeNotation,      // Malformed [a | b] pair syntax
     InvalidNumber(String),   // Number literal that failed to parse
 }
 
@@ -44,7 +44,7 @@ impl crate::compat::fmt::Display for ParseError {
             ParseError::UnexpectedToken(msg) => write!(f, "{}", msg),
             ParseError::UnexpectedEndOfInput => write!(f, "Unexpected end of input"),
             ParseError::MismatchedBrackets => write!(f, "Mismatched brackets"),
-            ParseError::InvalidDotNotation => write!(f, "Invalid dot notation"),
+            ParseError::InvalidPipeNotation => write!(f, "Invalid pipe notation"),
             ParseError::InvalidNumber(msg) => write!(f, "{}", msg),
         }
     }
@@ -332,10 +332,10 @@ fn parse_value(
             }
         }
 
-        Some(token) if matches!(token.kind, TokenKind::Dot) => {
+        Some(token) if matches!(token.kind, TokenKind::Pipe) => {
             // RUST CONCEPT: Error handling
-            // A dot by itself is invalid - it should only appear in [a . b] notation
-            Err(ParseError::InvalidDotNotation)
+            // A pipe by itself is invalid - it should only appear in [a | b] notation
+            Err(ParseError::InvalidPipeNotation)
         }
 
         Some(token) if matches!(token.kind, TokenKind::RightBracket) => {
@@ -385,26 +385,26 @@ fn parse_list(
                 break; // RUST CONCEPT: break exits the loop
             }
 
-            Some(token) if matches!(token.kind, TokenKind::Dot) => {
-                // RUST CONCEPT: Complex parsing - dot notation [a . b]
-                // We need at least one element before the dot, and exactly one after
+            Some(token) if matches!(token.kind, TokenKind::Pipe) => {
+                // RUST CONCEPT: Complex parsing - pipe notation [a | b]
+                // We need at least one element before the pipe, and exactly one after
                 if elements.is_empty() {
-                    return Err(ParseError::InvalidDotNotation);
+                    return Err(ParseError::InvalidPipeNotation);
                 }
 
-                *index += 1; // Skip the dot
+                *index += 1; // Skip the pipe
 
-                // Parse the element after the dot (the "tail" of the cons cell)
+                // Parse the element after the pipe (the "tail" of the cons cell)
                 let tail = parse_value(tokens, index, interp)?;
 
                 // RUST CONCEPT: Expecting specific tokens
-                // After [a . b], we MUST see a closing bracket
+                // After [a | b], we MUST see a closing bracket
                 match tokens.get(*index) {
                     Some(token) if matches!(token.kind, TokenKind::RightBracket) => {
                         *index += 1; // Skip the closing bracket
 
                         // RUST CONCEPT: Building cons cells manually
-                        // [a b c . d] becomes Pair(a, Pair(b, Pair(c, d)))
+                        // [a b c | d] becomes Pair(a, Pair(b, Pair(c, d)))
                         // We build this right-to-left using fold
                         let cons_cell = elements
                             .into_iter()
@@ -438,7 +438,7 @@ fn parse_list(
     }
 
     // RUST CONCEPT: Converting Vec to linked list
-    // If we get here, we have a proper list [1 2 3] without dot notation
+    // If we get here, we have a proper list [1 2 3] without pipe notation
     // Convert the Vec<Value> to a linked list of Pair nodes ending in Nil
     let list = elements
         .into_iter()
@@ -472,9 +472,9 @@ fn parse_array(
                 *index += 1;
                 break;
             }
-            Some(token) if matches!(token.kind, TokenKind::Dot) => {
+            Some(token) if matches!(token.kind, TokenKind::Pipe) => {
                 return Err(ParseError::UnexpectedToken(
-                    "Arrays do not support dot notation".to_string(),
+                    "Arrays do not support pipe notation".to_string(),
                 ));
             }
             None => {
@@ -504,7 +504,7 @@ mod tests {
                 ParseError::UnexpectedToken(msg) => msg.clone(),
                 ParseError::UnexpectedEndOfInput => "Unexpected end of input".to_string(),
                 ParseError::MismatchedBrackets => "Mismatched brackets".to_string(),
-                ParseError::InvalidDotNotation => "Invalid dot notation".to_string(),
+                ParseError::InvalidPipeNotation => "Invalid pipe notation".to_string(),
                 ParseError::InvalidNumber(msg) => msg.clone(),
             }
         }
@@ -668,22 +668,22 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_array_disallows_dot() {
+    fn test_parse_array_disallows_pipe() {
         let mut interp = Interpreter::new();
 
-        let result = parse("#[1 . 2]", &mut interp);
+        let result = parse("#[1 | 2]", &mut interp);
         assert!(matches!(
             result,
-            Err(ParseError::UnexpectedToken(msg)) if msg.contains("Arrays do not support dot notation")
+            Err(ParseError::UnexpectedToken(msg)) if msg.contains("Arrays do not support pipe notation")
         ));
     }
 
     #[test]
-    fn test_parse_dot_notation() {
+    fn test_parse_pipe_notation() {
         let mut interp = Interpreter::new();
 
-        // Test [1 . 2] - a simple cons cell
-        let result = parse("[1 . 2]", &mut interp).unwrap();
+        // Test [1 | 2] - a simple cons cell
+        let result = parse("[1 | 2]", &mut interp).unwrap();
         assert_eq!(result.len(), 1);
 
         match &result[0] {
@@ -694,8 +694,8 @@ mod tests {
             _ => panic!("Expected pair"),
         }
 
-        // Test [1 2 . 3] - multiple elements before dot
-        let result = parse("[1 2 . 3]", &mut interp).unwrap();
+        // Test [1 2 | 3] - multiple elements before pipe
+        let result = parse("[1 2 | 3]", &mut interp).unwrap();
         match &result[0] {
             Value::Pair(car1, cdr1) => {
                 assert!(matches!(**car1, Value::Int32(1)));
@@ -785,12 +785,12 @@ mod tests {
         assert!(parse("[1 2", &mut interp).is_err());
         assert!(parse("1 2]", &mut interp).is_err());
 
-        // Invalid dot notation
-        assert!(parse("[.]", &mut interp).is_err());
-        assert!(parse("[1 . 2 3]", &mut interp).is_err()); // Too many elements after dot
+        // Invalid pipe notation
+        assert!(parse("[|]", &mut interp).is_err());
+        assert!(parse("[1 | 2 3]", &mut interp).is_err()); // Too many elements after pipe
 
-        // Standalone dot
-        assert!(parse("1 . 2", &mut interp).is_err());
+        // Standalone pipe
+        assert!(parse("1 | 2", &mut interp).is_err());
     }
 
     #[test]
@@ -930,7 +930,7 @@ mod tests {
             "  1   2   3  ", // Extra spaces
             "1\n2\t3\r\n4",  // Mixed whitespace
             "[  1   2  ]",   // Spaces in lists
-            "[ 1 . 2 ]",     // Spaces around dot
+            "[ 1 | 2 ]",     // Spaces around pipe
             "'   hello   ",  // Spaces after quote
         ];
 
@@ -967,22 +967,22 @@ mod tests {
 
     #[test]
     #[cfg(feature = "complex_numbers")]
-    fn test_parse_complex_dot_cases() {
+    fn test_parse_complex_pipe_cases() {
         let mut interp = Interpreter::new();
 
         // RUST CONCEPT: Testing edge cases thoroughly
 
-        // Multiple dots should fail
-        assert!(parse("[1 . 2 . 3]", &mut interp).is_err());
+        // Multiple pipes should fail
+        assert!(parse("[1 | 2 | 3]", &mut interp).is_err());
 
-        // Dot at beginning should fail
-        assert!(parse("[. 1]", &mut interp).is_err());
+        // Pipe at beginning should fail
+        assert!(parse("[| 1]", &mut interp).is_err());
 
-        // Multiple elements after dot should fail
-        assert!(parse("[1 . 2 3]", &mut interp).is_err());
+        // Multiple elements after pipe should fail
+        assert!(parse("[1 | 2 3]", &mut interp).is_err());
 
-        // Dot in nested list should work
-        let result = parse("[[1 . 2]]", &mut interp).unwrap();
+        // Pipe in nested list should work
+        let result = parse("[[1 | 2]]", &mut interp).unwrap();
         match &result[0] {
             Value::Pair(inner_list, outer_cdr) => {
                 match inner_list.as_ref() {
@@ -1044,7 +1044,7 @@ mod tests {
         assert!(parse("''hello", &mut interp).is_err());
 
         // Quote followed by other non-atom tokens should also fail
-        assert!(parse("'.", &mut interp).is_err());
+        assert!(parse("'|", &mut interp).is_err());
         assert!(parse("']", &mut interp).is_err());
 
         // But quotes followed by atoms should work perfectly
@@ -1067,8 +1067,8 @@ mod tests {
         let error_cases = [
             ("[1 2", "UnexpectedEndOfInput"),
             ("1 2]", "MismatchedBrackets"),
-            ("[.]", "InvalidDotNotation"),
-            ("1 . 2", "InvalidDotNotation"),
+            ("[|]", "InvalidPipeNotation"),
+            ("1 | 2", "InvalidPipeNotation"),
             ("'[1 2]", "Lists cannot be quoted"),
             ("'\"hello\"", "Strings cannot be quoted"),
             ("'42.0", "Numbers cannot be quoted"),  // Floats cannot be quoted
@@ -1266,8 +1266,8 @@ mod tests {
             "Mismatched brackets"
         );
         assert_eq!(
-            ParseError::InvalidDotNotation.message(),
-            "Invalid dot notation"
+            ParseError::InvalidPipeNotation.message(),
+            "Invalid pipe notation"
         );
 
         // Test that error messages are accessible from parse results

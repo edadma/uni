@@ -206,7 +206,7 @@ fn execute_file(filename: &str) {
         Ok(()) => {
             // File executed successfully
             // For files, we don't automatically print anything (unlike -e flag)
-            // The file should use 'pr' if it wants to print output
+            // The file should use '.' if it wants to print output
         }
         Err(e) => {
             eprintln!("Error executing '{}': {:?}", filename, e);
@@ -294,7 +294,7 @@ fn run_repl_loop<T: Terminal + 'static>(editor: &mut LineEditor, terminal: T, in
     // Wrap terminal in Rc<RefCell<>> for shared access
     let shared = Rc::new(RefCell::new(terminal));
 
-    // Give a clone to the interpreter so primitives like 'pr' can write output
+    // Give a clone to the interpreter so primitives like '.' can write output
     let term_for_interp = SharedTerminal {
         inner: shared.clone(),
     };

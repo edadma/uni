@@ -1,5 +1,5 @@
 // Temporary new tokenizer implementation with complete position tracking
-use crate::compat::{fmt, format, String, ToString, Vec};
+use crate::compat::{fmt, String, ToString, Vec};
 
 // RUST CONCEPT: Source position for rich error messages
 #[derive(Debug, Clone, PartialEq)]
@@ -60,7 +60,7 @@ pub enum TokenKind {
     ArrayLeftBracket,
     RightBracket,
     Quote,
-    Dot, // For cons pair notation like [1 . rest]
+    Pipe, // For cons pair notation like [1 | rest]
 }
 
 impl fmt::Display for TokenKind {
@@ -81,7 +81,7 @@ impl fmt::Display for TokenKind {
             TokenKind::ArrayLeftBracket => write!(f, "#["),
             TokenKind::RightBracket => write!(f, "]"),
             TokenKind::Quote => write!(f, "'"),
-            TokenKind::Dot => write!(f, "."),
+            TokenKind::Pipe => write!(f, "|"),
         }
     }
 }
@@ -211,7 +211,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                     Some(_) => {
                         let mut atom = String::from("#");
                         while let Some(&ch) = chars.peek() {
-                            if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
+                            if ch.is_whitespace() || "[]|\'\"\\\\".contains(ch) {
                                 break;
                             }
                             atom.push(ch);
@@ -267,62 +267,14 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                 // Continue tokenizing after the comment
             }
 
-            '.' => {
+            '|' => {
                 let consumed = chars.next().unwrap();
                 advance_pos(consumed, &mut line, &mut column, &mut offset);
-
-                // Check if it's a standalone dot (for cons notation) or part of a number
-                if chars
-                    .peek()
-                    .is_none_or(|&c| c.is_whitespace() || "[]\'\"\\\\".contains(c))
-                {
-                    tokens.push(Token::new(
-                        TokenKind::Dot,
-                        SourcePos::new(start_line, start_column, start_offset),
-                        SourcePos::new(line, column, offset),
-                    ));
-                } else if chars.peek().is_some_and(|&c| c.is_ascii_digit()) {
-                    // It's a decimal number like .5
-                    let mut num_str = String::from("0.");
-                    while let Some(&ch) = chars.peek() {
-                        if ch.is_ascii_digit() || ch == 'e' || ch == 'E' || ch == '-' || ch == '+' {
-                            num_str.push(ch);
-                            let consumed = chars.next().unwrap();
-                            advance_pos(consumed, &mut line, &mut column, &mut offset);
-                        } else {
-                            break;
-                        }
-                    }
-                    match num_str.parse::<f64>() {
-                        Ok(num) => tokens.push(Token::new(
-                            TokenKind::Number(num),
-                            SourcePos::new(start_line, start_column, start_offset),
-                            SourcePos::new(line, column, offset),
-                        )),
-                        Err(_) => {
-                            return Err(format!(
-                                "Invalid number: {} at line {}, column {}",
-                                num_str, start_line, start_column
-                            ));
-                        }
-                    }
-                } else {
-                    // It's a dot followed by non-digit, treat as atom
-                    let mut atom = String::from(".");
-                    while let Some(&ch) = chars.peek() {
-                        if ch.is_whitespace() || "[]\'\"\\\\".contains(ch) {
-                            break;
-                        }
-                        atom.push(ch);
-                        let consumed = chars.next().unwrap();
-                        advance_pos(consumed, &mut line, &mut column, &mut offset);
-                    }
-                    tokens.push(Token::new(
-                        classify_atom(atom),
-                        SourcePos::new(start_line, start_column, start_offset),
-                        SourcePos::new(line, column, offset),
-                    ));
-                }
+                tokens.push(Token::new(
+                    TokenKind::Pipe,
+                    SourcePos::new(start_line, start_column, start_offset),
+                    SourcePos::new(line, column, offset),
+                ));
             }
 
             '"' => {
@@ -398,7 +350,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                     // Continue collecting as an atom-like string (extended number literal)
                     // Don't break on '.' since we might have decimal complex numbers like "-1.5+2.5i"
                     while let Some(&ch) = chars.peek() {
-                        if ch.is_whitespace() || "[]\'\"\\\\".contains(ch) {
+                        if ch.is_whitespace() || "[]|\'\"\\\\".contains(ch) {
                             break;
                         }
                         num_str.push(ch);
@@ -433,7 +385,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                                 // If it's not a valid number, treat it as an atom
                                 // Continue collecting non-whitespace chars
                                 while let Some(&ch) = chars.peek() {
-                                    if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
+                                    if ch.is_whitespace() || "[]|\'\"\\\\".contains(ch) {
                                         break;
                                     }
                                     num_str.push(ch);
@@ -486,7 +438,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                     // Continue collecting as an atom-like string (extended number literal)
                     // Don't break on '.' since we might have decimal complex numbers like "1.5+2.5i"
                     while let Some(&ch) = chars.peek() {
-                        if ch.is_whitespace() || "[]\'\"\\\\".contains(ch) {
+                        if ch.is_whitespace() || "[]|\'\"\\\\".contains(ch) {
                             break;
                         }
                         num_str.push(ch);
@@ -522,7 +474,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                                 // If it's not a valid number, treat it as an atom
                                 // Continue collecting non-whitespace chars
                                 while let Some(&ch) = chars.peek() {
-                                    if ch.is_whitespace() || "[].\'\"\\\\".contains(ch) {
+                                    if ch.is_whitespace() || "[]|\'\"\\\\".contains(ch) {
                                         break;
                                     }
                                     num_str.push(ch);
@@ -544,7 +496,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                 let mut atom = String::new();
 
                 while let Some(&ch) = chars.peek() {
-                    if ch.is_whitespace() || "[].\\'\"\\\\".contains(ch) {
+                    if ch.is_whitespace() || "[]|\\'\"\\\\".contains(ch) {
                         break;
                     }
                     atom.push(ch);

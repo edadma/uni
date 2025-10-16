@@ -304,14 +304,14 @@ pub fn register_builtins(interp: &mut Interpreter) {
     );
 
     // I/O operations
-    let print_atom = interp.intern_atom("pr");
+    let print_atom = interp.intern_atom(".");
     interp.dictionary.insert(
         print_atom,
         DictEntry {
             value: Value::Builtin(print_builtin),
             is_executable: true,
             doc: Some(Rc::<str>::from(
-                "Print top stack value to output.\nUsage: value pr => (prints value)\nExample: \"Hello\" pr => Hello",
+                "Print top stack value to output.\nUsage: value . => (prints value)\nExample: \"Hello\" . => Hello",
             )),
         },
     );
@@ -401,7 +401,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
             value: Value::Builtin(i16_set_builtin),
             is_executable: true,
             doc: Some(Rc::<str>::from(
-                "Set value at index in i16 buffer (Forth order).\nUsage: value buffer index i16-set! => buffer\nExample: 100 buffer 0 i16-set! => buffer",
+                "Set value at index in i16 buffer.\nUsage: value buffer index i16-set! => buffer\nExample: 100 buffer 0 i16-set! => buffer",
             )),
         },
     );
@@ -425,7 +425,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
             value: Value::Builtin(i16_push_builtin),
             is_executable: true,
             doc: Some(Rc::<str>::from(
-                "Append value to end of i16 buffer (Forth order).\nUsage: value buffer i16-push! => buffer\nExample: 100 buffer i16-push! => buffer",
+                "Append value to end of i16 buffer.\nUsage: value buffer i16-push! => buffer\nExample: 100 buffer i16-push! => buffer",
             )),
         },
     );
@@ -595,7 +595,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
             value: Value::Builtin(vector_set_builtin),
             is_executable: true,
             doc: Some(Rc::<str>::from(
-                "Set element at index in vector (Forth order).\nUsage: value #[a b c] i vector-set! => #[a value c]\nExample: 99 #[10 20 30] 1 vector-set! => #[10 99 30]",
+                "Set element at index in vector.\nUsage: value #[a b c] i vector-set! => #[a value c]\nExample: 99 #[10 20 30] 1 vector-set! => #[10 99 30]",
             )),
         },
     );
@@ -1441,7 +1441,7 @@ mod tests {
             ">r", "r>", "r@", // Control flow & meta
             "def", "val", // exec and if are now special in evaluator
             // I/O operations
-            "pr",       // String operations
+            ".",       // String operations
             "->string", // List operations
             "head", "tail", "cons", "list", // Predicates
             "truthy?",

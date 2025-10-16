@@ -5,15 +5,15 @@ use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 
 // RUST CONCEPT: Print builtin - pops and displays the top stack value
-// Usage: 42 pr  (prints "42" and removes it from stack)
-// Note: We use "pr" instead of "." because "." is reserved for cons pair notation
+// Usage: 42 .  (prints "42" and removes it from stack)
+// Note: The "." primitive prints values. Improper lists use "|" for their syntax
 pub fn print_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let value = interp.pop()?;
 
     // RUST CONCEPT: User-friendly printing - strings without quotes for readability
     let output = match &value {
         Value::String(s) => {
-            // For pr primitive, show strings without quotes for user output
+            // For . primitive, show strings without quotes for user output
             format!("{}", s)
         }
         _ => {
