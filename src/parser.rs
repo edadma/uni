@@ -167,6 +167,7 @@ fn parse_value(
             }
         }
 
+        #[cfg(feature = "complex_numbers")]
         Some(token) if matches!(token.kind, TokenKind::GaussianInt(_, _)) => {
             if let TokenKind::GaussianInt(re, im) = &token.kind {
                 *index += 1;
@@ -302,6 +303,7 @@ fn parse_value(
                         "Numbers cannot be quoted - they are data by default".to_string(),
                     ))
                 }
+                #[cfg(feature = "complex_numbers")]
                 Some(token) if matches!(token.kind, TokenKind::GaussianInt(_, _)) => {
                     Err(ParseError::UnexpectedToken(
                         "Numbers cannot be quoted - they are data by default".to_string(),
@@ -1335,7 +1337,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "complex_numbers")]
-    fn test_parse_complex_literals() {
+    fn test_parse_gaussian_and_complex_literals() {
         use num_bigint::BigInt;
         use num_complex::Complex64;
         let mut interp = Interpreter::new();
@@ -1377,14 +1379,27 @@ mod tests {
         let mut interp = Interpreter::new();
 
         // Test parsing multiple different number types
-        let result = parse("42 123n 3/4 2+3i", &mut interp).unwrap();
-        assert_eq!(result.len(), 4);
+        #[cfg(feature = "complex_numbers")]
+        {
+            let result = parse("42 123n 3/4 2+3i", &mut interp).unwrap();
+            assert_eq!(result.len(), 4);
 
-        assert!(matches!(result[0], Value::Int32(42)));
-        assert!(matches!(result[1], Value::Integer(ref i) if *i == BigInt::from(123)));
-        assert!(matches!(result[2], Value::Rational(ref r) if *r == BigRational::new(BigInt::from(3), BigInt::from(4))));
-        assert!(matches!(result[3], Value::GaussianInt(ref re, ref im)
-            if re == &BigInt::from(2) && im == &BigInt::from(3)));
+            assert!(matches!(result[0], Value::Int32(42)));
+            assert!(matches!(result[1], Value::Integer(ref i) if *i == BigInt::from(123)));
+            assert!(matches!(result[2], Value::Rational(ref r) if *r == BigRational::new(BigInt::from(3), BigInt::from(4))));
+            assert!(matches!(result[3], Value::GaussianInt(ref re, ref im)
+                if re == &BigInt::from(2) && im == &BigInt::from(3)));
+        }
+
+        #[cfg(not(feature = "complex_numbers"))]
+        {
+            let result = parse("42 123n 3/4", &mut interp).unwrap();
+            assert_eq!(result.len(), 3);
+
+            assert!(matches!(result[0], Value::Int32(42)));
+            assert!(matches!(result[1], Value::Integer(ref i) if *i == BigInt::from(123)));
+            assert!(matches!(result[2], Value::Rational(ref r) if *r == BigRational::new(BigInt::from(3), BigInt::from(4))));
+        }
     }
 
     #[test]
@@ -1405,21 +1420,24 @@ mod tests {
         }
 
         // Test GaussianInt in list (integers -> GaussianInt)
-        let result = parse("[1+2i 3+4i]", &mut interp).unwrap();
-        assert_eq!(result.len(), 1);
-        match &result[0] {
-            Value::Pair(car, cdr) => {
-                assert!(matches!(**car, Value::GaussianInt(ref re, ref im)
-                    if re == &BigInt::from(1) && im == &BigInt::from(2)));
-                match cdr.as_ref() {
-                    Value::Pair(car2, _) => {
-                        assert!(matches!(**car2, Value::GaussianInt(ref re, ref im)
-                            if re == &BigInt::from(3) && im == &BigInt::from(4)));
+        #[cfg(feature = "complex_numbers")]
+        {
+            let result = parse("[1+2i 3+4i]", &mut interp).unwrap();
+            assert_eq!(result.len(), 1);
+            match &result[0] {
+                Value::Pair(car, cdr) => {
+                    assert!(matches!(**car, Value::GaussianInt(ref re, ref im)
+                        if re == &BigInt::from(1) && im == &BigInt::from(2)));
+                    match cdr.as_ref() {
+                        Value::Pair(car2, _) => {
+                            assert!(matches!(**car2, Value::GaussianInt(ref re, ref im)
+                                if re == &BigInt::from(3) && im == &BigInt::from(4)));
+                        }
+                        _ => panic!("Expected second element"),
                     }
-                    _ => panic!("Expected second element"),
                 }
+                _ => panic!("Expected list"),
             }
-            _ => panic!("Expected list"),
         }
     }
 

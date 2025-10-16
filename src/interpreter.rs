@@ -178,6 +178,7 @@ impl Interpreter {
             Value::Number(n) if *n == 0.0 || n.is_nan() => false, // 0 and NaN are falsy (like JS)
             Value::Integer(i) if i.is_zero() => false,
             Value::Rational(r) if r.is_zero() => false,
+            #[cfg(feature = "complex_numbers")]
             Value::GaussianInt(re, im) if re.is_zero() && im.is_zero() => false, // 0+0i
             #[cfg(feature = "complex_numbers")]
             Value::Complex(c) if (c.re == 0.0 && c.im == 0.0) || c.re.is_nan() || c.im.is_nan() => false, // 0+0i or NaN parts

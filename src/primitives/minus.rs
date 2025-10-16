@@ -31,6 +31,7 @@ pub fn sub_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             result.demote()
         }
         (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 - n2),
+        #[cfg(feature = "complex_numbers")]
         (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => {
             let result = Value::GaussianInt(re1 - re2, im1 - im2);
             result.demote()

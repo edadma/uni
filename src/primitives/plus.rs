@@ -47,6 +47,7 @@ pub fn add_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         (Value::Integer(i1), Value::Integer(i2)) => Value::Integer(i1 + i2),
         (Value::Rational(r1), Value::Rational(r2)) => Value::Rational(r1 + r2).demote(),
         (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 + n2),
+        #[cfg(feature = "complex_numbers")]
         (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => {
             Value::GaussianInt(re1 + re2, im1 + im2).demote()
         }
@@ -741,6 +742,8 @@ mod tests {
     // ========== GAUSSIAN INTEGER TESTS ==========
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int() {
         use num_bigint::BigInt;
         let mut interp = setup_interpreter();
@@ -769,6 +772,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_zero() {
         use num_bigint::BigInt;
         let mut interp = setup_interpreter();
@@ -794,6 +798,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_pure_real() {
         use num_bigint::BigInt;
         let mut interp = setup_interpreter();
@@ -808,6 +813,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_pure_imaginary() {
         use num_bigint::BigInt;
         let mut interp = setup_interpreter();
@@ -825,6 +831,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_with_bigint() {
         use num_bigint::BigInt;
         let mut interp = setup_interpreter();
@@ -854,6 +861,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "complex_numbers")]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_with_float_promotes_to_complex() {
         use num_bigint::BigInt;
         use num_complex::Complex64;
@@ -877,6 +885,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_with_rational_promotes_to_complex() {
         use num_bigint::BigInt;
@@ -903,6 +912,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "complex_numbers")]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_with_complex() {
         use num_bigint::BigInt;
         use num_complex::Complex64;
@@ -926,6 +936,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_large_values() {
         use num_bigint::BigInt;
         let mut interp = setup_interpreter();
@@ -951,6 +962,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_add_gaussian_int_negative_parts() {
         use num_bigint::BigInt;
         let mut interp = setup_interpreter();

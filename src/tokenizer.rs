@@ -49,6 +49,7 @@ pub enum TokenKind {
     Integer(String),       // Integer literal (no decimal point)
     BigInt(String),        // Explicit BigInt with 'n' suffix (e.g., 123n)
     Rational(String, String), // Rational literal (e.g., 3/4 -> ("3", "4"))
+    #[cfg(feature = "complex_numbers")]
     GaussianInt(String, String), // Gaussian integer (e.g., 3+4i -> ("3", "4"))
     #[cfg(feature = "complex_numbers")]
     Complex(String, String),     // Complex float (e.g., 3.0+4.0i -> ("3.0", "4.0"))
@@ -70,6 +71,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Integer(s) => write!(f, "{}", s),
             TokenKind::BigInt(s) => write!(f, "{}n", s),
             TokenKind::Rational(n, d) => write!(f, "{}/{}", n, d),
+            #[cfg(feature = "complex_numbers")]
             TokenKind::GaussianInt(re, im) => write!(f, "{}+{}i", re, im),
             #[cfg(feature = "complex_numbers")]
             TokenKind::Complex(re, im) => write!(f, "{}+{}i", re, im),
@@ -138,6 +140,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
         }
 
         // Check for complex/gaussian (e.g., 3+4i, 3.0+4.0i, 5i)
+        #[cfg(feature = "complex_numbers")]
         if s.ends_with('i') && s.len() > 1 {
             let num_part = &s[..s.len() - 1];
             // Find the last + or - that's not at the start
@@ -151,7 +154,6 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                 }
 
                 // Check if either part is a float (Complex)
-                #[cfg(feature = "complex_numbers")]
                 if real_part.parse::<f64>().is_ok() && imag_part.parse::<f64>().is_ok() {
                     return TokenKind::Complex(real_part.to_string(), imag_part.to_string());
                 }
@@ -162,7 +164,6 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                     return TokenKind::GaussianInt("0".to_string(), num_part.to_string());
                 }
                 // Try float
-                #[cfg(feature = "complex_numbers")]
                 if num_part.parse::<f64>().is_ok() {
                     return TokenKind::Complex("0".to_string(), num_part.to_string());
                 }

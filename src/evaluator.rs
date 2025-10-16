@@ -171,6 +171,7 @@ fn execute_value_direct(
             interp.push(Value::Complex(*c));
             Ok(())
         }
+        #[cfg(feature = "complex_numbers")]
         Value::GaussianInt(re, im) => {
             interp.push(Value::GaussianInt(re.clone(), im.clone()));
             Ok(())

@@ -56,6 +56,7 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
 
         // GaussianInt * GaussianInt: (a+bi)(c+di) = (ac-bd)+(ad+bc)i
+        #[cfg(feature = "complex_numbers")]
         (Value::GaussianInt(a_re, a_im), Value::GaussianInt(b_re, b_im)) => {
             let ac = a_re * b_re;
             let bd = a_im * b_im;
@@ -91,6 +92,7 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
 
         // Int32 * GaussianInt
+        #[cfg(feature = "complex_numbers")]
         (Value::Int32(i32_val), Value::GaussianInt(re, im))
         | (Value::GaussianInt(re, im), Value::Int32(i32_val)) => {
             let result = Value::GaussianInt(re * BigInt::from(*i32_val), im * BigInt::from(*i32_val));
@@ -143,6 +145,7 @@ pub fn mul_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         }
 
         // GaussianInt * Integer: (a+bi) * c = ac + bci
+        #[cfg(feature = "complex_numbers")]
         (Value::GaussianInt(re, im), Value::Integer(i))
         | (Value::Integer(i), Value::GaussianInt(re, im)) => {
             let result = Value::GaussianInt(re * i, im * i);
@@ -290,6 +293,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_mul_gaussian_int() {
         let mut interp = setup_interpreter();
 
@@ -315,6 +319,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_mul_gaussian_int_with_integer() {
         let mut interp = setup_interpreter();
 

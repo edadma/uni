@@ -16,6 +16,7 @@ pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         (Value::Number(n1), Value::Number(n2)) => n1 == n2,
         (Value::Integer(i1), Value::Integer(i2)) => i1 == i2,
         (Value::Rational(r1), Value::Rational(r2)) => r1 == r2,
+        #[cfg(feature = "complex_numbers")]
         (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => re1 == re2 && im1 == im2,
         #[cfg(feature = "complex_numbers")]
         (Value::Complex(c1), Value::Complex(c2)) => c1 == c2,
@@ -51,6 +52,7 @@ fn eq_values(a: &Rc<Value>, b: &Rc<Value>) -> bool {
         (Value::Number(n1), Value::Number(n2)) => n1 == n2,
         (Value::Integer(i1), Value::Integer(i2)) => i1 == i2,
         (Value::Rational(r1), Value::Rational(r2)) => r1 == r2,
+        #[cfg(feature = "complex_numbers")]
         (Value::GaussianInt(re1, im1), Value::GaussianInt(re2, im2)) => re1 == re2 && im1 == im2,
         #[cfg(feature = "complex_numbers")]
         (Value::Complex(c1), Value::Complex(c2)) => c1 == c2,

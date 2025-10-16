@@ -27,6 +27,7 @@ pub enum Value {
     Int32(i32),                     // 32-bit signed integer (embedded-friendly)
     Integer(BigInt),                // Arbitrary precision integer
     Rational(BigRational),          // Exact rational number (fraction)
+    #[cfg(feature = "complex_numbers")]
     GaussianInt(BigInt, BigInt),    // Gaussian integer (real, imaginary) - both integers
     #[cfg(feature = "complex_numbers")]
     Complex(Complex64),             // Complex number (a + bi) - floating point components
@@ -82,6 +83,7 @@ impl Value {
             Value::Int32(_) => "int32",
             Value::Integer(_) => "integer",
             Value::Rational(_) => "rational",
+            #[cfg(feature = "complex_numbers")]
             Value::GaussianInt(_, _) => "gaussian",
             #[cfg(feature = "complex_numbers")]
             Value::Complex(_) => "complex",
@@ -135,6 +137,7 @@ impl Value {
                 }
             }
             // Check GaussianInt: demote if imaginary part is 0
+            #[cfg(feature = "complex_numbers")]
             Value::GaussianInt(_re, im) if im.is_zero() => {
                 // a+0i → Integer or Int32 (move real part out)
                 if let Value::GaussianInt(re, _im) = self {
@@ -208,6 +211,7 @@ impl fmt::Display for Value {
             // RUST CONCEPT: BigRational displays as "numerator/denominator"
             Value::Rational(r) => write!(f, "{}", r), // Shows as fraction like "3/4"
             // RUST CONCEPT: GaussianInt displays as "a+bi" with integer parts
+            #[cfg(feature = "complex_numbers")]
             Value::GaussianInt(re, im) => {
                 use num_traits::Zero;
 
