@@ -15,6 +15,7 @@ pub fn trunc_div_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 
     // Check for division by zero
     let is_zero = match &b {
+        Value::Int32(i) => *i == 0,
         Value::Integer(i) => i.is_zero(),
         Value::Rational(r) => r.is_zero(),
         Value::Number(n) => *n == 0.0,
@@ -28,6 +29,10 @@ pub fn trunc_div_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let (pa, pb) = promote_pair(&a, &b);
 
     let result = match (&pa, &pb) {
+        (Value::Int32(i1), Value::Int32(i2)) => {
+            // Int32 division in Rust already truncates toward zero
+            Value::Int32(i1 / i2)
+        }
         (Value::Integer(i1), Value::Integer(i2)) => {
             // Integer division in Rust already truncates toward zero
             Value::Integer(i1 / i2)

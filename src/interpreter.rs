@@ -110,6 +110,7 @@ impl Interpreter {
         let value = self.pop()?;
         match value {
             Value::Number(n) => Ok(n),
+            Value::Int32(i) => Ok(i as f64),
             _ => Err(RuntimeError::TypeError("Expected number".to_string())),
         }
     }
