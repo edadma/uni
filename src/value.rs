@@ -66,6 +66,11 @@ pub enum Value {
     // Supports days, hours, minutes, seconds, milliseconds, etc.
     #[cfg(feature = "datetime")]
     Duration(ChronoDuration),
+    // RUST CONCEPT: I16 buffer for audio samples and DSP
+    // Stores 16-bit signed integers (standard for digital audio)
+    // Dynamic size Vec for flexibility - can grow/shrink as needed
+    // Use with record types to add audio metadata (sample rate, channels)
+    I16Buffer(Rc<RefCell<Vec<i16>>>),
 }
 
 impl Value {
@@ -95,6 +100,7 @@ impl Value {
             Value::DateTime(_) => "datetime",
             #[cfg(feature = "datetime")]
             Value::Duration(_) => "duration",
+            Value::I16Buffer(_) => "i16-buffer",
         }
     }
 
@@ -339,6 +345,27 @@ impl fmt::Display for Value {
                     }
                     write!(f, ">")
                 }
+            }
+            // RUST CONCEPT: Display for i16 buffers
+            // Shows buffer length and first few samples for debugging
+            Value::I16Buffer(buffer) => {
+                let buffer_ref = buffer.borrow();
+                let len = buffer_ref.len();
+                write!(f, "#<i16-buffer:{}:[", len)?;
+
+                // Show first 8 samples (or fewer if buffer is smaller)
+                let preview_count = len.min(8);
+                for i in 0..preview_count {
+                    if i > 0 {
+                        write!(f, " ")?;
+                    }
+                    write!(f, "{}", buffer_ref[i])?;
+                }
+
+                if len > preview_count {
+                    write!(f, " ...")?;
+                }
+                write!(f, "]>")
             }
         }
     }

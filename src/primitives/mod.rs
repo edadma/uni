@@ -116,6 +116,13 @@ pub mod numeric_promotion;
 // Hardware operations (micro:bit)
 pub mod hardware;
 
+// I16 buffer operations (audio/DSP)
+pub mod i16_buffer;
+pub mod i16_ref;
+pub mod i16_set;
+pub mod i16_ops;
+pub mod i16_dsp;
+
 // Re-export all builtin functions for easy access
 
 // Basic arithmetic
@@ -294,6 +301,13 @@ pub use type_of::type_of_builtin;
 // Hardware operations
 #[cfg(target_os = "none")]
 pub use hardware::button_read_builtin;
+
+// I16 buffer operations
+pub use i16_buffer::i16_buffer_builtin;
+pub use i16_dsp::{i16_avg_builtin, i16_max_builtin, i16_min_builtin};
+pub use i16_ops::{i16_length_builtin, i16_pop_builtin, i16_push_builtin};
+pub use i16_ref::i16_ref_builtin;
+pub use i16_set::i16_set_builtin;
 
 // RUST CONCEPT: Module-level documentation
 // This explains the organization strategy for the primitives

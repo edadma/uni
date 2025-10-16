@@ -214,6 +214,11 @@ fn execute_value_direct(
             interp.push(value.clone());
             Ok(())
         }
+        // RUST CONCEPT: I16 buffers push themselves (they are data)
+        Value::I16Buffer(_) => {
+            interp.push(value.clone());
+            Ok(())
+        }
     }
 }
 

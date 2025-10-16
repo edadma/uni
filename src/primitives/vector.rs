@@ -125,13 +125,14 @@ pub fn vector_ref_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> 
     Ok(())
 }
 
-// Stack effect: ( vector index value -- )
+// Stack effect: ( value vector index -- )
+// Following Forth convention where value comes first
 pub fn vector_set_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
-    let new_value = interp.pop()?;
     let index_value = interp.pop_number()?;
     let index = expect_index(index_value, "vector-set!")?;
     let vector_value = interp.pop()?;
     let array = expect_array(vector_value, "vector-set!")?;
+    let new_value = interp.pop()?;
 
     let mut elements = array.borrow_mut();
     if index >= elements.len() {
@@ -253,9 +254,9 @@ mod tests {
         vector_builtin(&mut interp).unwrap();
 
         let vector_value = interp.pop().unwrap();
+        interp.push(Value::Number(42.0));
         interp.push(vector_value.clone());
         interp.push(Value::Number(0.0));
-        interp.push(Value::Number(42.0));
         vector_set_builtin(&mut interp).unwrap();
 
         let array_rc = unwrap_array(vector_value);

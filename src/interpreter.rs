@@ -162,30 +162,27 @@ impl Interpreter {
         matches!(value, Value::Null)
     }
 
+    // RUST CONCEPT: Defensive truthiness check
+    // Following JS rules: check for falsy cases explicitly, everything else is truthy
+    // This is more maintainable - new types automatically become truthy by default
     pub fn is_truthy(&self, value: &Value) -> bool {
         match value {
-            Value::Boolean(b) => *b,           // false is falsy, true is truthy
+            // Falsy cases only:
+            Value::Boolean(false) => false,    // false is falsy
             Value::Null => false,              // null is falsy (like JS)
-            Value::Nil => true,                // empty list is truthy (like [] in JS)
-            Value::Int32(i) => *i != 0,        // 0 is falsy, non-zero is truthy
-            Value::Number(n) => *n != 0.0,     // 0 is falsy, everything else truthy (like JS)
-            Value::Integer(i) => !i.is_zero(), // 0n is falsy, non-zero is truthy
-            Value::Rational(r) => !r.is_zero(), // 0/1 is falsy, non-zero is truthy
-            Value::GaussianInt(re, im) => !re.is_zero() || !im.is_zero(), // 0+0i is falsy
+            Value::String(s) if s.is_empty() => false, // "" is falsy (like JS)
+
+            // Zero in all numeric representations is falsy
+            Value::Int32(0) => false,
+            Value::Number(n) if *n == 0.0 || n.is_nan() => false, // 0 and NaN are falsy (like JS)
+            Value::Integer(i) if i.is_zero() => false,
+            Value::Rational(r) if r.is_zero() => false,
+            Value::GaussianInt(re, im) if re.is_zero() && im.is_zero() => false, // 0+0i
             #[cfg(feature = "complex_numbers")]
-            Value::Complex(c) => c.re != 0.0 || c.im != 0.0, // 0+0i is falsy
-            Value::String(s) => !s.is_empty(), // "" is falsy, non-empty is truthy (like JS)
-            Value::Atom(_) => true,            // atoms are truthy
-            Value::QuotedAtom(_) => true,      // quoted atoms are truthy
-            Value::Pair(_, _) => true,         // non-empty lists are truthy
-            Value::Array(_) => true,           // arrays are truthy by default
-            Value::Builtin(_) => true,         // builtins are truthy
-            Value::Record { .. } => true,      // records are truthy
-            Value::RecordType { .. } => true,  // record types are truthy
-            #[cfg(feature = "datetime")]
-            Value::DateTime(_) => true,        // datetimes are truthy
-            #[cfg(feature = "datetime")]
-            Value::Duration(_) => true,        // durations are truthy
+            Value::Complex(c) if (c.re == 0.0 && c.im == 0.0) || c.re.is_nan() || c.im.is_nan() => false, // 0+0i or NaN parts
+
+            // Everything else is truthy (including Nil, atoms, pairs, arrays, buffers, etc.)
+            _ => true,
         }
     }
 
@@ -517,10 +514,13 @@ mod tests {
         assert!(!interp.is_truthy(&Value::Null));
         assert!(interp.is_truthy(&Value::Nil));
 
-        // Numbers: 0 is falsy, everything else is truthy
+        // Numbers: 0 is falsy, NaN is falsy, everything else is truthy
         assert!(!interp.is_truthy(&Value::Number(0.0)));
+        assert!(!interp.is_truthy(&Value::Number(f64::NAN))); // NaN is falsy (like JS)
         assert!(interp.is_truthy(&Value::Number(42.0)));
         assert!(interp.is_truthy(&Value::Number(-1.0)));
+        assert!(interp.is_truthy(&Value::Number(f64::INFINITY)));
+        assert!(interp.is_truthy(&Value::Number(f64::NEG_INFINITY)));
 
         // Strings: empty is falsy, non-empty is truthy
         assert!(!interp.is_truthy(&Value::String("".into())));

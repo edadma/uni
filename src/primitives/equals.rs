@@ -32,6 +32,8 @@ pub fn eq_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             // Recursive equality check for cons cells
             eq_values(car1, car2) && eq_values(cdr1, cdr2)
         }
+        // I16Buffers compare by reference equality (same object)
+        (Value::I16Buffer(buf1), Value::I16Buffer(buf2)) => Rc::ptr_eq(buf1, buf2),
         // Different types are never equal
         _ => false,
     };
@@ -63,6 +65,8 @@ fn eq_values(a: &Rc<Value>, b: &Rc<Value>) -> bool {
         (Value::Pair(car1, cdr1), Value::Pair(car2, cdr2)) => {
             eq_values(car1, car2) && eq_values(cdr1, cdr2)
         }
+        // I16Buffers compare by reference equality (same object)
+        (Value::I16Buffer(buf1), Value::I16Buffer(buf2)) => Rc::ptr_eq(buf1, buf2),
         _ => false,
     }
 }

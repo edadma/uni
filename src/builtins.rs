@@ -108,6 +108,12 @@ use crate::primitives::{
 #[cfg(target_os = "none")]
 use crate::primitives::button_read_builtin;
 
+// I16 buffer operations (audio/DSP)
+use crate::primitives::{
+    i16_avg_builtin, i16_buffer_builtin, i16_length_builtin, i16_max_builtin, i16_min_builtin,
+    i16_pop_builtin, i16_push_builtin, i16_ref_builtin, i16_set_builtin,
+};
+
 // RUST CONCEPT: Registering all builtins with the interpreter
 pub fn register_builtins(interp: &mut Interpreter) {
     use crate::interpreter::DictEntry;
@@ -363,6 +369,115 @@ pub fn register_builtins(interp: &mut Interpreter) {
     );
     }
 
+    // I16 buffer operations (audio/DSP)
+    let i16_buffer_atom = interp.intern_atom("i16-buffer");
+    interp.dictionary.insert(
+        i16_buffer_atom,
+        DictEntry {
+            value: Value::Builtin(i16_buffer_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Create i16 buffer of specified size.\nUsage: size i16-buffer => buffer\nExample: 1024 i16-buffer => #<i16-buffer:1024:[0 0 0 0 0 0 0 0 ...]>",
+            )),
+        },
+    );
+
+    let i16_ref_atom = interp.intern_atom("i16-ref");
+    interp.dictionary.insert(
+        i16_ref_atom,
+        DictEntry {
+            value: Value::Builtin(i16_ref_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Get value at index from i16 buffer.\nUsage: buffer index i16-ref => value\nExample: buffer 0 i16-ref => 100",
+            )),
+        },
+    );
+
+    let i16_set_atom = interp.intern_atom("i16-set!");
+    interp.dictionary.insert(
+        i16_set_atom,
+        DictEntry {
+            value: Value::Builtin(i16_set_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Set value at index in i16 buffer (Forth order).\nUsage: value buffer index i16-set! => buffer\nExample: 100 buffer 0 i16-set! => buffer",
+            )),
+        },
+    );
+
+    let i16_length_atom = interp.intern_atom("i16-length");
+    interp.dictionary.insert(
+        i16_length_atom,
+        DictEntry {
+            value: Value::Builtin(i16_length_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Get length of i16 buffer.\nUsage: buffer i16-length => buffer length\nExample: buffer i16-length => buffer 1024",
+            )),
+        },
+    );
+
+    let i16_push_atom = interp.intern_atom("i16-push!");
+    interp.dictionary.insert(
+        i16_push_atom,
+        DictEntry {
+            value: Value::Builtin(i16_push_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Append value to end of i16 buffer (Forth order).\nUsage: value buffer i16-push! => buffer\nExample: 100 buffer i16-push! => buffer",
+            )),
+        },
+    );
+
+    let i16_pop_atom = interp.intern_atom("i16-pop!");
+    interp.dictionary.insert(
+        i16_pop_atom,
+        DictEntry {
+            value: Value::Builtin(i16_pop_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Remove and return last value from i16 buffer.\nUsage: buffer i16-pop! => buffer value\nExample: buffer i16-pop! => buffer 100",
+            )),
+        },
+    );
+
+    let i16_max_atom = interp.intern_atom("i16-max");
+    interp.dictionary.insert(
+        i16_max_atom,
+        DictEntry {
+            value: Value::Builtin(i16_max_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Find maximum value in i16 buffer.\nUsage: buffer i16-max => buffer max-value\nExample: buffer i16-max => buffer 1000",
+            )),
+        },
+    );
+
+    let i16_min_atom = interp.intern_atom("i16-min");
+    interp.dictionary.insert(
+        i16_min_atom,
+        DictEntry {
+            value: Value::Builtin(i16_min_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Find minimum value in i16 buffer.\nUsage: buffer i16-min => buffer min-value\nExample: buffer i16-min => buffer -500",
+            )),
+        },
+    );
+
+    let i16_avg_atom = interp.intern_atom("i16-avg");
+    interp.dictionary.insert(
+        i16_avg_atom,
+        DictEntry {
+            value: Value::Builtin(i16_avg_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Compute average value of i16 buffer.\nUsage: buffer i16-avg => buffer average\nExample: buffer i16-avg => buffer 250",
+            )),
+        },
+    );
+
     // String operations
     let to_string_atom = interp.intern_atom("->string");
     interp.dictionary.insert(
@@ -480,7 +595,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
             value: Value::Builtin(vector_set_builtin),
             is_executable: true,
             doc: Some(Rc::<str>::from(
-                "Set element at index in vector.\nUsage: #[a b c] i value vector-set! => #[a value c]\nExample: #[10 20 30] 1 99 vector-set! => #[10 99 30]",
+                "Set element at index in vector (Forth order).\nUsage: value #[a b c] i vector-set! => #[a value c]\nExample: 99 #[10 20 30] 1 vector-set! => #[10 99 30]",
             )),
         },
     );
