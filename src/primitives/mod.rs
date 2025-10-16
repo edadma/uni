@@ -96,6 +96,10 @@ pub mod val;
 pub mod print;
 pub mod words;
 
+// Stack management
+pub mod clear;
+pub mod stack;
+
 // String operations
 pub mod to_string;
 
@@ -272,6 +276,10 @@ pub use val::val_builtin;
 // I/O operations
 pub use print::print_builtin;
 pub use words::words_builtin;
+
+// Stack management
+pub use clear::clear_builtin;
+pub use stack::stack_builtin;
 
 // String operations
 pub use to_string::to_string_builtin;

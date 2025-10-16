@@ -330,30 +330,15 @@ fn run_repl_loop<T: Terminal + 'static>(editor: &mut LineEditor, terminal: T, in
             Ok(line) => {
                 let line = line.trim();
 
-                // Check for special REPL commands
-                match line {
-                    "quit" => {
-                        let _ = write_line(&mut repl_term, "Goodbye!");
-                        break;
-                    }
-                    "stack" => {
-                        print_stack(&mut repl_term, interp);
-                    }
-                    "clear" => {
-                        interp.stack.clear();
-                        let _ = write_line(&mut repl_term, "Stack cleared");
-                    }
-                    "words" => {
-                        // Call the words primitive
-                        use primitives::words_builtin;
-                        let _ = words_builtin(interp);
-                    }
-                    "" => {
-                        // Empty line, just continue
-                    }
-                    _ => {
-                        execute_repl_line(&mut repl_term, line, interp);
-                    }
+                // Check for empty line - all other inputs are executed as Uni code
+                if line.is_empty() {
+                    // Empty line, just continue
+                    continue;
+                }
+
+                // Execute the line as Uni code (includes primitives like quit, stack, clear, words)
+                if !execute_repl_line(&mut repl_term, line, interp) {
+                    break; // quit was called
                 }
             }
             Err(e) => {
@@ -390,8 +375,10 @@ fn write_line<T: Terminal>(terminal: &mut T, s: &str) -> editline::Result<()> {
 }
 
 // Generic helper for REPL line execution
-fn execute_repl_line<T: Terminal>(terminal: &mut T, line: &str, interp: &mut Interpreter) {
+// Returns true if REPL should continue, false if it should exit
+fn execute_repl_line<T: Terminal>(terminal: &mut T, line: &str, interp: &mut Interpreter) -> bool {
     use evaluator::execute_string;
+    use value::RuntimeError;
 
     match execute_string(line, interp) {
         Ok(()) => {
@@ -400,31 +387,16 @@ fn execute_repl_line<T: Terminal>(terminal: &mut T, line: &str, interp: &mut Int
                     let msg = format!(" => {} : {}", top, top.type_name());
                     let _ = write_line(terminal, &msg);
                 }
+            true // Continue REPL
+        }
+        Err(RuntimeError::QuitRequested) => {
+            let _ = write_line(terminal, "Goodbye!");
+            false // Exit REPL
         }
         Err(e) => {
             let msg = format!("Error: {:?}", e);
             let _ = write_line(terminal, &msg);
-        }
-    }
-}
-
-// Generic helper to display the stack
-fn print_stack<T: Terminal>(terminal: &mut T, interp: &Interpreter) {
-    if interp.stack.is_empty() {
-        let _ = write_line(terminal, "Stack is empty");
-    } else {
-        let msg = format!("Stack ({} items):", interp.stack.len());
-        let _ = write_line(terminal, &msg);
-
-        for (i, value) in interp.stack.iter().rev().enumerate() {
-            let limit = if cfg!(target_os = "none") { 5 } else { 10 };
-            if i >= limit {
-                let msg = format!("  ... and {} more", interp.stack.len() - limit);
-                let _ = write_line(terminal, &msg);
-                break;
-            }
-            let msg = format!("  {}: {}", i, value);
-            let _ = write_line(terminal, &msg);
+            true // Continue REPL after error
         }
     }
 }

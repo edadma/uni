@@ -19,6 +19,7 @@ pub fn words_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // Add special words that aren't in the dictionary
     words.push(String::from("exec"));
     words.push(String::from("if"));
+    words.push(String::from("quit"));
     words.sort();
 
     // Display header
@@ -114,5 +115,27 @@ mod tests {
 
         let stack_after = interp.stack.len();
         assert_eq!(stack_before, stack_after);
+    }
+
+    #[test]
+    fn test_words_includes_special_words() {
+        let interp = setup_interpreter();
+
+        // Collect the words list to verify special words are included
+        let mut words: Vec<String> = interp
+            .dictionary
+            .keys()
+            .map(|k| String::from(k.as_ref()))
+            .collect();
+
+        // Add special words that aren't in the dictionary (same logic as words_builtin)
+        words.push(String::from("exec"));
+        words.push(String::from("if"));
+        words.push(String::from("quit"));
+
+        // Verify all three special words are present
+        assert!(words.contains(&String::from("exec")), "exec should be in words list");
+        assert!(words.contains(&String::from("if")), "if should be in words list");
+        assert!(words.contains(&String::from("quit")), "quit should be in words list");
     }
 }

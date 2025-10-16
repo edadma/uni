@@ -246,7 +246,7 @@ fn execute_atom_with_continuations(
     interp: &mut Interpreter,
     continuation_stack: &mut Vec<Continuation>,
 ) -> Result<(), RuntimeError> {
-    // RUST CONCEPT: Special handling for exec and if
+    // RUST CONCEPT: Special handling for exec, if, and quit
     if &**atom_name == "exec" {
         let value = interp.pop()?;
         continuation_stack.push(Continuation::Exec(value));
@@ -265,6 +265,11 @@ fn execute_atom_with_continuations(
             false_branch,
         });
         return Ok(());
+    }
+
+    if &**atom_name == "quit" {
+        // Return special error to signal clean exit
+        return Err(RuntimeError::QuitRequested);
     }
 
     // RUST CONCEPT: Dictionary lookup with continuation support

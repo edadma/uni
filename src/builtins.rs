@@ -48,6 +48,9 @@ use crate::primitives::{
     // I/O operations
     print_builtin,
     words_builtin,
+    // Stack management
+    clear_builtin,
+    stack_builtin,
     r_fetch_builtin,
     record_type_of_builtin,
     roll_builtin,
@@ -315,6 +318,31 @@ pub fn register_builtins(interp: &mut Interpreter) {
             is_executable: true,
             doc: Some(Rc::<str>::from(
                 "Display all defined words in the dictionary.\nUsage: words => (displays all words)\nExample: words => Defined words (120): ...",
+            )),
+        },
+    );
+
+    // Stack management operations
+    let stack_atom = interp.intern_atom("stack");
+    interp.dictionary.insert(
+        stack_atom,
+        DictEntry {
+            value: Value::Builtin(stack_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Display the current stack contents.\nUsage: stack => (displays stack)\nExample: 1 2 3 stack => Stack (3 items): ...",
+            )),
+        },
+    );
+
+    let clear_atom = interp.intern_atom("clear");
+    interp.dictionary.insert(
+        clear_atom,
+        DictEntry {
+            value: Value::Builtin(clear_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Clear all items from the stack.\nUsage: clear => (empties stack)\nExample: 1 2 3 clear stack => Stack is empty",
             )),
         },
     );

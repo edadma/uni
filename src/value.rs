@@ -165,6 +165,7 @@ pub enum RuntimeError {
     DivisionByZero,
     ModuloByZero,
     DomainError(String),
+    QuitRequested, // Special error to signal clean exit from REPL/script
 }
 
 // RUST CONCEPT: Implementing traits for custom error types
@@ -185,6 +186,7 @@ impl fmt::Display for RuntimeError {
             RuntimeError::DivisionByZero => write!(f, "Division by zero"),
             RuntimeError::ModuloByZero => write!(f, "Modulo by zero"),
             RuntimeError::DomainError(msg) => write!(f, "Domain error: {}", msg),
+            RuntimeError::QuitRequested => write!(f, "Quit requested"),
         }
     }
 }

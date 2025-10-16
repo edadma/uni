@@ -5,6 +5,7 @@ use crate::value::{RuntimeError, Value};
 const IF_DOC: &str = "Conditional branching. Usage: condition true-branch false-branch if";
 const EXEC_DOC: &str =
     "Execute the value at the top of the stack. Lists run as code, other values execute directly.";
+const QUIT_DOC: &str = "Exit the REPL or terminate script execution. Usage: quit";
 
 pub fn help_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     let word = interp.pop()?;
@@ -21,6 +22,8 @@ pub fn help_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         (Some(Rc::<str>::from(IF_DOC)), true)
     } else if atom.as_ref() == "exec" {
         (Some(Rc::<str>::from(EXEC_DOC)), true)
+    } else if atom.as_ref() == "quit" {
+        (Some(Rc::<str>::from(QUIT_DOC)), true)
     } else {
         let entry = interp
             .dictionary
