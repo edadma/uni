@@ -6,9 +6,9 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::evaluator::execute_string;
-    use crate::interpreter::Interpreter;
-    use crate::value::{RuntimeError, Value};
+    use uni_core::evaluator::execute_string;
+    use uni_core::interpreter::Interpreter;
+    use uni_core::value::{RuntimeError, Value};
 
     fn setup_interpreter() -> Interpreter {
         Interpreter::new()

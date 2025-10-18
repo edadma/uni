@@ -7,7 +7,7 @@ extern crate alloc;
 mod output_adapter;
 
 use output_adapter::TerminalOutput;
-use uni_core::{Interpreter, RuntimeError, execute_string};
+use uni_core::{Interpreter, RuntimeError, execute_string, primitives};
 use editline::{LineEditor, Terminal};
 
 #[cfg(not(target_os = "none"))]
@@ -213,6 +213,11 @@ fn execute_file(filename: &str) {
     // RUST CONCEPT: Automatic initialization
     let mut interp = Interpreter::new();
 
+    // Set up output for print primitive
+    let terminal = StdioTerminal::new();
+    let terminal_output = TerminalOutput::new(terminal);
+    interp.set_output(Box::new(terminal_output));
+
     match execute_string(code, &mut interp) {
         Ok(()) => {
             // File executed successfully
@@ -234,6 +239,11 @@ fn execute_code(code: &str, auto_print: bool) {
     // RUST CONCEPT: Automatic initialization
     // Interpreter::new() now automatically loads builtins and stdlib
     let mut interp = Interpreter::new();
+
+    // Set up output for print primitive
+    let terminal = StdioTerminal::new();
+    let terminal_output = TerminalOutput::new(terminal);
+    interp.set_output(Box::new(terminal_output));
 
     match execute_string(code, &mut interp) {
         Ok(()) => {
