@@ -1,2 +1,4 @@
-# cargo +nightly run --release --target thumbv7em-none-eabihf --no-default-features --features advanced_math,complex_numbers -Z build-std=core,alloc
-cargo +nightly run --release --target thumbv7em-none-eabihf --no-default-features -Z build-std=core,alloc
+# Build for micro:bit v2 (nRF52833)
+# Note: Uses --no-default-features to exclude std and datetime
+# Note: Must specify target-microbit to enable micro:bit-specific primitives
+cargo +nightly run --release --target thumbv7em-none-eabihf --no-default-features --features target-microbit,advanced_math,complex_numbers -Z build-std=core,alloc

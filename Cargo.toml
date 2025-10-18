@@ -8,25 +8,44 @@ name = "uni"
 path = "src/main.rs"
 
 [dependencies]
-editline = { version = "0.0.16", default-features = false }
+# Core dependencies (all targets)
 num-bigint = { version = "0.4", default-features = false }
 num-rational = { version = "0.4", default-features = false, features = ["num-bigint"] }
-num-complex = { version = "0.4", default-features = false, optional = true }
 num-traits = { version = "0.2", default-features = false, features = ["libm"] }
+editline = { version = "0.0.17", default-features = false }
+
+# Optional feature dependencies
+num-complex = { version = "0.4", default-features = false, optional = true }
 chrono = { version = "0.4", optional = true }
 
+# Pico-specific optional dependencies
+rp2040-hal = { version = "0.10", features = ["rt", "critical-section-impl"], optional = true }
+rp2040-boot2 = { version = "0.3", optional = true }
+usb-device = { version = "0.3", optional = true }
+usbd-serial = { version = "0.2", optional = true }
+
 [features]
-default = ["datetime", "std", "advanced_math", "complex_numbers"]
-datetime = ["chrono"]
-std = ["editline/std"]
+# Default: full-featured Linux build
+default = ["target-linux", "std", "advanced_math", "complex_numbers", "datetime"]
+
+# Target selection (mutually exclusive - pick ONE)
+target-linux = ["editline/std"]
+target-microbit = ["editline/microbit", "microbit", "embedded-hal", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m"]
+target-pico = ["editline/rp_pico_usb", "rp2040-hal", "rp2040-boot2", "usb-device", "usbd-serial", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m"]
+
+# Orthogonal features (work on all targets)
+std = []
 advanced_math = []  # Trig, exp/log, rounding, advanced division
 complex_numbers = ["num-complex"]  # Complex and Gaussian integer support
+datetime = ["chrono"]  # Requires std - not available on embedded targets
 
+# Embedded target dependencies (target_os = "none") - made optional
 [target.'cfg(target_os = "none")'.dependencies]
-editline = { version = "0.0.16", features = ["microbit"], default-features = false }
-microbit = { package = "microbit-v2", version = "0.15" }
-embedded-hal = "1.0"
-cortex-m = "0.7"
-cortex-m-rt = "0.7"
-panic-halt = "0.2"
-alloc-cortex-m = "0.4"
+embedded-hal = { version = "1.0", optional = true }
+cortex-m = { version = "0.7", optional = true }
+cortex-m-rt = { version = "0.7", optional = true }
+panic-halt = { version = "0.2", optional = true }
+alloc-cortex-m = { version = "0.4", optional = true }
+
+# micro:bit-specific dependencies (only with target-microbit feature)
+microbit = { package = "microbit-v2", version = "0.15", optional = true }

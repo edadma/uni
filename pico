@@ -1,0 +1,4 @@
+# Build for Raspberry Pi Pico W (RP2040)
+# Note: Uses --no-default-features to exclude std and datetime
+# Note: Must specify target-pico to enable Pico-specific primitives
+cargo +nightly build --release --target thumbv6m-none-eabi --no-default-features --features target-pico,advanced_math,complex_numbers -Z build-std=core,alloc

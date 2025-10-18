@@ -7,7 +7,7 @@ use editline::Terminal;
 #[cfg(target_os = "none")]
 use num_traits::Float;
 
-#[cfg(target_os = "none")]
+#[cfg(feature = "target-microbit")]
 extern crate microbit;
 
 #[cfg(not(target_os = "none"))]
@@ -34,9 +34,9 @@ pub struct Interpreter {
     terminal: Option<Box<dyn Terminal>>, // Optional terminal for output (REPL mode)
 
     // Hardware peripherals (micro:bit only)
-    #[cfg(target_os = "none")]
+    #[cfg(feature = "target-microbit")]
     pub buttons: Option<microbit::board::Buttons>,
-    #[cfg(target_os = "none")]
+    #[cfg(feature = "target-microbit")]
     pub display_buffer: [[u8; 5]; 5],  // Raw pixel buffer for LED matrix
 }
 
@@ -52,9 +52,9 @@ impl Interpreter {
             terminal: None, // No terminal by default (for file execution, tests)
 
             // Hardware peripherals start as None, set by main() on micro:bit
-            #[cfg(target_os = "none")]
+            #[cfg(feature = "target-microbit")]
             buttons: None,
-            #[cfg(target_os = "none")]
+            #[cfg(feature = "target-microbit")]
             display_buffer: [[0u8; 5]; 5],  // All LEDs off initially
         };
 

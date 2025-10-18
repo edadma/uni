@@ -7,6 +7,7 @@ extern crate alloc;
 mod compat;
 mod builtins;
 mod evaluator;
+mod hardware; // NEW: Hardware abstraction for different targets
 mod integration_tests;
 mod interpreter;
 mod parser;
@@ -87,7 +88,7 @@ use std::env;
 
 #[cfg(target_os = "none")]
 use cortex_m_rt::entry;
-#[cfg(target_os = "none")]
+#[cfg(feature = "target-microbit")]
 use microbit::pac::interrupt;
 #[cfg(target_os = "none")]
 use panic_halt as _;
@@ -95,14 +96,14 @@ use panic_halt as _;
 use alloc_cortex_m::CortexMHeap;
 
 // Global display for interrupt handler (micro:bit only)
-#[cfg(target_os = "none")]
+#[cfg(feature = "target-microbit")]
 use cortex_m::interrupt::Mutex;
-#[cfg(target_os = "none")]
+#[cfg(feature = "target-microbit")]
 pub static DISPLAY: Mutex<RefCell<Option<microbit::display::nonblocking::Display<microbit::pac::TIMER1>>>> =
     Mutex::new(RefCell::new(None));
 
 // Timer interrupt handler for LED display
-#[cfg(target_os = "none")]
+#[cfg(feature = "target-microbit")]
 #[microbit::pac::interrupt]
 fn TIMER1() {
     cortex_m::interrupt::free(|cs| {
@@ -275,7 +276,7 @@ fn execute_code(code: &str, auto_print: bool) {
 }
 
 // Micro:bit main function
-#[cfg(target_os = "none")]
+#[cfg(feature = "target-microbit")]
 #[entry]
 fn mb_main() -> ! {
     // Initialize allocator - micro:bit v2 has 128KB RAM
@@ -422,7 +423,7 @@ fn execute_repl_line<T: Terminal>(terminal: &mut T, line: &str, interp: &mut Int
 }
 
 // Micro:bit REPL function
-#[cfg(target_os = "none")]
+#[cfg(feature = "target-microbit")]
 fn run_repl() -> ! {
     use editline::terminals::microbit::{Baudrate, Parity, Uarte, UarteTerminal};
     use microbit::display::nonblocking::Display;
@@ -470,4 +471,125 @@ fn run_repl() -> ! {
 
     // REPL exited, enter infinite loop (embedded requirement)
     loop {}
+}
+
+// Raspberry Pi Pico W specific imports and setup
+#[cfg(feature = "target-pico")]
+use rp2040_hal::{
+    clocks::init_clocks_and_plls,
+    pac,
+    usb::UsbBus,
+    watchdog::Watchdog,
+};
+
+#[cfg(feature = "target-pico")]
+use usb_device::{
+    prelude::*,
+    class_prelude::UsbBusAllocator,
+};
+
+#[cfg(feature = "target-pico")]
+use usbd_serial::SerialPort;
+
+#[cfg(feature = "target-pico")]
+use editline::terminals::rp_pico_usb::UsbCdcTerminal;
+
+// Link boot stage 2 for Pico
+#[cfg(feature = "target-pico")]
+#[unsafe(link_section = ".boot2")]
+#[used]
+pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_GENERIC_03H;
+
+// External high-speed crystal on the Pico board is 12MHz
+#[cfg(feature = "target-pico")]
+const XOSC_CRYSTAL_FREQ: u32 = 12_000_000u32;
+
+// USB bus allocator (needs static lifetime)
+#[cfg(feature = "target-pico")]
+static mut USB_BUS: Option<UsbBusAllocator<UsbBus>> = None;
+
+// Raspberry Pi Pico W main function
+#[cfg(feature = "target-pico")]
+#[entry]
+fn pico_main() -> ! {
+    use core::ptr::addr_of_mut;
+
+    // Initialize allocator - RP2040 has 264KB SRAM
+    // Use ~127.5KB for heap, leaving room for stack and BSS
+    const HEAP_SIZE: usize = 130560; // ~127.5 * 1024
+    static mut HEAP: [u8; HEAP_SIZE] = [0; HEAP_SIZE];
+
+    #[global_allocator]
+    static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
+
+    unsafe { ALLOCATOR.init(&raw mut HEAP as *const u8 as usize, HEAP_SIZE) }
+
+    // Grab singleton objects
+    let mut pac_peripherals = pac::Peripherals::take().unwrap();
+    let _core = pac::CorePeripherals::take().unwrap();
+
+    // Set up the watchdog driver
+    let mut watchdog = Watchdog::new(pac_peripherals.WATCHDOG);
+
+    // Configure the clocks
+    let clocks = init_clocks_and_plls(
+        XOSC_CRYSTAL_FREQ,
+        pac_peripherals.XOSC,
+        pac_peripherals.CLOCKS,
+        pac_peripherals.PLL_SYS,
+        pac_peripherals.PLL_USB,
+        &mut pac_peripherals.RESETS,
+        &mut watchdog,
+    )
+    .ok()
+    .unwrap();
+
+    // Set up the USB driver
+    let usb_bus = UsbBusAllocator::new(UsbBus::new(
+        pac_peripherals.USBCTRL_REGS,
+        pac_peripherals.USBCTRL_DPRAM,
+        clocks.usb_clock,
+        true,
+        &mut pac_peripherals.RESETS,
+    ));
+    unsafe {
+        USB_BUS = Some(usb_bus);
+    }
+
+    let usb_bus_ref = unsafe { (*addr_of_mut!(USB_BUS)).as_ref().unwrap() };
+
+    // Set up the USB Communications Class Device driver
+    let serial = SerialPort::new(usb_bus_ref);
+
+    // Create a USB device with a fake VID and PID
+    let usb_dev = UsbDeviceBuilder::new(usb_bus_ref, UsbVidPid(0x16c0, 0x27dd))
+        .strings(&[StringDescriptors::new(LangID::EN)
+            .manufacturer("Raspberry Pi")
+            .product("Uni REPL")
+            .serial_number("UNI")])
+        .unwrap()
+        .device_class(usbd_serial::USB_CLASS_CDC)
+        .build();
+
+    // Create terminal and run REPL
+    let terminal = UsbCdcTerminal::new(usb_dev, serial);
+    run_repl(terminal)
+}
+
+// Raspberry Pi Pico W REPL function
+#[cfg(feature = "target-pico")]
+fn run_repl(mut terminal: UsbCdcTerminal<'static, UsbBus>) -> ! {
+    let mut editor = LineEditor::new(1024, 20);
+    let mut interp = Interpreter::new();
+
+    // Wait for first byte from terminal (connection signal)
+    let _ = terminal.read_byte();
+
+    // Run the shared REPL loop
+    run_repl_loop(&mut editor, terminal, &mut interp);
+
+    // REPL exited, enter infinite loop (embedded requirement)
+    loop {
+        cortex_m::asm::wfi();
+    }
 }
