@@ -7,7 +7,9 @@ extern crate alloc;
 mod output_adapter;
 
 use output_adapter::TerminalOutput;
-use uni_core::{Interpreter, RuntimeError, execute_string, primitives};
+use uni_core::{Interpreter, RuntimeError, execute_string};
+#[cfg(not(target_os = "none"))]
+use uni_core::primitives;
 use editline::{LineEditor, Terminal};
 
 #[cfg(not(target_os = "none"))]
