@@ -37,10 +37,6 @@ pub fn load_prelude(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         'nil? [[] =] def
         "( x -- bool ) Test if value is empty list" doc
 
-        \\ Mathematical constants
-        'i 0+1i def
-        "Imaginary unit constant (0+1i)" doc
-
         \\ List processing primitives
         'length [
             dup nil?
@@ -111,6 +107,18 @@ pub fn load_prelude(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     // RUST CONCEPT: Execute the prelude code directly
     // This uses the normal execution path - no special handling needed
     execute_string(prelude_code, interp)?;
+
+    // RUST CONCEPT: Conditional compilation for feature-specific prelude
+    // Complex number constants (only when complex_numbers feature is enabled)
+    #[cfg(feature = "complex_numbers")]
+    {
+        let complex_prelude = r#"
+            \\ Mathematical constants (complex numbers)
+            'i 0+1i def
+            "Imaginary unit constant (0+1i)" doc
+        "#;
+        execute_string(complex_prelude, interp)?;
+    }
 
     // RUST CONCEPT: Conditional compilation for platform-specific prelude
     // Hardware convenience wrappers for micro:bit
@@ -455,6 +463,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "complex_numbers")]
     fn test_prelude_imaginary_constant() {
         use num_bigint::BigInt;
         let mut interp = setup_interpreter_with_prelude();
