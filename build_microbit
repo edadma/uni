@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+echo "Building Uni for micro:bit v2..."
+cargo build --no-default-features --features target-microbit --target thumbv7em-none-eabihf --release
+
+echo ""
+echo "Build complete!"
+echo "Binary location: target/thumbv7em-none-eabihf/release/uni"
+echo ""
+echo "Next steps:"
+echo "  ./flash_microbit    # Flash to connected micro:bit"
+echo ""
+echo "Or manually convert and copy:"
+echo "  arm-none-eabi-objcopy -O ihex target/thumbv7em-none-eabihf/release/uni uni.hex"
+echo "  cp uni.hex /media/\$USER/MICROBIT/"

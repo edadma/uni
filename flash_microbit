@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Build first
+echo "Building for micro:bit..."
+cargo build --no-default-features --features target-microbit --target thumbv7em-none-eabihf --release
+
+echo ""
 echo "Looking for mounted micro:bit..."
 if [ -d "/media/$USER/MICROBIT" ]; then
     echo "Found micro:bit at /media/$USER/MICROBIT"

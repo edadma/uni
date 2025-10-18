@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+echo "Building Uni for Raspberry Pi Pico W..."
+cargo build --no-default-features --features target-pico --target thumbv6m-none-eabi --release
+
+echo ""
+echo "Build complete!"
+echo "Binary location: target/thumbv6m-none-eabi/release/uni"
+echo ""
+echo "Next steps:"
+echo "  ./flash_pico    # Flash to connected Pico"
+echo ""
+echo "Or manually convert and copy:"
+echo "  elf2uf2-rs target/thumbv6m-none-eabi/release/uni target/thumbv6m-none-eabi/release/uni.uf2"
+echo "  cp target/thumbv6m-none-eabi/release/uni.uf2 /media/\$USER/RPI-RP2/"

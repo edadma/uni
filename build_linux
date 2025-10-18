@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+echo "Building Uni for Linux..."
+cargo build --features target-linux --release
+
+echo ""
+echo "Build complete!"
+echo "Binary location: target/release/uni"
+echo ""
+echo "Usage:"
+echo "  ./target/release/uni              # Start REPL"
+echo "  ./target/release/uni -e \"5 3 +\"   # Execute and print"
+echo "  ./target/release/uni script.uni   # Run file"

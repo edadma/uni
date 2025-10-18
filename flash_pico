@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Build first
+echo "Building for Raspberry Pi Pico W..."
+cargo build --no-default-features --features target-pico --target thumbv6m-none-eabi --release
+
+echo ""
 echo "Converting ELF to UF2..."
 elf2uf2-rs target/thumbv6m-none-eabi/release/uni target/thumbv6m-none-eabi/release/uni.uf2
 
