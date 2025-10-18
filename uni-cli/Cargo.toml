@@ -4,6 +4,11 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+description = "Command-line REPL and interpreter for the Uni programming language"
+repository = "https://github.com/edadma/uni"
+readme = "README.md"
+keywords = ["repl", "interpreter", "stack", "language", "embedded"]
+categories = ["command-line-utilities", "development-tools"]
 
 [[bin]]
 name = "uni"

@@ -4,6 +4,11 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+description = "Core interpreter library for the Uni programming language"
+repository = "https://github.com/edadma/uni"
+readme = "README.md"
+keywords = ["interpreter", "stack", "homoiconic", "embedded", "forth"]
+categories = ["embedded", "no-std", "parser-implementations"]
 
 [lib]
 name = "uni_core"
