@@ -5,8 +5,6 @@ use crate::interpreter::Interpreter;
 use crate::primitives::numeric_promotion::promote_pair;
 use crate::value::{RuntimeError, Value};
 use num_traits::Zero;
-#[cfg(not(feature = "std"))]
-use num_traits::Float;
 
 // RUST CONCEPT: Floor division with zero checking and type promotion
 // Stack-based floor division: ( n1 n2 -- quotient )
