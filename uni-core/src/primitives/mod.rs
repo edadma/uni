@@ -90,11 +90,18 @@ pub mod doc;
 pub mod help;
 pub mod val;
 
+// Variable operations (Forth-style)
+pub mod var;
+pub mod fetch;  // @
+pub mod store;  // !
+
 // Control flow - if is now handled specially in the evaluator
 
 // I/O operations
 pub mod print;
 pub mod words;
+pub mod cr;
+pub mod space;
 
 // Stack management
 pub mod clear;
@@ -275,11 +282,18 @@ pub use doc::doc_builtin;
 pub use help::help_builtin;
 pub use val::val_builtin;
 
+// Variable operations (Forth-style)
+pub use var::var_builtin;
+pub use fetch::fetch_builtin;
+pub use store::store_builtin;
+
 // Control flow - if is now handled specially in the evaluator
 
 // I/O operations
 pub use print::print_builtin;
 pub use words::words_builtin;
+pub use cr::cr_builtin;
+pub use space::space_builtin;
 
 // Stack management
 pub use clear::clear_builtin;

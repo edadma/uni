@@ -23,7 +23,8 @@ pub fn print_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     };
 
     // Write to terminal if available (silently succeeds if no terminal)
-    let _ = interp.writeln(&output);
+    // Note: . does not output a newline - use 'cr' for that
+    let _ = interp.write_str(&output);
 
     Ok(())
 }

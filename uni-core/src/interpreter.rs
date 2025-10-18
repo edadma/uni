@@ -247,6 +247,15 @@ impl Interpreter {
         }
         Ok(())
     }
+
+    // Write text to the output without a newline
+    pub fn write_str(&mut self, text: &str) -> Result<(), ()> {
+        if let Some(output) = &mut self.output {
+            output.write(text.as_bytes())?;
+            output.flush()?;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

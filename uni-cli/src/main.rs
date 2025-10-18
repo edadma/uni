@@ -402,6 +402,7 @@ fn write_line<T: Terminal>(terminal: &mut T, s: &str) -> editline::Result<()> {
 fn execute_repl_line<T: Terminal>(terminal: &mut T, line: &str, interp: &mut Interpreter) -> bool {
     match execute_string(line, interp) {
         Ok(()) => {
+            let _ = write_line(terminal, "");  // Blank line before stack display
             if !interp.stack.is_empty()
                 && let Some(top) = interp.stack.last() {
                     let msg = format!(" => {} : {}", top, top.type_name());
@@ -414,6 +415,7 @@ fn execute_repl_line<T: Terminal>(terminal: &mut T, line: &str, interp: &mut Int
             false // Exit REPL
         }
         Err(e) => {
+            let _ = write_line(terminal, "");  // Blank line before error message
             let msg = format!("Error: {:?}", e);
             let _ = write_line(terminal, &msg);
             true // Continue REPL after error

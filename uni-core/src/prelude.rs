@@ -58,6 +58,40 @@ pub fn load_prelude(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         ] def
         "( x -- x x | x ) Duplicate if truthy, otherwise leave unchanged" doc
 
+        \\ Variable operations (Forth-style)
+        '1+ [1 +] def
+        "( n -- n+1 ) Increment by 1" doc
+
+        '1- [1 -] def
+        "( n -- n-1 ) Decrement by 1" doc
+
+        '+! [dup @ rot + swap !] def
+        "( n var -- ) Add n to variable" doc
+
+        'on [true swap !] def
+        "( var -- ) Store true to variable" doc
+
+        'off [false swap !] def
+        "( var -- ) Store false to variable" doc
+
+        \\ List iteration
+        'each [
+            >r                      \\ Move fn to return stack: list | fn
+            dup nil?                \\ Check if list is empty: list bool | fn
+            [
+                drop r> drop        \\ Empty list: clean up list and fn
+            ]
+            [
+                dup head            \\ list -> list head | fn
+                r@                  \\ Get fn: list head fn | fn
+                exec                \\ Execute fn: list ... | fn (fn consumes head, may leave results)
+                tail                \\ Get tail: ... tail | fn
+                r> each             \\ Recurse: ... tail fn
+            ]
+            if
+        ] def
+        "( list [fn] -- ) Execute fn on each element of list (fn consumes argument, may leave results)" doc
+
         \\ Short-circuiting logical operations
         'and [
             swap                          \\ Move first quotation to top
@@ -481,5 +515,43 @@ mod tests {
         let result = interp.pop().unwrap();
         assert!(matches!(result, Value::GaussianInt(ref re, ref im)
             if re == &BigInt::from(0) && im == &BigInt::from(2)));
+    }
+
+    #[test]
+    fn test_prelude_each_basic() {
+        let mut interp = setup_interpreter_with_prelude();
+
+        // Test: [1 2 3] [drop] each should consume all elements
+        execute_string("[10 20 30] [drop] each", &mut interp).unwrap();
+
+        // Stack should be empty - each consumes the list and function consumes elements
+        assert!(interp.pop().is_err());
+    }
+
+    #[test]
+    fn test_prelude_each_empty_list() {
+        let mut interp = setup_interpreter_with_prelude();
+
+        // Test: empty list should not execute function
+        execute_string("42 [] [drop] each", &mut interp).unwrap();
+
+        // The 42 should still be on stack (function never executed)
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(42)));
+
+        // Stack should be empty now
+        assert!(interp.pop().is_err());
+    }
+
+    #[test]
+    fn test_prelude_each_with_print() {
+        let mut interp = setup_interpreter_with_prelude();
+
+        // Test: [1 2 3] [.] each should print 1, 2, 3 (side effects only)
+        // Since [.] consumes its argument and returns nothing, stack should be clean
+        execute_string("[1 2 3] [.] each", &mut interp).unwrap();
+
+        // Stack should be empty - pure side effects
+        assert!(interp.pop().is_err());
     }
 }

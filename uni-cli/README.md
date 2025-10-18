@@ -1,6 +1,6 @@
 # uni-cli
 
-![Version](https://img.shields.io/badge/version-0.0.4-blue)
+![Version](https://img.shields.io/badge/version-0.0.5-blue)
 ![License](https://img.shields.io/badge/license-MIT%20OR%20Unlicense-green)
 
 Command-line REPL and interpreter for the Uni programming language - a homoiconic stack-based language that unifies code and data.
@@ -26,7 +26,7 @@ uni
 | | | |_ __ (_)
 | | | | '_ \| |
 | |_| | | | | |
- \___/|_| |_|_| v0.0.4
+ \___/|_| |_|_| v0.0.5
 
 Type 'quit' or press Ctrl-D to exit
 uni> 5 3 +
@@ -107,7 +107,7 @@ To embed Uni in your own application, use the `uni-core` library crate:
 
 ```toml
 [dependencies]
-uni-core = "0.0.4"
+uni-core = "0.0.5"
 ```
 
 See the `uni-core` crate documentation for API details.

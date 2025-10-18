@@ -15,6 +15,8 @@ use crate::primitives::{
     // List operations
     cons_builtin,
     construct_record_builtin,
+    // I/O operations
+    cr_builtin,
     // Meta operations
     def_builtin,
     div_builtin,
@@ -22,6 +24,8 @@ use crate::primitives::{
     // Stack operations
     drop_builtin,
     eq_builtin,
+    // Variable operations
+    fetch_builtin,  // @
     floor_div_builtin,
     from_r_builtin,
     get_record_field_builtin,
@@ -58,6 +62,8 @@ use crate::primitives::{
     // Shift operations
     shl_builtin,
     shr_builtin,
+    space_builtin,
+    store_builtin,  // !
     sub_builtin,
     tail_builtin,
     // Return stack operations
@@ -70,6 +76,7 @@ use crate::primitives::{
     // Type introspection
     type_of_builtin,
     val_builtin,
+    var_builtin,
     vector_builtin,
     vector_length_builtin,
     vector_ref_builtin,
@@ -275,6 +282,43 @@ pub fn register_builtins(interp: &mut Interpreter) {
         },
     );
 
+    // Variable operations (Forth-style)
+    let var_atom = interp.intern_atom("var");
+    interp.dictionary.insert(
+        var_atom,
+        DictEntry {
+            value: Value::Builtin(var_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Create a mutable variable.\nUsage: initial-value 'name var\nExample: 0 'counter var",
+            )),
+        },
+    );
+
+    let fetch_atom = interp.intern_atom("@");
+    interp.dictionary.insert(
+        fetch_atom,
+        DictEntry {
+            value: Value::Builtin(fetch_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Fetch value from variable.\nUsage: var @ => value\nExample: counter @ .",
+            )),
+        },
+    );
+
+    let store_atom = interp.intern_atom("!");
+    interp.dictionary.insert(
+        store_atom,
+        DictEntry {
+            value: Value::Builtin(store_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Store value into variable.\nUsage: value var !\nExample: 42 counter !",
+            )),
+        },
+    );
+
     let doc_atom = interp.intern_atom("doc");
     interp.dictionary.insert(
         doc_atom,
@@ -320,6 +364,30 @@ pub fn register_builtins(interp: &mut Interpreter) {
             is_executable: true,
             doc: Some(Rc::<str>::from(
                 "Display all defined words in the dictionary.\nUsage: words => (displays all words)\nExample: words => Defined words (120): ...",
+            )),
+        },
+    );
+
+    let cr_atom = interp.intern_atom("cr");
+    interp.dictionary.insert(
+        cr_atom,
+        DictEntry {
+            value: Value::Builtin(cr_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Output a newline character.\nUsage: cr => (outputs newline)\nExample: \"Hello\" . cr \"World\" . cr",
+            )),
+        },
+    );
+
+    let space_atom = interp.intern_atom("space");
+    interp.dictionary.insert(
+        space_atom,
+        DictEntry {
+            value: Value::Builtin(space_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Output a space character.\nUsage: space => (outputs space)\nExample: \"Hello\" . space \"World\" .",
             )),
         },
     );

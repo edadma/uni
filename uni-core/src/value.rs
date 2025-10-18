@@ -38,6 +38,7 @@ pub enum Value {
     Null,                           // Null/undefined value (distinct from Nil empty list)
     Pair(Rc<Value>, Rc<Value>),    // Cons cell for lists
     Array(Rc<RefCell<Vec<Value>>>), // Mutable array/vector
+    Variable(Rc<RefCell<Value>>),   // Mutable variable (Forth-style)
     Nil,                            // Empty list marker
     Builtin(fn(&mut crate::interpreter::Interpreter) -> Result<(), RuntimeError>),
     // RUST CONCEPT: Records (Scheme-style record types)
@@ -94,6 +95,7 @@ impl Value {
             Value::Null => "null",
             Value::Pair(_, _) => "list",
             Value::Array(_) => "vector",
+            Value::Variable(_) => "variable",
             Value::Nil => "nil",
             Value::Builtin(_) => "builtin",
             Value::Record { .. } => "record",
@@ -283,6 +285,9 @@ impl fmt::Display for Value {
                     }
                 }
                 write!(f, "]")
+            }
+            Value::Variable(cell) => {
+                write!(f, "<variable:{}>", cell.borrow())
             }
             Value::Nil => write!(f, "[]"),
             Value::Builtin(_) => write!(f, "<builtin>"),

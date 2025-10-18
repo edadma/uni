@@ -787,7 +787,7 @@ checksum = "562d481066bde0658276a35467c4af00bdc6ee726305698a55b86e61d7ad82bb"
 
 [[package]]
 name = "uni-cli"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "alloc-cortex-m",
  "cortex-m",
@@ -805,7 +805,7 @@ dependencies = [
 
 [[package]]
 name = "uni-core"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "chrono",
  "cortex-m",
