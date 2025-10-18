@@ -1,0 +1,46 @@
+[package]
+name = "uni"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "uni"
+path = "src/main.rs"
+
+[dependencies]
+uni-core = { path = "../uni-core", default-features = false }
+editline = { version = "0.0.17", default-features = false }
+
+# Pico-specific optional dependencies
+rp2040-hal = { version = "0.10", features = ["rt", "critical-section-impl"], optional = true }
+rp2040-boot2 = { version = "0.3", optional = true }
+usb-device = { version = "0.3", optional = true }
+usbd-serial = { version = "0.2", optional = true }
+
+[features]
+# Default: full-featured Linux build
+default = ["target-linux", "std", "advanced_math", "complex_numbers", "datetime"]
+
+# Target selection (mutually exclusive - pick ONE)
+target-linux = ["uni-core/std", "editline/std"]
+target-microbit = ["editline/microbit", "microbit", "embedded-hal", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m"]
+target-pico = ["editline/rp_pico_usb", "rp2040-hal", "rp2040-boot2", "usb-device", "usbd-serial", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m"]
+
+# Optional features (passed through to uni-core)
+std = ["uni-core/std"]
+advanced_math = ["uni-core/advanced_math"]
+complex_numbers = ["uni-core/complex_numbers"]
+datetime = ["uni-core/datetime"]
+
+# Embedded target dependencies (target_os = "none") - made optional
+[target.'cfg(target_os = "none")'.dependencies]
+embedded-hal = { version = "1.0", optional = true }
+cortex-m = { version = "0.7", optional = true }
+cortex-m-rt = { version = "0.7", optional = true }
+panic-halt = { version = "0.2", optional = true }
+alloc-cortex-m = { version = "0.4", optional = true }
+
+# micro:bit-specific dependencies (only with target-microbit feature)
+microbit = { package = "microbit-v2", version = "0.15", optional = true }

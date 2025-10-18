@@ -1,0 +1,27 @@
+[package]
+name = "uni-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+name = "uni_core"
+path = "src/lib.rs"
+
+[dependencies]
+# Core numeric types (no_std compatible)
+num-bigint = { version = "0.4", default-features = false }
+num-rational = { version = "0.4", default-features = false, features = ["num-bigint"] }
+num-traits = { version = "0.2", default-features = false, features = ["libm"] }
+
+# Optional features
+num-complex = { version = "0.4", default-features = false, optional = true }
+chrono = { version = "0.4", optional = true }
+
+[features]
+default = []
+std = []
+advanced_math = []  # Trig, exp/log, rounding, advanced division
+complex_numbers = ["num-complex"]  # Complex and Gaussian integer support
+datetime = ["chrono", "std"]  # DateTime requires std - not available on embedded targets

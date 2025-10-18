@@ -790,21 +790,28 @@ name = "uni"
 version = "0.0.1"
 dependencies = [
  "alloc-cortex-m",
- "chrono",
  "cortex-m",
  "cortex-m-rt",
  "editline",
  "embedded-hal 1.0.0",
  "microbit-v2",
+ "panic-halt",
+ "rp2040-boot2",
+ "rp2040-hal",
+ "uni-core",
+ "usb-device",
+ "usbd-serial",
+]
+
+[[package]]
+name = "uni-core"
+version = "0.0.1"
+dependencies = [
+ "chrono",
  "num-bigint",
  "num-complex",
  "num-rational",
  "num-traits",
- "panic-halt",
- "rp2040-boot2",
- "rp2040-hal",
- "usb-device",
- "usbd-serial",
 ]
 
 [[package]]
