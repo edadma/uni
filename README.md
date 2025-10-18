@@ -676,7 +676,12 @@ Uni automatically demotes to simpler types when possible:
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Dual licensed under your choice of:
+
+- MIT License
+- The Unlicense (public domain)
+
+See [LICENSE](LICENSE) for details.
 
 ## Contributing
 
