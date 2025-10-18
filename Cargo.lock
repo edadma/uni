@@ -180,9 +180,9 @@ checksum = "f578e8e2c440e7297e008bb5486a3a8a194775224bbc23729b0dbdfaeebf162e"
 
 [[package]]
 name = "editline"
-version = "0.0.17"
+version = "0.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7aa98353d6133edc021e86582286fdd817f7bc6ea6df057890c9f29af60aef3"
+checksum = "75935c6bb5268f2a062ad3d5a5bb7aa41428a17dff89d7a787589290383a5838"
 dependencies = [
  "alloc-cortex-m",
  "cortex-m",

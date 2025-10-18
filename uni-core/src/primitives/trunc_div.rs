@@ -6,6 +6,9 @@ use crate::primitives::numeric_promotion::promote_pair;
 use crate::value::{RuntimeError, Value};
 use num_traits::Zero;
 
+#[cfg(not(feature = "std"))]
+use num_traits::Float;
+
 // RUST CONCEPT: Truncating division with zero checking and type promotion
 // Stack-based truncating division: ( n1 n2 -- quotient )
 // Rounds toward zero (like C/Java/Rust integer division)
