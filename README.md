@@ -1,6 +1,11 @@
 # Uni Programming Language
 
+![Version](https://img.shields.io/badge/version-0.0.1-blue)
+![License](https://img.shields.io/badge/license-MIT%20OR%20Unlicense-green)
+
 A homoiconic stack-based programming language that unifies code and data, featuring immediate execution, powerful list-based data structures, and precise numeric computing.
+
+**Architecture:** Uni is split into `uni-core` (embeddable library) and `uni-cli` (command-line interface).
 
 ## Quick Start
 
@@ -10,9 +15,28 @@ git clone https://github.com/edadma/uni.git
 cd uni
 
 # Build and run (Linux/macOS/Windows)
-cargo build --release --no-default-features --features target-linux,std,advanced_math,complex_numbers
+./build_linux
 ./target/release/uni
 ```
+
+## Using Uni as a Library
+
+Add to your `Cargo.toml`:
+```toml
+[dependencies]
+uni-core = { path = "../uni/uni-core", features = ["std"] }
+```
+
+Example usage:
+```rust
+use uni_core::{Interpreter, execute_string};
+
+let mut interp = Interpreter::new();
+execute_string("5 3 +", &mut interp).unwrap();
+println!("Result: {}", interp.stack.last().unwrap()); // Output: 8
+```
+
+See `uni-core/examples/simple_calculator.rs` for a complete example.
 
 ## Platform Support
 
@@ -22,12 +46,14 @@ Uni runs on desktop platforms (Linux, macOS, Windows) and embedded systems (micr
 
 **Build:**
 ```bash
-cargo build --release --no-default-features --features target-linux,std,advanced_math,complex_numbers
+./build_linux          # Builds release binary with all features
+# Or manually:
+cargo build --features target-linux --release
 ```
 
 **Run REPL:**
 ```bash
-cargo run --release --no-default-features --features target-linux,std,advanced_math,complex_numbers
+./target/release/uni
 ```
 
 **Run a file:**
@@ -45,17 +71,13 @@ cargo run --release --no-default-features --features target-linux,std,advanced_m
 ### Embedded: micro:bit v2
 
 **Prerequisites:**
-- Rust nightly toolchain: `rustup toolchain install nightly`
-- `arm-none-eabi-objcopy`: `sudo apt install gcc-arm-none-eabi`
+- `arm-none-eabi-objcopy` and `arm-none-eabi-size`: `sudo apt install gcc-arm-none-eabi`
 - micro:bit v2 board with USB cable
 
 **Build and flash:**
 ```bash
-# Build the binary
-cargo +nightly build --release --target thumbv7em-none-eabihf --no-default-features --features target-microbit -Z build-std=core,alloc
-
-# Flash to micro:bit (connect via USB in BOOTSEL mode)
-./flash_microbit
+./build_microbit       # Build release binary
+./flash_microbit       # Build and flash to connected micro:bit
 ```
 
 **Connect to REPL:**
@@ -65,30 +87,23 @@ picocom /dev/ttyACM0 -b 115200
 
 **Specifications:**
 - **Target:** ARM Cortex-M4 (thumbv7em-none-eabihf)
-- **Binary size:** ~509KB (fits in 512KB flash)
+- **Binary size:** ~344KB (65.5% of 512KB flash)
 - **Heap size:** ~112KB (out of 128KB RAM)
-
-**Features:**
 - Interactive REPL over USB serial (115200 baud)
 - Full line editing with history (20 entries)
-- All core language features
-- Exact arithmetic with arbitrary-precision integers and rationals
-- Optional complex number support
+- All core language features with exact arithmetic
 
 ### Embedded: Raspberry Pi Pico W
 
 **Prerequisites:**
-- Rust nightly toolchain: `rustup toolchain install nightly`
 - `elf2uf2-rs`: `cargo install elf2uf2-rs`
+- `arm-none-eabi-size`: `sudo apt install gcc-arm-none-eabi`
 - Raspberry Pi Pico W board with USB cable
 
 **Build and flash:**
 ```bash
-# Build the binary
-cargo +nightly build --release --target thumbv6m-none-eabi --no-default-features --features target-pico -Z build-std=core,alloc
-
-# Flash to Pico (hold BOOTSEL, connect USB, release BOOTSEL)
-./flash_pico
+./build_pico           # Build release binary
+./flash_pico           # Build and flash to connected Pico
 ```
 
 **Connect to REPL:**

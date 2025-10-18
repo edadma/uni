@@ -333,7 +333,8 @@ fn run_repl_loop<T: Terminal + 'static>(editor: &mut LineEditor, terminal: T, in
     let _ = write_line(&mut repl_term, "| | | |_ __ (_)");
     let _ = write_line(&mut repl_term, "| | | | '_ \\| |");
     let _ = write_line(&mut repl_term, "| |_| | | | | |");
-    let _ = write_line(&mut repl_term, " \\___/|_| |_|_| v0.0.1");
+    let version_line = format!(" \\___/|_| |_|_| v{}", env!("CARGO_PKG_VERSION"));
+    let _ = write_line(&mut repl_term, &version_line);
     let _ = write_line(&mut repl_term, "");
     let _ = write_line(&mut repl_term, "Type 'quit' or press Ctrl-D to exit");
     let _ = write_line(&mut repl_term, "Type 'stack' to see the current stack");
