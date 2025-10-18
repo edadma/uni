@@ -131,7 +131,7 @@ picocom /dev/ttyACM0 -b 115200
 | **GaussianInt** | `3+4i` | Gaussian integers (complex with integer parts) |
 | **Atom** | `hello`, `+`, `print` | Interned symbols that execute |
 | **String** | `"Hello, World!"` | Reference-counted UTF-8 text |
-| **List** | `[1 2 3]`, `[a . b]` | Cons cells (pairs + nil) |
+| **List** | `[1 2 3]`, `[a | b]` | Cons cells (pairs + nil) |
 | **Vector** | `#[1 2 3]` | Dense arrays with O(1) indexing |
 | **Boolean** | `true`, `false` | Boolean values |
 | **Null** | `null` | Null/nil value |
@@ -166,9 +166,9 @@ hello           \ Atoms execute (look up definition)
 "text"          \ Strings push themselves
 
 \ List structures (cons cells)
-[1 2 3]         \ Proper list: [1 . [2 . [3 . nil]]]
+[1 2 3]         \ Proper list: [1 | [2 | [3 | nil]]]
 []              \ Empty list (nil)
-[a . b]         \ Improper list (just a pair)
+[a | b]         \ Improper list (just a pair)
 ```
 
 ## Command Line Usage
