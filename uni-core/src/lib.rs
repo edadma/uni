@@ -50,6 +50,7 @@ pub mod tokenizer;
 pub mod builtins;
 pub mod prelude;
 pub mod primitives;
+pub mod hardware;
 
 // Internal module
 mod compat;

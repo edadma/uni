@@ -29,6 +29,12 @@ pub struct Interpreter {
     pub current_pos: Option<SourcePos>, // Track current execution position for error messages
     pending_doc_target: Option<Rc<str>>, // Remember most recent definition for doc
     output: Option<Box<dyn Output>>, // Optional output for print/display (REPL mode)
+
+    // Hardware peripherals (micro:bit only)
+    #[cfg(feature = "hardware-microbit")]
+    pub buttons: Option<microbit::board::Buttons>,
+    #[cfg(feature = "hardware-microbit")]
+    pub display_buffer: [[u8; 5]; 5],  // Raw pixel buffer for LED matrix
 }
 
 impl Interpreter {
@@ -41,6 +47,12 @@ impl Interpreter {
             current_pos: None, // No position initially
             pending_doc_target: None,
             output: None, // No output by default (for file execution, tests)
+
+            // Hardware peripherals start as None, set by platform initialization
+            #[cfg(feature = "hardware-microbit")]
+            buttons: None,
+            #[cfg(feature = "hardware-microbit")]
+            display_buffer: [[0u8; 5]; 5],  // All LEDs off initially
         };
 
         // RUST CONCEPT: Automatic initialization

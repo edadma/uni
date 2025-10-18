@@ -808,6 +808,9 @@ name = "uni-core"
 version = "0.0.1"
 dependencies = [
  "chrono",
+ "cortex-m",
+ "embedded-hal 1.0.0",
+ "microbit-v2",
  "num-bigint",
  "num-complex",
  "num-rational",

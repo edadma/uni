@@ -1393,14 +1393,11 @@ pub fn register_builtins(interp: &mut Interpreter) {
     );
     } // end datetime feature block
 
-    // Register target-specific primitives
-    #[cfg(feature = "target-linux")]
-    crate::hardware::linux::register_linux_primitives(interp);
-
-    #[cfg(feature = "target-microbit")]
+    // Register hardware-specific primitives (feature-gated)
+    #[cfg(feature = "hardware-microbit")]
     crate::hardware::microbit::register_microbit_primitives(interp);
 
-    #[cfg(feature = "target-pico")]
+    #[cfg(feature = "hardware-pico")]
     crate::hardware::pico::register_pico_primitives(interp);
 }
 
