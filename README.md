@@ -10,24 +10,24 @@ git clone https://github.com/edadma/uni.git
 cd uni
 
 # Build and run (Linux/macOS/Windows)
-cargo build --release --no-default-features --features std,advanced_math,complex_numbers
+cargo build --release --no-default-features --features target-linux,std,advanced_math,complex_numbers
 ./target/release/uni
 ```
 
 ## Platform Support
 
-Uni runs on desktop platforms (Linux, macOS, Windows) and embedded systems (micro:bit v2).
+Uni runs on desktop platforms (Linux, macOS, Windows) and embedded systems (micro:bit v2, Raspberry Pi Pico W).
 
 ### Desktop (Linux/macOS/Windows)
 
 **Build:**
 ```bash
-cargo build --release --no-default-features --features std,advanced_math,complex_numbers
+cargo build --release --no-default-features --features target-linux,std,advanced_math,complex_numbers
 ```
 
 **Run REPL:**
 ```bash
-cargo run --release --no-default-features --features std,advanced_math,complex_numbers
+cargo run --release --no-default-features --features target-linux,std,advanced_math,complex_numbers
 ```
 
 **Run a file:**
@@ -36,38 +36,79 @@ cargo run --release --no-default-features --features std,advanced_math,complex_n
 ```
 
 **Available features:**
+- `target-linux` - Linux/desktop target support
 - `std` - Standard library support (required for desktop)
 - `advanced_math` - Trigonometric functions, exp/log, rounding
 - `complex_numbers` - Complex number support
+- `datetime` - Date/time operations (requires std)
 
-### Embedded (micro:bit v2)
+### Embedded: micro:bit v2
 
 **Prerequisites:**
 - Rust nightly toolchain: `rustup toolchain install nightly`
-- probe-rs: `cargo install probe-rs-tools --locked`
+- `arm-none-eabi-objcopy`: `sudo apt install gcc-arm-none-eabi`
 - micro:bit v2 board with USB cable
 
 **Build and flash:**
 ```bash
-cargo +nightly run --release --target thumbv7em-none-eabihf --no-default-features -Z build-std=core,alloc
+# Build the binary
+cargo +nightly build --release --target thumbv7em-none-eabihf --no-default-features --features target-microbit -Z build-std=core,alloc
+
+# Flash to micro:bit (connect via USB in BOOTSEL mode)
+./flash_microbit
 ```
 
-This will compile Uni for the ARM Cortex-M4 processor, build the core library from source, and automatically flash it to your micro:bit using probe-rs.
-
-**Build only (no flash):**
+**Connect to REPL:**
 ```bash
-cargo +nightly build --release --target thumbv7em-none-eabihf --no-default-features -Z build-std=core,alloc
+picocom /dev/ttyACM0 -b 115200
 ```
 
-**Binary size:** ~509KB (fits in micro:bit's 512KB flash)
-**Heap size:** ~112KB (out of 128KB RAM)
+**Specifications:**
+- **Target:** ARM Cortex-M4 (thumbv7em-none-eabihf)
+- **Binary size:** ~509KB (fits in 512KB flash)
+- **Heap size:** ~112KB (out of 128KB RAM)
 
-**Features on micro:bit:**
+**Features:**
 - Interactive REPL over USB serial (115200 baud)
 - Full line editing with history (20 entries)
 - All core language features
 - Exact arithmetic with arbitrary-precision integers and rationals
-- Limited to essential features (no datetime, complex numbers optional)
+- Optional complex number support
+
+### Embedded: Raspberry Pi Pico W
+
+**Prerequisites:**
+- Rust nightly toolchain: `rustup toolchain install nightly`
+- `elf2uf2-rs`: `cargo install elf2uf2-rs`
+- Raspberry Pi Pico W board with USB cable
+
+**Build and flash:**
+```bash
+# Build the binary
+cargo +nightly build --release --target thumbv6m-none-eabi --no-default-features --features target-pico -Z build-std=core,alloc
+
+# Flash to Pico (hold BOOTSEL, connect USB, release BOOTSEL)
+./flash_pico
+```
+
+**Connect to REPL:**
+```bash
+picocom /dev/ttyACM0 -b 115200
+```
+
+**Specifications:**
+- **Target:** ARM Cortex-M0+ (thumbv6m-none-eabi)
+- **MCU:** RP2040 dual-core @ 133MHz
+- **Flash:** 2MB
+- **RAM:** 264KB
+- **USB:** Native USB 1.1 device support
+
+**Features:**
+- Interactive REPL over USB serial (115200 baud)
+- Full line editing with history
+- All core language features
+- Exact arithmetic with arbitrary-precision integers and rationals
+- Larger memory footprint than micro:bit (264KB RAM vs 128KB)
 
 ## Language Overview
 
@@ -141,7 +182,7 @@ uni script.uni
 uni -f script.uni          # Explicit file flag
 
 # Execute code directly
-uni -c "5 3 + pr"          # Execute code (prints 8)
+uni -c "5 3 + ."           # Execute code (prints 8)
 uni -e "10 2 /"            # Execute and auto-print result (prints 5)
 ```
 
@@ -169,7 +210,7 @@ Uni supports shebang lines for executable scripts:
   ] if
 ] def
 
-10 fib pr   \ Calculate and print fibonacci(10)
+10 fib .    \ Calculate and print fibonacci(10)
 ```
 
 Make it executable and run:
@@ -313,21 +354,21 @@ null null?      \ Check if null: true
 ```uni
 \ Conditional execution
 5 0 > [
-  "Positive" pr
+  "Positive" .
 ] [
-  "Not positive" pr
+  "Not positive" .
 ] if
 
 \ While loops (from prelude)
 'counter [0]
 [counter @ 5 <] [
-  counter @ pr
+  counter @ .
   counter @ 1 + counter !
 ] while
 
 \ Word definition
 'square [dup *] def
-5 square pr         \ Prints 25
+5 square .          \ Prints 25
 ```
 
 ### Type Introspection
@@ -387,7 +428,7 @@ Example: 5 0 > ["positive"] ["not positive"] if
 ### Hello World
 ```uni
 #!/usr/bin/env uni
-"Hello, World!" pr
+"Hello, World!" .
 ```
 
 ### Calculator
@@ -398,7 +439,7 @@ Example: 5 0 > ["positive"] ["not positive"] if
 'calculate [
   15 4         \ Two numbers
   /            \ Division operator
-  "Result: " pr pr
+  "Result: " . .
 ] def
 
 calculate      \ Prints: Result: 15/4
@@ -418,7 +459,7 @@ calculate      \ Prints: Result: 15/4
 
 'factorial [1 swap factorial-helper] def
 
-5 factorial pr             \ Prints 120
+5 factorial .              \ Prints 120
 ```
 
 ### List Processing
@@ -439,7 +480,7 @@ calculate      \ Prints: Result: 15/4
 ] def
 
 \ Example: square all numbers
-[1 2 3 4] ['dup *] map pr  \ Prints [1 4 9 16]
+[1 2 3 4] ['dup *] map .   \ Prints [1 4 9 16]
 ```
 
 ### Fibonacci Sequence Generator
@@ -466,7 +507,7 @@ calculate      \ Prints: Result: 15/4
   ] if
 ] def
 
-10 fib-seq pr              \ First 10 fibonacci numbers
+10 fib-seq .               \ First 10 fibonacci numbers
 ```
 
 ## Installation
@@ -477,10 +518,10 @@ calculate      \ Prints: Result: 15/4
 - [Rust](https://rustup.rs/) 1.70 or later
 
 ```bash
-# Clone and build
+# Clone and build for desktop
 git clone https://github.com/edadma/uni.git
 cd uni
-cargo build --release
+cargo build --release --no-default-features --features target-linux,std,advanced_math,complex_numbers
 
 # Install system-wide (optional)
 sudo cp target/release/uni /usr/local/bin/
@@ -490,10 +531,10 @@ sudo cp target/release/uni /usr/local/bin/
 
 ```bash
 # Test the installation
-uni -e "6 7 * pr"          # Should print 42
+uni -c "6 7 * ."           # Should print 42
 
 # Run the test suite
-cargo test                 # Runs 557 tests
+cargo test --no-default-features --features target-linux,std,advanced_math,complex_numbers
 ```
 
 ## Architecture & Implementation
@@ -513,7 +554,7 @@ Uni is implemented in **Rust** with extensive educational comments explaining bo
 
 ```
 src/
-├── main.rs              # CLI interface and REPL
+├── main.rs              # Entry point and platform dispatch
 ├── value.rs             # Core data types (Value enum)
 ├── interpreter.rs       # Stack and dictionary management
 ├── tokenizer.rs         # Lexical analysis
@@ -521,6 +562,12 @@ src/
 ├── evaluator.rs         # Continuation-based execution engine
 ├── builtins.rs          # Built-in operation registration
 ├── prelude.rs           # Standard library (Uni code)
+├── compat.rs            # Platform compatibility layer
+├── hardware/            # Platform-specific implementations
+│   ├── mod.rs           # Hardware abstraction layer
+│   ├── linux.rs         # Linux/desktop REPL
+│   ├── microbit.rs      # BBC micro:bit v2 support
+│   └── pico.rs          # Raspberry Pi Pico W support
 └── primitives/          # Individual primitive implementations
     ├── plus.rs          # Addition with type promotion
     ├── divide.rs        # Exact division
@@ -528,28 +575,35 @@ src/
     ├── trunc_div.rs     # Truncating division
     ├── modulo.rs        # Modulo operation
     └── ...              # 40+ other primitives
+
+flash_microbit           # Script to flash micro:bit
+flash_pico               # Script to flash Raspberry Pi Pico
 ```
 
 ## Development
 
 ```bash
-# Run tests
-cargo test              # Run all 557 tests
+# Run tests (desktop target)
+cargo test --no-default-features --features target-linux,std,advanced_math,complex_numbers
 
 # Run specific test module
-cargo test divide::tests
+cargo test divide::tests --no-default-features --features target-linux,std,advanced_math,complex_numbers
 
 # Run with debug output
-RUST_LOG=debug cargo run -- -e "your code"
+RUST_LOG=debug cargo run --no-default-features --features target-linux,std,advanced_math,complex_numbers -- -e "your code"
 
 # Format code
 cargo fmt
 
 # Run linter
-cargo clippy
+cargo clippy --no-default-features --features target-linux,std,advanced_math,complex_numbers
 
-# Build optimized release
-cargo build --release
+# Build optimized release for desktop
+cargo build --release --no-default-features --features target-linux,std,advanced_math,complex_numbers
+
+# Build for embedded targets
+cargo +nightly build --release --target thumbv7em-none-eabihf --no-default-features --features target-microbit -Z build-std=core,alloc  # micro:bit
+cargo +nightly build --release --target thumbv6m-none-eabi --no-default-features --features target-pico -Z build-std=core,alloc        # Pico
 ```
 
 ### Adding New Primitives
