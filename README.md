@@ -1,6 +1,6 @@
 # Uni Programming Language
 
-![Version](https://img.shields.io/badge/version-0.0.1-blue)
+![Version](https://img.shields.io/badge/version-0.0.2-blue)
 ![License](https://img.shields.io/badge/license-MIT%20OR%20Unlicense-green)
 
 A homoiconic stack-based programming language that unifies code and data, featuring immediate execution, powerful list-based data structures, and precise numeric computing.

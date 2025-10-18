@@ -1,6 +1,6 @@
 # uni-cli
 
-![Version](https://img.shields.io/badge/version-0.0.1-blue)
+![Version](https://img.shields.io/badge/version-0.0.2-blue)
 ![License](https://img.shields.io/badge/license-MIT%20OR%20Unlicense-green)
 
 Command-line REPL and interpreter for the Uni programming language - a homoiconic stack-based language that unifies code and data.
