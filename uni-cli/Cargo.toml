@@ -15,7 +15,7 @@ name = "uni"
 path = "src/main.rs"
 
 [dependencies]
-uni-core = { path = "../uni-core", default-features = false }
+uni-core = { version = "0.0.2", path = "../uni-core", default-features = false }
 editline = { version = "0.0.17", default-features = false }
 
 # Pico-specific optional dependencies
