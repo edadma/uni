@@ -8,6 +8,15 @@ echo ""
 echo "Build complete!"
 echo "Binary location: target/thumbv6m-none-eabi/release/uni"
 echo ""
+
+# Show binary size information
+echo "Binary size:"
+size target/thumbv6m-none-eabi/release/uni
+echo ""
+echo "Flash usage (text + data):"
+arm-none-eabi-size target/thumbv6m-none-eabi/release/uni | tail -n 1 | awk '{printf "  %d bytes (%.1f%% of 2MB)\n", $1+$2, ($1+$2)/2097152*100}'
+echo ""
+
 echo "Next steps:"
 echo "  ./flash_pico    # Flash to connected Pico"
 echo ""

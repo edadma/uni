@@ -8,6 +8,15 @@ echo ""
 echo "Build complete!"
 echo "Binary location: target/thumbv7em-none-eabihf/release/uni"
 echo ""
+
+# Show binary size information
+echo "Binary size:"
+size target/thumbv7em-none-eabihf/release/uni
+echo ""
+echo "Flash usage (text + data):"
+arm-none-eabi-size target/thumbv7em-none-eabihf/release/uni | tail -n 1 | awk '{printf "  %d bytes (%.1f%% of 512KB)\n", $1+$2, ($1+$2)/524288*100}'
+echo ""
+
 echo "Next steps:"
 echo "  ./flash_microbit    # Flash to connected micro:bit"
 echo ""
