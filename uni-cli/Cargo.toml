@@ -25,8 +25,8 @@ default = ["target-linux", "std", "advanced_math", "complex_numbers", "datetime"
 
 # Target selection (mutually exclusive - pick ONE)
 target-linux = ["uni-core/std", "editline/std"]
-target-microbit = ["editline/microbit", "microbit", "embedded-hal", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m"]
-target-pico = ["editline/rp_pico_usb", "rp2040-hal", "rp2040-boot2", "usb-device", "usbd-serial", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m"]
+target-microbit = ["uni-core/hardware-microbit", "editline/microbit", "microbit", "embedded-hal", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m"]
+target-pico = ["uni-core/hardware-pico", "editline/rp_pico_usb", "rp2040-hal", "rp2040-boot2", "usb-device", "usbd-serial", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m"]
 
 # Optional features (passed through to uni-core)
 std = ["uni-core/std"]

@@ -6,6 +6,20 @@ use crate::interpreter::{Interpreter, DictEntry};
 use crate::value::{RuntimeError, Value};
 use crate::compat::format;
 
+#[cfg(feature = "hardware-microbit")]
+use core::cell::RefCell;
+#[cfg(feature = "hardware-microbit")]
+use cortex_m::interrupt::Mutex;
+
+/// Global display for interrupt handler (micro:bit only)
+/// This is accessed by both the TIMER1 interrupt handler (defined in binary) and LED primitives
+///
+/// Note: The interrupt handler itself must be defined in the binary crate (uni-cli), not here,
+/// because Rust only allows interrupt handlers in binary crates, not libraries.
+#[cfg(feature = "hardware-microbit")]
+pub static DISPLAY: Mutex<RefCell<Option<microbit::display::nonblocking::Display<microbit::pac::TIMER1>>>> =
+    Mutex::new(RefCell::new(None));
+
 /// Register micro:bit-specific primitives with the interpreter
 pub fn register_microbit_primitives(interp: &mut Interpreter) {
     // Register button-read primitive
@@ -49,7 +63,7 @@ pub fn register_microbit_primitives(interp: &mut Interpreter) {
 /// Read button state (0=A, 1=B)
 /// Usage: button-id button-read => boolean
 /// Example: 0 button-read => true  (button A pressed)
-#[cfg(feature = "target-microbit")]
+#[cfg(feature = "hardware-microbit")]
 pub fn button_read_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     use embedded_hal::digital::InputPin;
 
@@ -79,7 +93,7 @@ pub fn button_read_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError>
 }
 
 /// Placeholder for non-microbit builds
-#[cfg(not(feature = "target-microbit"))]
+#[cfg(not(feature = "hardware-microbit"))]
 pub fn button_read_builtin(_interp: &mut Interpreter) -> Result<(), RuntimeError> {
     Err(RuntimeError::TypeError("button-read only available on micro:bit".into()))
 }
@@ -89,7 +103,7 @@ pub fn button_read_builtin(_interp: &mut Interpreter) -> Result<(), RuntimeError
 /// Brightness: 0-9 (0=off, 9=brightest)
 /// Usage: x y brightness led-on
 /// Example: 2 2 9 led-on  (center LED at full brightness)
-#[cfg(feature = "target-microbit")]
+#[cfg(feature = "hardware-microbit")]
 pub fn led_on_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     use microbit::display::nonblocking::GreyscaleImage;
 
@@ -126,7 +140,7 @@ pub fn led_on_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 }
 
 /// Placeholder for non-microbit builds
-#[cfg(not(feature = "target-microbit"))]
+#[cfg(not(feature = "hardware-microbit"))]
 pub fn led_on_builtin(_interp: &mut Interpreter) -> Result<(), RuntimeError> {
     Err(RuntimeError::TypeError("led-on only available on micro:bit".into()))
 }
@@ -134,7 +148,7 @@ pub fn led_on_builtin(_interp: &mut Interpreter) -> Result<(), RuntimeError> {
 /// Turn off an LED on the 5x5 matrix (x y)
 /// Usage: x y led-off
 /// Example: 2 2 led-off  (turn off center LED)
-#[cfg(feature = "target-microbit")]
+#[cfg(feature = "hardware-microbit")]
 pub fn led_off_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     use microbit::display::nonblocking::GreyscaleImage;
 
@@ -165,7 +179,7 @@ pub fn led_off_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 }
 
 /// Placeholder for non-microbit builds
-#[cfg(not(feature = "target-microbit"))]
+#[cfg(not(feature = "hardware-microbit"))]
 pub fn led_off_builtin(_interp: &mut Interpreter) -> Result<(), RuntimeError> {
     Err(RuntimeError::TypeError("led-off only available on micro:bit".into()))
 }
@@ -173,7 +187,7 @@ pub fn led_off_builtin(_interp: &mut Interpreter) -> Result<(), RuntimeError> {
 /// Clear all LEDs on the 5x5 matrix
 /// Usage: led-clear
 /// Example: led-clear  (turn off all LEDs)
-#[cfg(feature = "target-microbit")]
+#[cfg(feature = "hardware-microbit")]
 pub fn led_clear_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     use microbit::display::nonblocking::GreyscaleImage;
 
@@ -192,7 +206,7 @@ pub fn led_clear_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 }
 
 /// Placeholder for non-microbit builds
-#[cfg(not(feature = "target-microbit"))]
+#[cfg(not(feature = "hardware-microbit"))]
 pub fn led_clear_builtin(_interp: &mut Interpreter) -> Result<(), RuntimeError> {
     Err(RuntimeError::TypeError("led-clear only available on micro:bit".into()))
 }
@@ -202,7 +216,7 @@ pub fn led_clear_builtin(_interp: &mut Interpreter) -> Result<(), RuntimeError> 
 /// Vector must contain exactly 25 integers (0-9), arranged in row-major order:
 /// [row0-col0, row0-col1, ..., row0-col4, row1-col0, ..., row4-col4]
 /// Example: 25 make-vector 'img val  12 9 img vector-set!  img led-show
-#[cfg(feature = "target-microbit")]
+#[cfg(feature = "hardware-microbit")]
 pub fn led_show_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
     use microbit::display::nonblocking::GreyscaleImage;
     use num_traits::ToPrimitive;
@@ -251,7 +265,7 @@ pub fn led_show_builtin(interp: &mut Interpreter) -> Result<(), RuntimeError> {
 }
 
 /// Placeholder for non-microbit builds
-#[cfg(not(feature = "target-microbit"))]
+#[cfg(not(feature = "hardware-microbit"))]
 pub fn led_show_builtin(_interp: &mut Interpreter) -> Result<(), RuntimeError> {
     Err(RuntimeError::TypeError("led-show only available on micro:bit".into()))
 }

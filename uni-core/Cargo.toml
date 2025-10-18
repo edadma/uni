@@ -23,6 +23,7 @@ chrono = { version = "0.4", optional = true }
 microbit = { package = "microbit-v2", version = "0.15", optional = true }
 embedded-hal = { version = "1.0", optional = true }
 cortex-m = { version = "0.7", optional = true }
+cortex-m-rt = { version = "0.7", optional = true }
 
 [features]
 default = []
@@ -32,5 +33,5 @@ complex_numbers = ["num-complex"]  # Complex and Gaussian integer support
 datetime = ["chrono", "std"]  # DateTime requires std - not available on embedded targets
 
 # Hardware platform features
-hardware-microbit = ["microbit", "embedded-hal", "cortex-m"]
-hardware-pico = ["embedded-hal", "cortex-m"]  # Pico primitives not yet implemented
+hardware-microbit = ["microbit", "embedded-hal", "cortex-m", "cortex-m-rt"]
+hardware-pico = ["embedded-hal", "cortex-m", "cortex-m-rt"]  # Pico primitives not yet implemented

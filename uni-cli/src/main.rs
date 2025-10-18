@@ -5,10 +5,9 @@
 extern crate alloc;
 
 mod output_adapter;
-mod hardware;
 
 use output_adapter::TerminalOutput;
-use uni_core::{Interpreter, RuntimeError, execute_string, primitives};
+use uni_core::{Interpreter, RuntimeError, execute_string};
 use editline::{LineEditor, Terminal};
 
 #[cfg(not(target_os = "none"))]
@@ -84,26 +83,22 @@ use std::env;
 
 #[cfg(target_os = "none")]
 use cortex_m_rt::entry;
-#[cfg(feature = "target-microbit")]
-use microbit::pac::interrupt;
 #[cfg(target_os = "none")]
 use panic_halt as _;
 #[cfg(target_os = "none")]
 use alloc_cortex_m::CortexMHeap;
 
-// Global display for interrupt handler (micro:bit only)
+// Micro:bit imports for interrupt handler
 #[cfg(feature = "target-microbit")]
-use cortex_m::interrupt::Mutex;
-#[cfg(feature = "target-microbit")]
-pub static DISPLAY: Mutex<RefCell<Option<microbit::display::nonblocking::Display<microbit::pac::TIMER1>>>> =
-    Mutex::new(RefCell::new(None));
+use microbit::pac::interrupt;
 
-// Timer interrupt handler for LED display
+// Timer interrupt handler for LED display (micro:bit only)
+// Note: This must be in the binary crate, not the library
 #[cfg(feature = "target-microbit")]
 #[microbit::pac::interrupt]
 fn TIMER1() {
     cortex_m::interrupt::free(|cs| {
-        if let Some(display) = DISPLAY.borrow(cs).borrow_mut().as_mut() {
+        if let Some(display) = uni_core::hardware::microbit::DISPLAY.borrow(cs).borrow_mut().as_mut() {
             display.handle_display_event();
         }
     });
@@ -430,9 +425,9 @@ fn run_repl() -> ! {
     // Initialize the LED display with TIMER1
     let display = Display::new(timer1, display_pins);
 
-    // Store display in global static for interrupt handler
+    // Store display in global static for interrupt handler (from uni-core)
     cortex_m::interrupt::free(|cs| {
-        *DISPLAY.borrow(cs).borrow_mut() = Some(display);
+        *uni_core::hardware::microbit::DISPLAY.borrow(cs).borrow_mut() = Some(display);
     });
 
     // Enable TIMER1 interrupt
