@@ -11,7 +11,7 @@ Command-line REPL and interpreter for the Uni programming language - a homoiconi
 cargo install uni-cli
 ```
 
-This installs the `uni` command.
+This installs the `uni` command-line tool.
 
 ## Usage
 
