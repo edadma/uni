@@ -99,6 +99,12 @@ use crate::primitives::{
     tan_builtin,
 };
 
+// Time operations (platform-agnostic)
+use crate::primitives::{
+    current_timestamp_builtin,
+    current_offset_builtin,
+};
+
 // I16 buffer operations (audio/DSP)
 use crate::primitives::{
     i16_avg_builtin, i16_buffer_builtin, i16_length_builtin, i16_max_builtin, i16_min_builtin,
@@ -510,6 +516,31 @@ pub fn register_builtins(interp: &mut Interpreter) {
             is_executable: true,
             doc: Some(Rc::<str>::from(
                 "Compute average value of i16 buffer.\nUsage: buffer i16-avg => buffer average\nExample: buffer i16-avg => buffer 250",
+            )),
+        },
+    );
+
+    // Time operations (platform-agnostic via TimeSource)
+    let current_timestamp_atom = interp.intern_atom("current-timestamp");
+    interp.dictionary.insert(
+        current_timestamp_atom,
+        DictEntry {
+            value: Value::Builtin(current_timestamp_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Get current timestamp in milliseconds since Unix epoch.\nUsage: current-timestamp => timestamp\nRequires platform to inject TimeSource.\nExample: current-timestamp => 1234567890123",
+            )),
+        },
+    );
+
+    let current_offset_atom = interp.intern_atom("current-offset");
+    interp.dictionary.insert(
+        current_offset_atom,
+        DictEntry {
+            value: Value::Builtin(current_offset_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Get current timezone offset in minutes from UTC.\nUsage: current-offset => offset\nRequires platform to inject TimeSource.\nExample: current-offset => -300 (EST: UTC-5 hours)",
             )),
         },
     );

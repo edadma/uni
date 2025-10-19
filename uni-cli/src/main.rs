@@ -220,6 +220,13 @@ fn execute_file(filename: &str) {
     let terminal_output = TerminalOutput::new(terminal);
     interp.set_output(Box::new(terminal_output));
 
+    // Set up time source for datetime operations (std platforms only)
+    #[cfg(feature = "std")]
+    {
+        use uni_core::hardware::linux_time::LinuxTimeSource;
+        interp.set_time_source(Box::new(LinuxTimeSource::new()));
+    }
+
     match execute_string(code, &mut interp) {
         Ok(()) => {
             // File executed successfully
@@ -246,6 +253,13 @@ fn execute_code(code: &str, auto_print: bool) {
     let terminal = StdioTerminal::new();
     let terminal_output = TerminalOutput::new(terminal);
     interp.set_output(Box::new(terminal_output));
+
+    // Set up time source for datetime operations (std platforms only)
+    #[cfg(feature = "std")]
+    {
+        use uni_core::hardware::linux_time::LinuxTimeSource;
+        interp.set_time_source(Box::new(LinuxTimeSource::new()));
+    }
 
     match execute_string(code, &mut interp) {
         Ok(()) => {
@@ -305,6 +319,13 @@ fn run_repl() {
     // RUST CONCEPT: Automatic initialization
     // Interpreter::new() automatically loads builtins and stdlib
     let mut interp = Interpreter::new();
+
+    // Set up time source for datetime operations (std platforms only)
+    #[cfg(feature = "std")]
+    {
+        use uni_core::hardware::linux_time::LinuxTimeSource;
+        interp.set_time_source(Box::new(LinuxTimeSource::new()));
+    }
 
     run_repl_loop(&mut editor, terminal, &mut interp);
 }

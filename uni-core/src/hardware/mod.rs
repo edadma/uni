@@ -7,6 +7,10 @@
 //! Hardware features are optional - you can build uni-core without any
 //! hardware support for use in desktop/server environments.
 
+// Linux/desktop time source (requires std)
+#[cfg(feature = "std")]
+pub mod linux_time;
+
 #[cfg(feature = "hardware-microbit")]
 pub mod microbit;
 

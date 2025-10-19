@@ -30,7 +30,7 @@ pub struct Interpreter {
     pub current_pos: Option<SourcePos>, // Track current execution position for error messages
     pending_doc_target: Option<Rc<str>>, // Remember most recent definition for doc
     output: Option<Box<dyn Output>>, // Optional output for print/display (REPL mode)
-    time_source: Option<Box<dyn TimeSource>>, // Optional time source for datetime operations
+    pub time_source: Option<Box<dyn TimeSource>>, // Optional time source for datetime operations (public for primitive access)
 
     // Hardware peripherals (micro:bit only)
     #[cfg(feature = "hardware-microbit")]

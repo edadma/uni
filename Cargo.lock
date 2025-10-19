@@ -702,6 +702,7 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "embedded-hal 1.0.0",
+ "libc",
  "microbit-v2",
  "num-bigint",
  "num-complex",
