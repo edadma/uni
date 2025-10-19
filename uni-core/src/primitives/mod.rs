@@ -79,8 +79,7 @@ pub mod vector;
 pub mod record;
 
 // Time operations (platform-agnostic via TimeSource)
-pub mod current_timestamp;
-pub mod current_offset;
+pub mod now;
 
 // Meta operations
 pub mod def;
@@ -224,8 +223,7 @@ pub use record::record_type_of_builtin;
 pub use record::set_record_field_builtin;
 
 // Time operations
-pub use current_timestamp::current_timestamp_builtin;
-pub use current_offset::current_offset_builtin;
+pub use now::now_builtin;
 
 // Meta operations
 pub use def::def_builtin;

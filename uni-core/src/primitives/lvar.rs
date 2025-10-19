@@ -9,6 +9,9 @@ use std::cell::RefCell;
 #[cfg(target_os = "none")]
 use core::cell::RefCell;
 
+#[cfg(target_os = "none")]
+use crate::compat::ToString;
+
 // RUST CONCEPT: Local variable primitive
 // Stack-based: ( value 'name -- )
 // Creates a local mutable variable with the given value in the current local frame

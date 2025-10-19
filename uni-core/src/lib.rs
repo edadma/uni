@@ -39,6 +39,16 @@
 #[cfg(target_os = "none")]
 extern crate alloc;
 
+// Hardware platform support
+#[cfg(feature = "hardware-microbit")]
+extern crate microbit;
+#[cfg(any(feature = "hardware-microbit", feature = "hardware-pico"))]
+extern crate embedded_hal;
+#[cfg(any(feature = "hardware-microbit", feature = "hardware-pico"))]
+extern crate cortex_m;
+#[cfg(any(feature = "hardware-microbit", feature = "hardware-pico"))]
+extern crate cortex_m_rt;
+
 // Public modules
 pub mod output;
 pub mod time_source;
@@ -59,5 +69,5 @@ mod compat;
 pub use interpreter::{Interpreter, DictEntry};
 pub use value::{Value, RuntimeError};
 pub use output::Output;
-pub use time_source::TimeSource;
+pub use time_source::{TimeSource, DateComponents};
 pub use evaluator::execute_string;

@@ -4,6 +4,9 @@ use crate::compat::format;
 use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 
+#[cfg(target_os = "none")]
+use crate::compat::ToString;
+
 // RUST CONCEPT: Local constant primitive
 // Stack-based: ( value 'name -- )
 // Creates a local constant with the given value in the current local frame

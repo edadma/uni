@@ -26,8 +26,20 @@ num-complex = { version = "0.4", default-features = false, optional = true }
 # Platform features
 libc = { version = "0.2", optional = true }
 
+# Desktop platform dependencies (not for embedded targets)
+[target.'cfg(not(target_os = "none"))'.dependencies]
+chrono = "0.4"
+
 # Hardware-specific optional dependencies
+# micro:bit v2 (nRF52833)
+[target.thumbv7em-none-eabihf.dependencies]
 microbit = { package = "microbit-v2", version = "0.15", optional = true }
+embedded-hal = { version = "1.0", optional = true }
+cortex-m = { version = "0.7", optional = true }
+cortex-m-rt = { version = "0.7", optional = true }
+
+# Raspberry Pi Pico / Pico W (RP2040)
+[target.thumbv6m-none-eabi.dependencies]
 embedded-hal = { version = "1.0", optional = true }
 cortex-m = { version = "0.7", optional = true }
 cortex-m-rt = { version = "0.7", optional = true }
@@ -41,3 +53,7 @@ complex_numbers = ["num-complex"]  # Complex and Gaussian integer support
 # Hardware platform features
 hardware-microbit = ["microbit", "embedded-hal", "cortex-m", "cortex-m-rt"]
 hardware-pico = ["embedded-hal", "cortex-m", "cortex-m-rt"]  # Pico primitives not yet implemented
+
+# Convenience aliases for target features
+target-microbit = ["hardware-microbit"]
+target-pico = ["hardware-pico"]

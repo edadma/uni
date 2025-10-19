@@ -1,6 +1,6 @@
 # Uni Programming Language
 
-![Version](https://img.shields.io/badge/version-0.0.5-blue)
+![Version](https://img.shields.io/badge/version-0.0.6-blue)
 ![License](https://img.shields.io/badge/license-MIT%20OR%20Unlicense-green)
 
 A homoiconic stack-based programming language that unifies code and data, featuring immediate execution, powerful list-based data structures, and precise numeric computing.
@@ -66,7 +66,6 @@ cargo build --features target-linux --release
 - `std` - Standard library support (required for desktop)
 - `advanced_math` - Trigonometric functions, exp/log, rounding
 - `complex_numbers` - Complex number support
-- `datetime` - Date/time operations (requires std)
 
 ### Embedded: micro:bit v2
 
@@ -407,6 +406,35 @@ For advanced control flow and temporary storage:
 + r>            \ Do work, bring back: [3 3]
 r@              \ Peek return stack (non-destructive)
 ```
+
+### Date and Time
+
+Get current date and time as a record (requires TimeSource to be injected by platform):
+
+```uni
+now             \ Get current date/time
+\ Returns: #<record:date year month day hour minute second offset>
+
+\ Example: #<record:date 2025 10 19 11 14 24 -240>
+
+\ Access individual fields
+now date-year .    \ Prints: 2025
+now date-month .   \ Prints: 10
+now date-day .     \ Prints: 19
+now date-hour .    \ Prints: 11
+now date-minute .  \ Prints: 14
+now date-second .  \ Prints: 24
+now date-offset .  \ Prints: -240 (UTC offset in minutes, e.g., -4 hours)
+```
+
+The `date` record type is defined in the prelude with these fields:
+- `year` - Full year (e.g., 2025)
+- `month` - Month (1-12)
+- `day` - Day of month (1-31)
+- `hour` - Hour (0-23)
+- `minute` - Minute (0-59)
+- `second` - Second (0-59)
+- `offset` - Timezone offset from UTC in minutes (negative for west, positive for east)
 
 ### Getting Help
 

@@ -103,10 +103,7 @@ use crate::primitives::{
 };
 
 // Time operations (platform-agnostic)
-use crate::primitives::{
-    current_timestamp_builtin,
-    current_offset_builtin,
-};
+use crate::primitives::now_builtin;
 
 // I16 buffer operations (audio/DSP)
 use crate::primitives::{
@@ -549,26 +546,14 @@ pub fn register_builtins(interp: &mut Interpreter) {
     );
 
     // Time operations (platform-agnostic via TimeSource)
-    let current_timestamp_atom = interp.intern_atom("current-timestamp");
+    let now_atom = interp.intern_atom("now");
     interp.dictionary.insert(
-        current_timestamp_atom,
+        now_atom,
         DictEntry {
-            value: Value::Builtin(current_timestamp_builtin),
+            value: Value::Builtin(now_builtin),
             is_executable: true,
             doc: Some(Rc::<str>::from(
-                "Get current timestamp in milliseconds since Unix epoch.\nUsage: current-timestamp => timestamp\nRequires platform to inject TimeSource.\nExample: current-timestamp => 1234567890123",
-            )),
-        },
-    );
-
-    let current_offset_atom = interp.intern_atom("current-offset");
-    interp.dictionary.insert(
-        current_offset_atom,
-        DictEntry {
-            value: Value::Builtin(current_offset_builtin),
-            is_executable: true,
-            doc: Some(Rc::<str>::from(
-                "Get current timezone offset in minutes from UTC.\nUsage: current-offset => offset\nRequires platform to inject TimeSource.\nExample: current-offset => -300 (EST: UTC-5 hours)",
+                "Get current date and time as a date record.\nUsage: now => #<record:date year month day hour minute second offset>\nRequires platform to inject TimeSource.\nExample: now => #<record:date 2025 10 18 14 30 0 -240>",
             )),
         },
     );
