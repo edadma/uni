@@ -35,8 +35,9 @@ use crate::primitives::{
     help_builtin,
     is_record_type_builtin,
     less_equal_builtin,
-    // Local constants
+    // Local variables
     lval_builtin,
+    lvar_builtin,
     // Comparison operations
     less_than_builtin,
     list_builtin,
@@ -315,7 +316,7 @@ pub fn register_builtins(interp: &mut Interpreter) {
         },
     );
 
-    // Local constants
+    // Local variables
     let lval_atom = interp.intern_atom("lval");
     interp.dictionary.insert(
         lval_atom,
@@ -324,6 +325,18 @@ pub fn register_builtins(interp: &mut Interpreter) {
             is_executable: true,
             doc: Some(Rc::<str>::from(
                 "Create a local constant in current quotation.\nUsage: value 'name lval\nExample: 42 'x lval  x .",
+            )),
+        },
+    );
+
+    let lvar_atom = interp.intern_atom("lvar");
+    interp.dictionary.insert(
+        lvar_atom,
+        DictEntry {
+            value: Value::Builtin(lvar_builtin),
+            is_executable: true,
+            doc: Some(Rc::<str>::from(
+                "Create a local mutable variable in current quotation.\nUsage: value 'name lvar\nExample: 0 'count lvar  count @ 1 + count !",
             )),
         },
     );

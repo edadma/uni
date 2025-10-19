@@ -181,10 +181,45 @@ pub fn load_prelude(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             total_minutes 60 mod  'minute lval
             total_minutes 60 div  'total_hours lval
             total_hours 24 mod  'hour lval
-            total_hours 24 div  'days_since_epoch lval
+            total_hours 24 div  'days_remaining lvar
 
-            \\ For now, return placeholder date - TODO: implement full calendar conversion
-            2025 1 1 hour minute second
+            \\ Calculate year from days since epoch (Jan 1, 1970)
+            1970 'year lvar
+
+            \\ Loop to find the year
+            true 'continue lvar
+            [continue @] [
+                year @ leap-year? [366] [365] if  'days_in_year lval
+                days_remaining @ days_in_year >= [
+                    \\ Subtract this year and move to next
+                    days_remaining @ days_in_year - days_remaining !
+                    year @ 1 + year !
+                ] [
+                    \\ Found the year - exit loop
+                    false continue !
+                ] if
+            ] while
+
+            \\ Convert remaining days (0-indexed) to day-of-year (1-indexed)
+            days_remaining @ 1 +  'day_remaining lvar
+            1 'month lvar
+
+            \\ Loop to find the month
+            true 'continue2 lvar
+            [continue2 @] [
+                month @ year @ days-in-month  'days_in_month lval
+                day_remaining @ days_in_month <= [
+                    \\ Found the month! Exit loop
+                    false continue2 !
+                ] [
+                    \\ Not this month, subtract and continue
+                    day_remaining @ days_in_month - day_remaining !
+                    month @ 1 + month !
+                ] if
+            ] while
+
+            \\ Return all components
+            year @ month @ day_remaining @ hour minute second
         ] def
         "( timestamp_millis offset_minutes -- year month day hour minute second ) Convert Unix timestamp to date components" doc
 
