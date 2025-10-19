@@ -26,7 +26,7 @@ usbd-serial = { version = "0.2", optional = true }
 
 [features]
 # Default: full-featured Linux build
-default = ["target-linux", "std", "advanced_math", "complex_numbers", "datetime"]
+default = ["target-linux", "std", "advanced_math", "complex_numbers"]
 
 # Target selection (mutually exclusive - pick ONE)
 target-linux = ["uni-core/std", "editline/std"]
@@ -37,7 +37,6 @@ target-pico = ["uni-core/hardware-pico", "editline/rp_pico_usb", "rp2040-hal", "
 std = ["uni-core/std"]
 advanced_math = ["uni-core/advanced_math"]
 complex_numbers = ["uni-core/complex_numbers"]
-datetime = ["uni-core/datetime"]
 
 # Embedded target dependencies (target_os = "none") - made optional
 [target.'cfg(target_os = "none")'.dependencies]

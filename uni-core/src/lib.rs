@@ -33,7 +33,6 @@
 //! - `std` - Enables standard library support (required for desktop platforms)
 //! - `advanced_math` - Trigonometric functions, exp/log, rounding operations
 //! - `complex_numbers` - Complex number and Gaussian integer support
-//! - `datetime` - Date/time operations (requires `std`)
 
 #![cfg_attr(target_os = "none", no_std)]
 
@@ -42,6 +41,7 @@ extern crate alloc;
 
 // Public modules
 pub mod output;
+pub mod time_source;
 pub mod value;
 pub mod interpreter;
 pub mod evaluator;
@@ -59,4 +59,5 @@ mod compat;
 pub use interpreter::{Interpreter, DictEntry};
 pub use value::{Value, RuntimeError};
 pub use output::Output;
+pub use time_source::TimeSource;
 pub use evaluator::execute_string;

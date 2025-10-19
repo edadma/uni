@@ -78,12 +78,6 @@ pub mod vector;
 // Record operations
 pub mod record;
 
-// Date/time operations (only with datetime feature)
-#[cfg(feature = "datetime")]
-pub mod datetime;
-#[cfg(feature = "datetime")]
-pub mod duration;
-
 // Meta operations
 pub mod def;
 pub mod doc;
@@ -220,61 +214,6 @@ pub use record::is_record_type_builtin;
 pub use record::make_record_type_builtin;
 pub use record::record_type_of_builtin;
 pub use record::set_record_field_builtin;
-
-// Date/time operations (only with datetime feature)
-#[cfg(feature = "datetime")]
-pub use datetime::date_equal_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::date_greater_than_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::date_less_than_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::datetime_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::datetime_to_string_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::datetime_with_offset_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::day_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::hour_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::minute_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::month_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::now_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::second_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::string_to_datetime_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::timestamp_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::timestamp_to_datetime_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::to_local_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::to_utc_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::weekday_builtin;
-#[cfg(feature = "datetime")]
-pub use datetime::year_builtin;
-
-#[cfg(feature = "datetime")]
-pub use duration::date_add_builtin;
-#[cfg(feature = "datetime")]
-pub use duration::date_sub_builtin;
-#[cfg(feature = "datetime")]
-pub use duration::duration_builtin;
-#[cfg(feature = "datetime")]
-pub use duration::duration_equal_builtin;
-#[cfg(feature = "datetime")]
-pub use duration::duration_greater_than_builtin;
-#[cfg(feature = "datetime")]
-pub use duration::duration_less_than_builtin;
-#[cfg(feature = "datetime")]
-pub use duration::duration_to_seconds_builtin;
 
 // Meta operations
 pub use def::def_builtin;

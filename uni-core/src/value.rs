@@ -1,9 +1,6 @@
 use crate::compat::{Rc, String, Vec, fmt};
 use crate::tokenizer::SourcePos;
 
-#[cfg(feature = "datetime")]
-use chrono::{DateTime, Duration as ChronoDuration, FixedOffset};
-
 #[cfg(not(target_os = "none"))]
 use std::cell::RefCell;
 #[cfg(target_os = "none")]
@@ -57,17 +54,6 @@ pub enum Value {
         type_name: Rc<str>,
         field_names: Rc<Vec<Rc<str>>>,
     },
-    // RUST CONCEPT: Date/time support using chrono (only with datetime feature)
-    // DateTime stores an instant in time with timezone offset information
-    // Uses DateTime<FixedOffset> which can represent any timezone
-    // The offset is stored alongside the instant (e.g., "-05:00", "+00:00")
-    #[cfg(feature = "datetime")]
-    DateTime(DateTime<FixedOffset>),
-    // RUST CONCEPT: Duration represents a time span
-    // Can be positive (future) or negative (past)
-    // Supports days, hours, minutes, seconds, milliseconds, etc.
-    #[cfg(feature = "datetime")]
-    Duration(ChronoDuration),
     // RUST CONCEPT: I16 buffer for audio samples and DSP
     // Stores 16-bit signed integers (standard for digital audio)
     // Dynamic size Vec for flexibility - can grow/shrink as needed
@@ -100,10 +86,6 @@ impl Value {
             Value::Builtin(_) => "builtin",
             Value::Record { .. } => "record",
             Value::RecordType { .. } => "record-type",
-            #[cfg(feature = "datetime")]
-            Value::DateTime(_) => "datetime",
-            #[cfg(feature = "datetime")]
-            Value::Duration(_) => "duration",
             Value::I16Buffer(_) => "i16-buffer",
         }
     }
@@ -312,48 +294,6 @@ impl fmt::Display for Value {
                     write!(f, " {}", field_name)?;
                 }
                 write!(f, ">")
-            }
-            // RUST CONCEPT: Display for datetime values
-            // Uses chrono's RFC3339 format (ISO 8601 with timezone)
-            // Example: "2025-10-01T14:30:00-05:00"
-            #[cfg(feature = "datetime")]
-            Value::DateTime(dt) => write!(f, "#<datetime:{}>", dt.to_rfc3339()),
-            // RUST CONCEPT: Display for duration values
-            // Shows duration in a human-readable format
-            #[cfg(feature = "datetime")]
-            Value::Duration(d) => {
-                // Convert to total seconds for display
-                let total_secs = d.num_seconds();
-                if total_secs == 0 {
-                    write!(f, "#<duration:0s>")
-                } else {
-                    let days = total_secs / 86400;
-                    let hours = (total_secs % 86400) / 3600;
-                    let mins = (total_secs % 3600) / 60;
-                    let secs = total_secs % 60;
-
-                    write!(f, "#<duration:")?;
-                    let mut first = true;
-                    if days != 0 {
-                        write!(f, "{}d", days)?;
-                        first = false;
-                    }
-                    if hours != 0 {
-                        if !first { write!(f, " ")?; }
-                        write!(f, "{}h", hours)?;
-                        first = false;
-                    }
-                    if mins != 0 {
-                        if !first { write!(f, " ")?; }
-                        write!(f, "{}m", mins)?;
-                        first = false;
-                    }
-                    if secs != 0 || first {
-                        if !first { write!(f, " ")?; }
-                        write!(f, "{}s", secs)?;
-                    }
-                    write!(f, ">")
-                }
             }
             // RUST CONCEPT: Display for i16 buffers
             // Shows buffer length and first few samples for debugging

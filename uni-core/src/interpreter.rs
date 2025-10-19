@@ -2,6 +2,7 @@ use crate::compat::{Rc, String, Vec, Box, ToString};
 use crate::tokenizer::SourcePos;
 use crate::value::{RuntimeError, Value};
 use crate::output::Output;
+use crate::time_source::TimeSource;
 use num_traits::Zero;
 
 #[cfg(target_os = "none")]
@@ -29,6 +30,7 @@ pub struct Interpreter {
     pub current_pos: Option<SourcePos>, // Track current execution position for error messages
     pending_doc_target: Option<Rc<str>>, // Remember most recent definition for doc
     output: Option<Box<dyn Output>>, // Optional output for print/display (REPL mode)
+    time_source: Option<Box<dyn TimeSource>>, // Optional time source for datetime operations
 
     // Hardware peripherals (micro:bit only)
     #[cfg(feature = "hardware-microbit")]
@@ -47,6 +49,7 @@ impl Interpreter {
             current_pos: None, // No position initially
             pending_doc_target: None,
             output: None, // No output by default (for file execution, tests)
+            time_source: None, // No time source by default (platform must inject)
 
             // Hardware peripherals start as None, set by platform initialization
             #[cfg(feature = "hardware-microbit")]
@@ -232,6 +235,15 @@ impl Interpreter {
     #[allow(dead_code)]
     pub fn has_output(&self) -> bool {
         self.output.is_some()
+    }
+
+    pub fn set_time_source(&mut self, time_source: Box<dyn TimeSource>) {
+        self.time_source = Some(time_source);
+    }
+
+    #[allow(dead_code)]
+    pub fn has_time_source(&self) -> bool {
+        self.time_source.is_some()
     }
 
     // Write a line to the output if available
