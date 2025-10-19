@@ -30,11 +30,13 @@ impl TimeSource for LinuxTimeSource {
     }
 
     fn now_offset_minutes(&self) -> i32 {
-        // Get local timezone offset by comparing local time to UTC
-        // We use libc's localtime_r for this
+        // Platform-specific timezone offset detection
+
+        // Unix/Linux: Use libc's localtime_r with tm_gmtoff
         #[cfg(unix)]
         {
             use std::time::SystemTime;
+            use std::mem::MaybeUninit;
 
             let now = SystemTime::now();
 
@@ -43,8 +45,6 @@ impl TimeSource for LinuxTimeSource {
                 .map(|d| d.as_secs() as i64)
                 .unwrap_or(0);
 
-            // Convert to local time and UTC time to find offset
-            use std::mem::MaybeUninit;
             unsafe {
                 let mut local_tm = MaybeUninit::uninit();
                 let time_t = unix_time as libc::time_t;
@@ -61,6 +61,49 @@ impl TimeSource for LinuxTimeSource {
                         // On other Unix systems without tm_gmtoff, return 0
                         return 0;
                     }
+                }
+            }
+        }
+
+        // Windows: Use GetTimeZoneInformation API
+        #[cfg(windows)]
+        {
+            use std::mem::MaybeUninit;
+
+            #[repr(C)]
+            #[allow(non_snake_case)]
+            struct TIME_ZONE_INFORMATION {
+                Bias: i32,
+                StandardName: [u16; 32],
+                StandardDate: [u16; 8],
+                StandardBias: i32,
+                DaylightName: [u16; 32],
+                DaylightDate: [u16; 8],
+                DaylightBias: i32,
+            }
+
+            #[link(name = "kernel32")]
+            unsafe extern "system" {
+                fn GetTimeZoneInformation(lpTimeZoneInformation: *mut TIME_ZONE_INFORMATION) -> u32;
+            }
+
+            unsafe {
+                let mut tzi = MaybeUninit::<TIME_ZONE_INFORMATION>::uninit();
+                let result = GetTimeZoneInformation(tzi.as_mut_ptr());
+
+                if result != 0xFFFFFFFF {
+                    let tzi = tzi.assume_init();
+                    // Bias is in minutes, but Windows uses negative values for east of UTC
+                    // We want positive for east, so negate it
+                    // Also need to account for daylight saving time
+                    let total_bias = if result == 2 {
+                        // TIME_ZONE_ID_DAYLIGHT (2)
+                        tzi.Bias + tzi.DaylightBias
+                    } else {
+                        // TIME_ZONE_ID_STANDARD (1) or TIME_ZONE_ID_UNKNOWN (0)
+                        tzi.Bias + tzi.StandardBias
+                    };
+                    return -total_bias;
                 }
             }
         }
