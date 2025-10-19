@@ -6,6 +6,12 @@ use crate::primitives::numeric_promotion::promote_pair;
 use crate::value::{RuntimeError, Value};
 use num_traits::Zero;
 
+// RUST CONCEPT: Conditional imports for no_std
+// On std platforms, f64 has .trunc() built-in
+// On no_std platforms (target_os = "none"), we need the Float trait for .trunc()
+#[cfg(target_os = "none")]
+use num_traits::Float;
+
 // RUST CONCEPT: Truncating division with zero checking and type promotion
 // Stack-based truncating division: ( n1 n2 -- quotient )
 // Rounds toward zero (like C/Java/Rust integer division)

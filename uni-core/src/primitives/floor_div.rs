@@ -6,6 +6,12 @@ use crate::primitives::numeric_promotion::promote_pair;
 use crate::value::{RuntimeError, Value};
 use num_traits::Zero;
 
+// RUST CONCEPT: Conditional imports for no_std
+// On std platforms, f64 has .floor() built-in
+// On no_std platforms (target_os = "none"), we need the Float trait for .floor()
+#[cfg(target_os = "none")]
+use num_traits::Float;
+
 // RUST CONCEPT: Floor division with zero checking and type promotion
 // Stack-based floor division: ( n1 n2 -- quotient )
 // Like Python's //, always returns the floor of the quotient
