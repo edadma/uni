@@ -16,6 +16,12 @@ use crate::interpreter::Interpreter;
 use crate::value::{RuntimeError, Value};
 use crate::compat::{Rc, Vec, ToString};
 
+#[cfg(not(target_os = "none"))]
+use std::collections::HashMap;
+
+#[cfg(target_os = "none")]
+use alloc::collections::BTreeMap as HashMap;
+
 // RUST CONCEPT: Continuation-based evaluation for tail-call optimization
 // Instead of using recursion, we use an explicit continuation stack
 // This enables proper tail-call optimization and prevents stack overflow
@@ -43,6 +49,10 @@ enum Continuation {
 
     // Execute a defined word's body
     Definition(Value),
+
+    // Pop a local frame when this continuation is reached
+    // Used to clean up local variables after quotation/definition execution
+    PopLocalFrame,
 }
 
 // RUST CONCEPT: Continuation-based execution loop
@@ -108,14 +118,19 @@ pub fn execute_with_continuations(
                 // Convert list to continuation or execute single value directly
                 match &value {
                     Value::Pair(_, _) => {
+                        // Push local frame for quotation execution
+                        interp.local_frames.push(HashMap::new());
+                        // Schedule frame cleanup after execution
+                        continuation_stack.push(Continuation::PopLocalFrame);
+                        // Execute the list
                         let items = list_to_vec(&value)?;
                         continuation_stack.push(Continuation::List { items, index: 0 });
                     }
                     Value::Nil => {
-                        // Empty list - do nothing
+                        // Empty list - do nothing (no frame needed)
                     }
                     _ => {
-                        // Single value - execute directly (tail-call optimized)
+                        // Single value - execute directly (tail-call optimized, no frame needed)
                         continuation_stack.push(Continuation::Value(value));
                     }
                 }
@@ -124,15 +139,29 @@ pub fn execute_with_continuations(
             Continuation::Definition(definition) => {
                 match &definition {
                     Value::Pair(_, _) | Value::Nil => {
+                        // Push local frame for definition execution
+                        interp.local_frames.push(HashMap::new());
+                        // Schedule frame cleanup after execution
+                        continuation_stack.push(Continuation::PopLocalFrame);
                         // Execute list as code (tail-call optimized)
                         let items = list_to_vec(&definition)?;
                         continuation_stack.push(Continuation::List { items, index: 0 });
                     }
                     _ => {
-                        // Execute single value directly (tail-call optimized)
+                        // Execute single value directly (tail-call optimized, no frame needed for single values)
                         continuation_stack.push(Continuation::Value(definition));
                     }
                 }
+            }
+
+            Continuation::PopLocalFrame => {
+                // Pop the local frame to clean up local variables
+                if interp.local_frames.is_empty() {
+                    return Err(RuntimeError::TypeError(
+                        "PopLocalFrame: no local frame to pop (internal error)".to_string(),
+                    ));
+                }
+                interp.local_frames.pop();
             }
         }
     }
@@ -276,7 +305,17 @@ fn execute_atom_with_continuations(
         return Err(RuntimeError::QuitRequested);
     }
 
-    // RUST CONCEPT: Dictionary lookup with continuation support
+    // RUST CONCEPT: Local frame lookup first, then dictionary lookup
+    // Check local frames from top (most recent) to bottom (oldest)
+    for frame in interp.local_frames.iter().rev() {
+        if let Some(value) = frame.get(atom_name) {
+            // Found in local frame - push the value directly (it's a constant)
+            interp.push(value.clone());
+            return Ok(());
+        }
+    }
+
+    // Not in local frames - try dictionary lookup
     match interp.dictionary.get(atom_name) {
         Some(entry) => {
             let entry_copy = entry.clone();

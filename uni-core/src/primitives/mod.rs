@@ -93,6 +93,9 @@ pub mod var;
 pub mod fetch;  // @
 pub mod store;  // !
 
+// Local constants (lexically scoped)
+pub mod lval;
+
 // Control flow - if is now handled specially in the evaluator
 
 // I/O operations
@@ -233,6 +236,9 @@ pub use val::val_builtin;
 pub use var::var_builtin;
 pub use fetch::fetch_builtin;
 pub use store::store_builtin;
+
+// Local constants (lexically scoped)
+pub use lval::lval_builtin;
 
 // Control flow - if is now handled specially in the evaluator
 

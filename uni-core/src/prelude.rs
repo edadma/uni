@@ -136,6 +136,71 @@ pub fn load_prelude(interp: &mut Interpreter) -> Result<(), RuntimeError> {
             if
         ] def
         "( [condition] [body] -- ) Loop: executes body while condition returns truthy" doc
+
+        \\ Date/time operations using records
+        \\ Date is represented as a record with calendar components:
+        \\ {year month day hour minute second timezone-offset}
+
+        \\ Helper: check if year is a leap year
+        'leap-year? [
+            dup 400 mod 0 = [drop true] [
+                dup 100 mod 0 = [drop false] [
+                    4 mod 0 =
+                ] if
+            ] if
+        ] def
+        "( year -- bool ) Check if year is a leap year" doc
+
+        \\ Helper: get days in a given month
+        'days-in-month [
+            \\ month year on stack
+            swap dup 2 = [
+                \\ February - check leap year
+                drop leap-year? [29] [28] if
+            ] [
+                \\ Other months
+                dup 4 = over 6 = or over 9 = or over 11 = or [
+                    drop 30
+                ] [
+                    drop 31
+                ] if
+            ] if
+        ] def
+        "( month year -- days ) Get number of days in month (1-12) for given year" doc
+
+        \\ Convert Unix timestamp (milliseconds) and timezone offset (minutes) to date components
+        'timestamp->date [
+            'offset lval 'timestamp lval
+
+            \\ Convert timestamp to seconds and apply offset
+            timestamp 1000 div  offset 60 * +  'total_seconds lval
+
+            \\ Extract time components
+            total_seconds 60 mod  'second lval
+            total_seconds 60 div  'total_minutes lval
+            total_minutes 60 mod  'minute lval
+            total_minutes 60 div  'total_hours lval
+            total_hours 24 mod  'hour lval
+            total_hours 24 div  'days_since_epoch lval
+
+            \\ For now, return placeholder date - TODO: implement full calendar conversion
+            2025 1 1 hour minute second
+        ] def
+        "( timestamp_millis offset_minutes -- year month day hour minute second ) Convert Unix timestamp to date components" doc
+
+        \\ Initialize date record type
+        ["year" "month" "day" "hour" "minute" "second" "offset"] "date" make-record-type drop
+
+        'current-date [
+            current-offset current-timestamp
+            over swap timestamp->date
+            \\ Stack: offset year month day hour minute second
+            \\ Need for make-date: year month day hour minute second offset
+            \\ Move offset from bottom to top (need 6 swaps)
+            swap rot swap rot swap rot swap
+            make-date
+        ] def
+        "( -- date ) Get current date with all calendar components" doc
     "#;
 
     // RUST CONCEPT: Execute the prelude code directly

@@ -27,6 +27,7 @@ pub struct Interpreter {
     pub return_stack: Vec<Value>, // RUST CONCEPT: Return stack for Forth-like operations
     pub dictionary: HashMap<Rc<str>, DictEntry>,
     pub atoms: HashMap<String, Rc<str>>,
+    pub local_frames: Vec<HashMap<Rc<str>, Value>>, // RUST CONCEPT: Stack of local variable frames for lexical scoping
     pub current_pos: Option<SourcePos>, // Track current execution position for error messages
     pending_doc_target: Option<Rc<str>>, // Remember most recent definition for doc
     output: Option<Box<dyn Output>>, // Optional output for print/display (REPL mode)
@@ -46,6 +47,7 @@ impl Interpreter {
             return_stack: Vec::new(), // RUST CONCEPT: Initialize empty return stack
             dictionary: HashMap::new(),
             atoms: HashMap::new(),
+            local_frames: Vec::new(), // RUST CONCEPT: Initialize empty local frames stack
             current_pos: None, // No position initially
             pending_doc_target: None,
             output: None, // No output by default (for file execution, tests)
