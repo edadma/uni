@@ -1,6 +1,6 @@
 # uni-core
 
-![Version](https://img.shields.io/badge/version-0.0.9-blue)
+![Version](https://img.shields.io/badge/version-0.0.10-blue)
 ![License](https://img.shields.io/badge/license-MIT%20OR%20Unlicense-green)
 
 The core interpreter library for the Uni programming language - a homoiconic stack-based language that unifies code and data.
@@ -19,7 +19,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-uni-core = "0.0.9"
+uni-core = "0.0.10"
 ```
 
 Basic usage:
