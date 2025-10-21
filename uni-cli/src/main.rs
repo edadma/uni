@@ -10,20 +10,22 @@ use output_adapter::TerminalOutput;
 use uni_core::{Interpreter, RuntimeError, execute_string};
 #[cfg(not(target_os = "none"))]
 use uni_core::primitives;
+#[cfg(target_os = "none")]
 use editline::{LineEditor, Terminal};
 
-#[cfg(not(target_os = "none"))]
-use std::{cell::RefCell, rc::Rc, boxed::Box, format};
 #[cfg(target_os = "none")]
 use core::cell::RefCell;
 #[cfg(target_os = "none")]
 use alloc::{rc::Rc, boxed::Box, format};
 
 // Wrapper for shared Output access (interpreter needs it)
+// Only used by embedded targets - desktop uses uni-core's REPL
+#[cfg(target_os = "none")]
 struct RefCellOutput<T: Terminal> {
     inner: Rc<RefCell<TerminalOutput<T>>>,
 }
 
+#[cfg(target_os = "none")]
 impl<T: Terminal> uni_core::Output for RefCellOutput<T> {
     fn write(&mut self, data: &[u8]) -> Result<(), ()> {
         <TerminalOutput<T> as uni_core::Output>::write(&mut *self.inner.borrow_mut(), data)
@@ -35,10 +37,13 @@ impl<T: Terminal> uni_core::Output for RefCellOutput<T> {
 }
 
 // Wrapper for shared Terminal access (REPL needs it)
+// Only used by embedded targets - desktop uses uni-core's REPL
+#[cfg(target_os = "none")]
 struct RefCellTerminal<T: Terminal> {
     inner: Rc<RefCell<TerminalOutput<T>>>,
 }
 
+#[cfg(target_os = "none")]
 impl<T: Terminal> Terminal for RefCellTerminal<T> {
     fn read_byte(&mut self) -> editline::Result<u8> {
         self.inner.borrow_mut().read_byte()
@@ -104,9 +109,7 @@ fn TIMER1() {
     });
 }
 
-// Platform-specific line endings
-#[cfg(not(target_os = "none"))]
-const LINE_ENDING: &[u8] = b"\n";
+// Platform-specific line endings (only for embedded targets)
 #[cfg(target_os = "none")]
 const LINE_ENDING: &[u8] = b"\r\n";
 
@@ -324,6 +327,8 @@ fn run_repl() {
 }
 
 // Generic REPL loop that works with any Terminal implementation
+// Only used by embedded targets - desktop uses uni-core's REPL
+#[cfg(target_os = "none")]
 fn run_repl_loop<T: Terminal + 'static>(editor: &mut LineEditor, terminal: T, interp: &mut Interpreter) {
     // Wrap terminal in Rc<RefCell<>> for shared access between REPL and interpreter
     let shared = Rc::new(RefCell::new(TerminalOutput::new(terminal)));
@@ -399,12 +404,14 @@ fn run_repl_loop<T: Terminal + 'static>(editor: &mut LineEditor, terminal: T, in
 }
 
 // Helper to write a string without newline
+#[cfg(target_os = "none")]
 fn write_str<T: Terminal>(terminal: &mut T, s: &str) -> editline::Result<()> {
     terminal.write(s.as_bytes())?;
     terminal.flush()
 }
 
 // Helper to write a line with platform-appropriate line ending
+#[cfg(target_os = "none")]
 fn write_line<T: Terminal>(terminal: &mut T, s: &str) -> editline::Result<()> {
     terminal.write(s.as_bytes())?;
     terminal.write(LINE_ENDING)?;
@@ -413,6 +420,7 @@ fn write_line<T: Terminal>(terminal: &mut T, s: &str) -> editline::Result<()> {
 
 // Generic helper for REPL line execution
 // Returns true if REPL should continue, false if it should exit
+#[cfg(target_os = "none")]
 fn execute_repl_line<T: Terminal>(terminal: &mut T, line: &str, interp: &mut Interpreter) -> bool {
     match execute_string(line, interp) {
         Ok(()) => {
