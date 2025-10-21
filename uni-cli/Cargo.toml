@@ -15,12 +15,17 @@ name = "uni"
 path = "src/main.rs"
 
 [dependencies]
-uni-core = { version = "0.0.8", path = "../uni-core", default-features = false }
-editline = { version = "0.0.18", default-features = false }
+uni-core = { version = "0.0.9", path = "../uni-core", default-features = false }
+editline = { version = "0.0.19", default-features = false }
 
 # Pico-specific optional dependencies
 rp2040-hal = { version = "0.10", features = ["rt", "critical-section-impl"], optional = true }
 rp2040-boot2 = { version = "0.3", optional = true }
+
+# Pico 2-specific optional dependencies
+rp235x-hal = { version = "0.3", features = ["rt", "critical-section-impl"], optional = true }
+
+# USB dependencies (shared by both Pico and Pico 2)
 usb-device = { version = "0.3", optional = true }
 usbd-serial = { version = "0.2", optional = true }
 
@@ -30,8 +35,12 @@ default = ["target-linux", "std", "advanced_math", "complex_numbers"]
 
 # Target selection (mutually exclusive - pick ONE)
 target-linux = ["uni-core/std", "editline/std"]
+# micro:bit has only 128KB SRAM - keep features minimal to avoid memory issues
 target-microbit = ["uni-core/hardware-microbit", "editline/microbit", "microbit", "embedded-hal", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m"]
-target-pico = ["uni-core/hardware-pico", "editline/rp_pico_usb", "rp2040-hal", "rp2040-boot2", "usb-device", "usbd-serial", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m"]
+# Pico has 264KB SRAM - sufficient for advanced features
+target-pico = ["uni-core/hardware-pico", "editline/rp_pico_usb", "rp2040-hal", "rp2040-boot2", "usb-device", "usbd-serial", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m", "advanced_math", "complex_numbers"]
+# Pico 2 has 520KB SRAM - plenty of room for all features
+target-pico2 = ["uni-core/hardware-pico", "editline/rp_pico2_usb", "rp235x-hal", "usb-device", "usbd-serial", "cortex-m", "cortex-m-rt", "panic-halt", "alloc-cortex-m", "advanced_math", "complex_numbers"]
 
 # Optional features (passed through to uni-core)
 std = ["uni-core/std"]

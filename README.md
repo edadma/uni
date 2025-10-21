@@ -1,6 +1,6 @@
 # Uni Programming Language
 
-![Version](https://img.shields.io/badge/version-0.0.8-blue)
+![Version](https://img.shields.io/badge/version-0.0.9-blue)
 ![License](https://img.shields.io/badge/license-MIT%20OR%20Unlicense-green)
 
 A homoiconic stack-based programming language that unifies code and data, featuring immediate execution, powerful list-based data structures, and precise numeric computing.
@@ -40,7 +40,7 @@ See `uni-core/examples/simple_calculator.rs` for a complete example.
 
 ## Platform Support
 
-Uni runs on desktop platforms (Linux, macOS, Windows) and embedded systems (micro:bit v2, Raspberry Pi Pico W).
+Uni runs on desktop platforms (Linux, macOS, Windows) and embedded systems (micro:bit v2, Raspberry Pi Pico, Raspberry Pi Pico 2).
 
 ### Desktop (Linux/macOS/Windows)
 
@@ -92,12 +92,12 @@ picocom /dev/ttyACM0 -b 115200
 - Full line editing with history (20 entries)
 - All core language features with exact arithmetic
 
-### Embedded: Raspberry Pi Pico W
+### Embedded: Raspberry Pi Pico (RP2040)
 
 **Prerequisites:**
 - `elf2uf2-rs`: `cargo install elf2uf2-rs`
 - `arm-none-eabi-size`: `sudo apt install gcc-arm-none-eabi`
-- Raspberry Pi Pico W board with USB cable
+- Raspberry Pi Pico/Pico W board with USB cable
 
 **Build and flash:**
 ```bash
@@ -116,13 +116,50 @@ picocom /dev/ttyACM0 -b 115200
 - **Flash:** 2MB
 - **RAM:** 264KB
 - **USB:** Native USB 1.1 device support
+- **Binary size:** ~392KB (18.7% of 2MB flash)
+- **Heap size:** ~127.5KB (out of 264KB RAM)
 
 **Features:**
-- Interactive REPL over USB serial (115200 baud)
-- Full line editing with history
-- All core language features
+- Interactive REPL over USB serial
+- Full line editing with history (20 entries)
+- Advanced math (sin, cos, exp, log, etc.) via software floating-point
+- Complex numbers and Gaussian integers
 - Exact arithmetic with arbitrary-precision integers and rationals
-- Larger memory footprint than micro:bit (264KB RAM vs 128KB)
+
+### Embedded: Raspberry Pi Pico 2 (RP2350)
+
+**Prerequisites:**
+- `picotool`: `sudo apt install picotool` (required for RP2350 UF2 conversion)
+- `arm-none-eabi-size`: `sudo apt install gcc-arm-none-eabi`
+- Raspberry Pi Pico 2 board with USB cable
+
+**Build and flash:**
+```bash
+./build_pico2          # Build release binary and convert to UF2
+./flash_pico2          # Flash to connected Pico 2
+```
+
+**Connect to REPL:**
+```bash
+picocom /dev/ttyACM0 -b 115200
+```
+
+**Specifications:**
+- **Target:** ARM Cortex-M33 (thumbv8m.main-none-eabihf)
+- **MCU:** RP2350 dual-core @ 150MHz
+- **Flash:** 4MB
+- **RAM:** 520KB
+- **USB:** Native USB 1.1 device support
+- **Binary size:** ~409KB (9.8% of 4MB flash)
+- **Heap size:** ~255KB (out of 520KB RAM)
+
+**Features:**
+- Interactive REPL over USB serial
+- Full line editing with history (20 entries)
+- Advanced math with hardware floating-point acceleration
+- Complex numbers and Gaussian integers
+- Exact arithmetic with arbitrary-precision integers and rationals
+- Significantly more memory than Pico (520KB vs 264KB)
 
 ## Language Overview
 
@@ -621,6 +658,7 @@ src/
 
 flash_microbit           # Script to flash micro:bit
 flash_pico               # Script to flash Raspberry Pi Pico
+flash_pico2              # Script to flash Raspberry Pi Pico 2
 ```
 
 ## Development
@@ -645,8 +683,9 @@ cargo clippy --no-default-features --features target-linux,std,advanced_math,com
 cargo build --release --no-default-features --features target-linux,std,advanced_math,complex_numbers
 
 # Build for embedded targets
-cargo +nightly build --release --target thumbv7em-none-eabihf --no-default-features --features target-microbit -Z build-std=core,alloc  # micro:bit
-cargo +nightly build --release --target thumbv6m-none-eabi --no-default-features --features target-pico -Z build-std=core,alloc        # Pico
+cargo +nightly build --release --target thumbv7em-none-eabihf --no-default-features --features target-microbit -Z build-std=core,alloc      # micro:bit
+cargo +nightly build --release --target thumbv6m-none-eabi --no-default-features --features target-pico -Z build-std=core,alloc            # Pico (RP2040)
+cargo +nightly build --release --target thumbv8m.main-none-eabihf --no-default-features --features target-pico2 -Z build-std=core,alloc  # Pico 2 (RP2350)
 ```
 
 ### Adding New Primitives

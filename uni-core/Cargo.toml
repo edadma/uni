@@ -30,19 +30,16 @@ libc = { version = "0.2", optional = true }
 [target.'cfg(not(target_os = "none"))'.dependencies]
 chrono = "0.4"
 
-# Hardware-specific optional dependencies
-# micro:bit v2 (nRF52833)
-[target.thumbv7em-none-eabihf.dependencies]
-microbit = { package = "microbit-v2", version = "0.15", optional = true }
+# Embedded targets - shared dependencies for all ARM Cortex-M targets
+[target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
 embedded-hal = { version = "1.0", optional = true }
 cortex-m = { version = "0.7", optional = true }
 cortex-m-rt = { version = "0.7", optional = true }
 
-# Raspberry Pi Pico / Pico W (RP2040)
-[target.thumbv6m-none-eabi.dependencies]
-embedded-hal = { version = "1.0", optional = true }
-cortex-m = { version = "0.7", optional = true }
-cortex-m-rt = { version = "0.7", optional = true }
+# Hardware-specific dependencies
+# micro:bit v2 (nRF52833) - thumbv7em-none-eabihf only
+[target.thumbv7em-none-eabihf.dependencies]
+microbit = { package = "microbit-v2", version = "0.15", optional = true }
 
 [features]
 default = []
