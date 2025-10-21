@@ -308,12 +308,6 @@ fn mb_main() -> ! {
 // Run the interactive REPL (Read-Eval-Print Loop)
 #[cfg(not(target_os = "none"))]
 fn run_repl() {
-    // RUST CONCEPT: Result type for error handling in Rust
-    // editline provides line editing functionality with history
-    // Create a LineEditor with 4KB buffer and 100 history entries
-    let mut editor = LineEditor::new(4096, 100);
-    let terminal = StdioTerminal::new();
-
     // RUST CONCEPT: Automatic initialization
     // Interpreter::new() automatically loads builtins and stdlib
     let mut interp = Interpreter::new();
@@ -325,7 +319,8 @@ fn run_repl() {
         interp.set_time_source(Box::new(LinuxTimeSource::new()));
     }
 
-    run_repl_loop(&mut editor, terminal, &mut interp);
+    // Use the REPL from uni-core
+    uni_core::repl::run_repl(interp, StdioTerminal::new());
 }
 
 // Generic REPL loop that works with any Terminal implementation

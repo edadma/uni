@@ -33,6 +33,7 @@
 //! - `std` - Enables standard library support (required for desktop platforms)
 //! - `advanced_math` - Trigonometric functions, exp/log, rounding operations
 //! - `complex_numbers` - Complex number and Gaussian integer support
+//! - `repl` - Enables REPL (Read-Eval-Print Loop) functionality with line editing
 
 #![cfg_attr(target_os = "none", no_std)]
 
@@ -61,6 +62,10 @@ pub mod builtins;
 pub mod prelude;
 pub mod primitives;
 pub mod hardware;
+
+// Optional REPL module (only with "repl" feature)
+#[cfg(feature = "repl")]
+pub mod repl;
 
 // Internal module
 mod compat;
