@@ -657,6 +657,9 @@ fn pico2_main() -> ! {
     .ok()
     .unwrap();
 
+    // Set up timer for delays
+    let timer = rp235x_hal::Timer::new_timer0(pac_peripherals.TIMER0, &mut pac_peripherals.RESETS, &clocks);
+
     // Set up the USB driver (RP2350 uses pac.USB instead of pac.USBCTRL_REGS)
     let usb_bus = UsbBusAllocator::new(UsbBus::new(
         pac_peripherals.USB,
@@ -686,7 +689,7 @@ fn pico2_main() -> ! {
 
     // Create terminal and run REPL
     let terminal = UsbCdcTerminal::new(usb_dev, serial);
-    run_repl(terminal)
+    run_repl(terminal, timer)
 }
 
 // Raspberry Pi Pico W REPL function
@@ -709,12 +712,12 @@ fn run_repl(mut terminal: UsbCdcTerminal<'static, UsbBus>) -> ! {
 
 // Raspberry Pi Pico 2 REPL function
 #[cfg(feature = "target-pico2")]
-fn run_repl(mut terminal: UsbCdcTerminal<'static, UsbBus>) -> ! {
+fn run_repl<T: rp235x_hal::timer::TimerDevice>(mut terminal: UsbCdcTerminal<'static, UsbBus>, mut timer: rp235x_hal::Timer<T>) -> ! {
     let mut editor = LineEditor::new(1024, 20);
     let mut interp = Interpreter::new();
 
-    // Wait for first byte from terminal (connection signal)
-    let _ = terminal.read_byte();
+    // Wait for terminal connection (DTR signal from picocom/minicom)
+    terminal.wait_for_connection(&mut timer);
 
     // Run the shared REPL loop
     run_repl_loop(&mut editor, terminal, &mut interp);
