@@ -62,6 +62,20 @@ pub fn load_prelude(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         ] def
         "( list index -- element ) Get nth element (0-indexed)" doc
 
+        'append [
+            swap dup nil?
+            [drop]
+            [
+                dup head
+                swap tail
+                rot
+                append
+                cons
+            ]
+            if
+        ] def
+        "( list1 list2 -- list3 ) Concatenate two lists" doc
+
         'null? [null =] def
         "( x -- bool ) Test if value is null" doc
 
@@ -644,6 +658,51 @@ mod tests {
         execute_string("[[1 2] [3 4] [5 6]] 2 list-ref 0 list-ref", &mut interp).unwrap();
         let result = interp.pop().unwrap();
         assert!(matches!(result, Value::Int32(5)));
+    }
+
+    #[test]
+    fn test_prelude_append() {
+        let mut interp = setup_interpreter_with_prelude();
+
+        // Test: Append two non-empty lists
+        execute_string("[1 2] [3 4] append", &mut interp).unwrap();
+        execute_string("dup length", &mut interp).unwrap();
+        let len = interp.pop().unwrap();
+        assert!(matches!(len, Value::Int32(4)));
+        // Verify contents: should be [1 2 3 4]
+        execute_string("0 list-ref", &mut interp).unwrap();
+        assert!(matches!(interp.pop().unwrap(), Value::Int32(1)));
+
+        // Test: Append empty list to non-empty list
+        execute_string("[] [1 2 3] append", &mut interp).unwrap();
+        execute_string("length", &mut interp).unwrap();
+        let len = interp.pop().unwrap();
+        assert!(matches!(len, Value::Int32(3)));
+
+        // Test: Append non-empty list to empty list
+        execute_string("[1 2 3] [] append", &mut interp).unwrap();
+        execute_string("length", &mut interp).unwrap();
+        let len = interp.pop().unwrap();
+        assert!(matches!(len, Value::Int32(3)));
+
+        // Test: Append two empty lists
+        execute_string("[] [] append", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Nil));
+
+        // Test: Append single element lists
+        execute_string("[10] [20] append", &mut interp).unwrap();
+        execute_string("dup 0 list-ref swap 1 list-ref", &mut interp).unwrap();
+        let second = interp.pop().unwrap();
+        let first = interp.pop().unwrap();
+        assert!(matches!(first, Value::Int32(10)));
+        assert!(matches!(second, Value::Int32(20)));
+
+        // Test: Chained append
+        execute_string("[1] [2 3] append [4 5] append", &mut interp).unwrap();
+        execute_string("length", &mut interp).unwrap();
+        let len = interp.pop().unwrap();
+        assert!(matches!(len, Value::Int32(5)));
     }
 
     #[test]
