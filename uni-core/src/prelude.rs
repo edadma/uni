@@ -54,6 +54,14 @@ pub fn load_prelude(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         ] def
         "( list -- n ) Calculate list length recursively" doc
 
+        'list-ref [
+            dup 0 =
+            [drop head]
+            [1 - swap tail swap list-ref]
+            if
+        ] def
+        "( list index -- element ) Get nth element (0-indexed)" doc
+
         'null? [null =] def
         "( x -- bool ) Test if value is null" doc
 
@@ -606,6 +614,36 @@ mod tests {
         execute_string("5 not not", &mut interp).unwrap();
         let result = interp.pop().unwrap();
         assert!(matches!(result, Value::Boolean(true)));
+    }
+
+    #[test]
+    fn test_prelude_list_ref() {
+        let mut interp = setup_interpreter_with_prelude();
+
+        // Test: Get first element (index 0)
+        execute_string("[10 20 30 40] 0 list-ref", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(10)));
+
+        // Test: Get second element (index 1)
+        execute_string("[10 20 30 40] 1 list-ref", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(20)));
+
+        // Test: Get last element (index 3)
+        execute_string("[10 20 30 40] 3 list-ref", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(40)));
+
+        // Test: Single element list
+        execute_string("[42] 0 list-ref", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(42)));
+
+        // Test: Nested list access
+        execute_string("[[1 2] [3 4] [5 6]] 2 list-ref 0 list-ref", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(5)));
     }
 
     #[test]
