@@ -37,6 +37,14 @@ pub fn load_prelude(interp: &mut Interpreter) -> Result<(), RuntimeError> {
         'nil? [[] =] def
         "( x -- bool ) Test if value is empty list" doc
 
+        \\ Logical operations
+        'not [[false] [true] if] def
+        "( x -- bool ) Logical negation of truthiness" doc
+
+        \\ Arithmetic operations
+        'negate [-1 *] def
+        "( n -- -n ) Negate a number" doc
+
         \\ List processing primitives
         'length [
             dup nil?
@@ -558,5 +566,90 @@ mod tests {
 
         // Stack should be empty - pure side effects
         assert!(interp.pop().is_err());
+    }
+
+    #[test]
+    fn test_prelude_not() {
+        let mut interp = setup_interpreter_with_prelude();
+
+        // Test: not on true -> false
+        execute_string("true not", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+
+        // Test: not on false -> true
+        execute_string("false not", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test: not on truthy value (non-zero number) -> false
+        execute_string("42 not", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+
+        // Test: not on falsy value (zero) -> true
+        execute_string("0 not", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test: not on falsy value (null) -> true
+        execute_string("null not", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test: not on truthy value (non-empty list) -> false
+        execute_string("[1 2 3] not", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+
+        // Test: double negation: not not -> identity for truthy values
+        execute_string("5 not not", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+    }
+
+    #[test]
+    fn test_prelude_negate() {
+        let mut interp = setup_interpreter_with_prelude();
+
+        // Test: negate positive integer
+        execute_string("5 negate", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(-5)));
+
+        // Test: negate negative integer
+        execute_string("-3 negate", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(3)));
+
+        // Test: negate zero
+        execute_string("0 negate", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(0)));
+
+        // Test: double negation
+        execute_string("7 negate negate", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(7)));
+
+        // Test: negate with float
+        execute_string("3.14 negate", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        match result {
+            Value::Number(f) => assert!((f - (-3.14)).abs() < 0.0001),
+            _ => panic!("Expected Number, got {:?}", result),
+        }
+
+        // Test: negate with rational
+        execute_string("3/4 negate", &mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        // Result should be -3/4 as a Rational
+        match result {
+            Value::Rational(r) => {
+                assert_eq!(r.numer(), &num_bigint::BigInt::from(-3));
+                assert_eq!(r.denom(), &num_bigint::BigInt::from(4));
+            }
+            _ => panic!("Expected Rational, got {:?}", result),
+        }
     }
 }
