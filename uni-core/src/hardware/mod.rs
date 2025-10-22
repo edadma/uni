@@ -14,5 +14,5 @@ pub mod linux_time;
 #[cfg(feature = "hardware-microbit")]
 pub mod microbit;
 
-#[cfg(feature = "hardware-pico")]
-pub mod pico;
+#[cfg(feature = "hardware-pico2")]
+pub mod pico2;

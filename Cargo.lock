@@ -941,6 +941,7 @@ dependencies = [
  "num-complex",
  "num-rational",
  "num-traits",
+ "rp235x-hal",
 ]
 
 [[package]]

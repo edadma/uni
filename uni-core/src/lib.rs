@@ -43,11 +43,11 @@ extern crate alloc;
 // Hardware platform support
 #[cfg(feature = "hardware-microbit")]
 extern crate microbit;
-#[cfg(any(feature = "hardware-microbit", feature = "hardware-pico"))]
+#[cfg(any(feature = "hardware-microbit", feature = "hardware-pico2"))]
 extern crate embedded_hal;
-#[cfg(any(feature = "hardware-microbit", feature = "hardware-pico"))]
+#[cfg(any(feature = "hardware-microbit", feature = "hardware-pico2"))]
 extern crate cortex_m;
-#[cfg(any(feature = "hardware-microbit", feature = "hardware-pico"))]
+#[cfg(any(feature = "hardware-microbit", feature = "hardware-pico2"))]
 extern crate cortex_m_rt;
 
 // Public modules

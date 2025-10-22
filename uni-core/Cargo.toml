@@ -23,6 +23,7 @@ num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 # Optional features
 num-complex = { version = "0.4", default-features = false, optional = true }
 editline = { version = "0.0.19", default-features = false, optional = true }
+rp235x-hal = { version = "0.3", features = ["rt", "critical-section-impl"], optional = true }
 
 # Platform features
 libc = { version = "0.2", optional = true }
@@ -42,6 +43,10 @@ cortex-m-rt = { version = "0.7", optional = true }
 [target.thumbv7em-none-eabihf.dependencies]
 microbit = { package = "microbit-v2", version = "0.15", optional = true }
 
+# Raspberry Pi Pico (RP2040) - thumbv6m-none-eabi only (no hardware primitives, REPL only)
+[target.thumbv6m-none-eabi.dependencies]
+# No HAL dependency needed - Pico has no hardware primitives in uni-core
+
 [features]
 default = []
 std = ["libc"]  # std enables libc for timezone detection
@@ -51,8 +56,9 @@ repl = ["editline"]  # REPL support with line editing (optional)
 
 # Hardware platform features
 hardware-microbit = ["microbit", "embedded-hal", "cortex-m", "cortex-m-rt"]
-hardware-pico = ["embedded-hal", "cortex-m", "cortex-m-rt"]  # Pico primitives not yet implemented
+hardware-pico2 = ["rp235x-hal", "embedded-hal", "cortex-m", "cortex-m-rt"]  # Pico 2 (RP2350) GPIO primitives
 
 # Convenience aliases for target features
 target-microbit = ["hardware-microbit"]
-target-pico = ["hardware-pico"]
+target-pico = []  # Pico (RP2040) - REPL only, no hardware primitives
+target-pico2 = ["hardware-pico2"]

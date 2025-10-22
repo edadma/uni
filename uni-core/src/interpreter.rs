@@ -38,6 +38,10 @@ pub struct Interpreter {
     pub buttons: Option<microbit::board::Buttons>,
     #[cfg(feature = "hardware-microbit")]
     pub display_buffer: [[u8; 5]; 5],  // Raw pixel buffer for LED matrix
+
+    // Hardware peripherals (Pico 2 RP2350)
+    #[cfg(feature = "hardware-pico2")]
+    pub gpio_pins: Option<rp235x_hal::gpio::Pins>,
 }
 
 impl Interpreter {
@@ -58,6 +62,9 @@ impl Interpreter {
             buttons: None,
             #[cfg(feature = "hardware-microbit")]
             display_buffer: [[0u8; 5]; 5],  // All LEDs off initially
+
+            #[cfg(feature = "hardware-pico2")]
+            gpio_pins: None,
         };
 
         // RUST CONCEPT: Automatic initialization
