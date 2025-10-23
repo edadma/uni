@@ -1176,6 +1176,10 @@ pub fn register_builtins(interp: &mut Interpreter) {
         },
     );
 
+    // Hardware-specific primitives
+    #[cfg(feature = "hardware-pico2")]
+    crate::hardware::pico2::register_pico2_primitives(interp);
+
 }
 
 #[cfg(test)]
