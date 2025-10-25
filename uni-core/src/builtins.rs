@@ -38,6 +38,11 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     add_builtin(interp, "cr", crate::primitives::cr::cr_builtin);
     add_builtin(interp, "words", crate::primitives::words::words_builtin);
 
+    // Utility primitives
+    add_builtin(interp, "help", crate::primitives::help::help_builtin);
+    add_builtin(interp, "stack", crate::primitives::stack::stack_builtin);
+    add_builtin(interp, "clear", sync_builtin!(crate::primitives::clear::clear_impl));
+
     // Sync stack primitives (wrapped in async)
     // Note: swap, dup, over, rot are defined in the prelude using pick and roll
     add_builtin(interp, "drop", sync_builtin!(crate::primitives::stack::drop_impl));

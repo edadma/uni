@@ -5,6 +5,10 @@ pub mod print;
 pub mod cr;
 pub mod words;
 
+// Utility primitives
+pub mod help;
+pub mod clear;
+
 // Stack manipulation
 pub mod stack;
 pub mod pick;
