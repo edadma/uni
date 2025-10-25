@@ -77,6 +77,21 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     // Date/time primitives (wrapped in async)
     add_builtin(interp, "now", sync_builtin!(crate::primitives::now::now_impl));
 
+    // Advanced math primitives (feature-gated, wrapped in async)
+    #[cfg(feature = "advanced_math")]
+    {
+        add_builtin(interp, "sqrt", sync_builtin!(crate::primitives::sqrt::sqrt_impl));
+        add_builtin(interp, "pow", sync_builtin!(crate::primitives::pow::pow_impl));
+        add_builtin(interp, "floor", sync_builtin!(crate::primitives::floor::floor_impl));
+        add_builtin(interp, "ceil", sync_builtin!(crate::primitives::ceil::ceil_impl));
+        add_builtin(interp, "round", sync_builtin!(crate::primitives::round::round_impl));
+        add_builtin(interp, "sin", sync_builtin!(crate::primitives::sin::sin_impl));
+        add_builtin(interp, "cos", sync_builtin!(crate::primitives::cos::cos_impl));
+        add_builtin(interp, "tan", sync_builtin!(crate::primitives::tan::tan_impl));
+        add_builtin(interp, "log", sync_builtin!(crate::primitives::log::log_impl));
+        add_builtin(interp, "exp", sync_builtin!(crate::primitives::exp::exp_impl));
+    }
+
     // Record primitives (wrapped in async)
     add_builtin(interp, "make-record-type", sync_builtin!(crate::primitives::record::make_record_type_impl));
     add_builtin(interp, "construct-record", sync_builtin!(crate::primitives::record::construct_record_impl));

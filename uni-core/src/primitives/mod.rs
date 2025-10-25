@@ -20,6 +20,28 @@ pub mod abs;
 pub mod min;
 pub mod max;
 
+// Advanced math (feature-gated)
+#[cfg(feature = "advanced_math")]
+pub mod sqrt;
+#[cfg(feature = "advanced_math")]
+pub mod pow;
+#[cfg(feature = "advanced_math")]
+pub mod floor;
+#[cfg(feature = "advanced_math")]
+pub mod ceil;
+#[cfg(feature = "advanced_math")]
+pub mod round;
+#[cfg(feature = "advanced_math")]
+pub mod sin;
+#[cfg(feature = "advanced_math")]
+pub mod cos;
+#[cfg(feature = "advanced_math")]
+pub mod tan;
+#[cfg(feature = "advanced_math")]
+pub mod log;
+#[cfg(feature = "advanced_math")]
+pub mod exp;
+
 // Comparisons
 pub mod equals;
 pub mod not_equal;
