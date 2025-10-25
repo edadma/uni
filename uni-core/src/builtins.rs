@@ -48,9 +48,18 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     // Sync arithmetic primitives (wrapped in async)
     add_builtin(interp, "+", sync_builtin!(crate::primitives::plus::add_impl));
     add_builtin(interp, "-", sync_builtin!(crate::primitives::minus::sub_impl));
+    add_builtin(interp, "*", sync_builtin!(crate::primitives::multiply::mul_impl));
+    add_builtin(interp, "/", sync_builtin!(crate::primitives::divide::div_impl));
+    add_builtin(interp, "mod", sync_builtin!(crate::primitives::modulo::mod_impl));
+    add_builtin(interp, "//", sync_builtin!(crate::primitives::floor_div::floor_div_impl));
+    add_builtin(interp, "div", sync_builtin!(crate::primitives::trunc_div::trunc_div_impl));
+    add_builtin(interp, "abs", sync_builtin!(crate::primitives::abs::abs_impl));
+    add_builtin(interp, "min", sync_builtin!(crate::primitives::min::min_impl));
+    add_builtin(interp, "max", sync_builtin!(crate::primitives::max::max_impl));
 
     // Sync comparison primitives (wrapped in async)
     add_builtin(interp, "=", sync_builtin!(crate::primitives::equals::equals_impl));
+    add_builtin(interp, "!=", sync_builtin!(crate::primitives::not_equal::not_equal_impl));
     add_builtin(interp, "<", sync_builtin!(crate::primitives::less_than::less_than_impl));
     add_builtin(interp, ">", sync_builtin!(crate::primitives::greater_than::greater_than_impl));
     add_builtin(interp, "<=", sync_builtin!(crate::primitives::less_equal::less_equal_impl));

@@ -11,9 +11,18 @@ pub mod stack;
 // Arithmetic
 pub mod plus;
 pub mod minus;
+pub mod multiply;
+pub mod divide;
+pub mod modulo;
+pub mod floor_div;
+pub mod trunc_div;
+pub mod abs;
+pub mod min;
+pub mod max;
 
 // Comparisons
 pub mod equals;
+pub mod not_equal;
 pub mod less_than;
 pub mod greater_than;
 pub mod less_equal;
@@ -33,3 +42,6 @@ pub mod now;
 
 // Records
 pub mod record;
+
+// Numeric type promotion
+pub mod numeric_promotion;

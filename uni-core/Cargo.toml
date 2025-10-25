@@ -13,10 +13,10 @@ name = "uni_core"
 path = "src/lib.rs"
 
 [dependencies]
-# Core dependencies
-num-bigint = "0.4"
-num-rational = "0.4"
-num-traits = "0.2"
+# Core numeric types (no_std compatible)
+num-bigint = { version = "0.4", default-features = false }
+num-rational = { version = "0.4", default-features = false, features = ["num-bigint"] }
+num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 
 # Async runtime (Embassy for embedded)
 embassy-executor = { version = "0.9.0", optional = true }
@@ -26,8 +26,8 @@ embassy-futures = { version = "0.1.0", optional = true }
 # Optional async line editing for REPL
 editline = { version = "0.0.20", default-features = false, optional = true }
 
-# Complex numbers (optional)
-num-complex = { version = "0.4", optional = true }
+# Complex numbers (optional, no_std compatible)
+num-complex = { version = "0.4", default-features = false, optional = true }
 
 # Datetime support (optional, requires std)
 chrono = { version = "0.4", optional = true, default-features = false, features = ["clock"] }

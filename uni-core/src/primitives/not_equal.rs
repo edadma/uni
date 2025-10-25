@@ -1,17 +1,17 @@
-// Equality comparison primitive
+// Not-equal comparison primitive
 
 use crate::interpreter::AsyncInterpreter;
 use crate::value::{RuntimeError, Value};
 use core::ptr;
 
-// RUST CONCEPT: Comprehensive equality with support for all value types
-// Equals: ( a b -- bool )
-pub fn equals_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
-    let b = interp.pop_with_context("'=' requires exactly 2 values on the stack (e.g., '5 3 =')")?;
-    let a = interp.pop_with_context("'=' requires exactly 2 values on the stack (e.g., '5 3 =')")?;
+// RUST CONCEPT: Comprehensive inequality with support for all value types
+// Not equals: ( a b -- bool )
+pub fn not_equal_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
+    let b = interp.pop_with_context("'!=' requires exactly 2 values on the stack (e.g., '5 3 !=')")?;
+    let a = interp.pop_with_context("'!=' requires exactly 2 values on the stack (e.g., '5 3 !=')")?;
 
-    // Comprehensive value equality
-    let result = match (&a, &b) {
+    // Use the same equality logic as equals.rs but negate result
+    let are_equal = match (&a, &b) {
         (Value::Int32(i1), Value::Int32(i2)) => i1 == i2,
         (Value::Number(a), Value::Number(b)) => (a - b).abs() < f64::EPSILON,
         (Value::Integer(i1), Value::Integer(i2)) => i1 == i2,
@@ -34,6 +34,6 @@ pub fn equals_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
         _ => false, // Different types are not equal
     };
 
-    interp.push(Value::Boolean(result));
+    interp.push(Value::Boolean(!are_equal));
     Ok(())
 }
