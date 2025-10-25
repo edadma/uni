@@ -251,8 +251,13 @@ async fn execute_value_direct(
             interp.push(value.clone());
             Ok(())
         }
-        // RUST CONCEPT: I16 buffers push themselves (they are data)
-        Value::I16Buffer(_) => {
+        // RUST CONCEPT: I32 buffers push themselves (they are data)
+        Value::I32Buffer(_) => {
+            interp.push(value.clone());
+            Ok(())
+        }
+        // RUST CONCEPT: F32 buffers push themselves (they are data)
+        Value::F32Buffer(_) => {
             interp.push(value.clone());
             Ok(())
         }

@@ -4,6 +4,7 @@
 pub mod print;
 pub mod emit;
 pub mod words;
+pub mod space;
 
 // Utility primitives
 pub mod help;
@@ -13,6 +14,7 @@ pub mod clear;
 pub mod stack;
 pub mod pick;
 pub mod roll;
+pub mod return_stack;
 
 // Arithmetic
 pub mod plus;
@@ -61,10 +63,21 @@ pub mod def;
 pub mod val;
 pub mod doc;
 
+// Variables
+pub mod var;
+pub mod fetch;
+pub mod store;
+pub mod lval;
+pub mod lvar;
+
 // Lists
 pub mod cons;
 pub mod head;
 pub mod tail;
+pub mod list;
+
+// Vectors
+pub mod vector;
 
 // Date/time
 pub mod now;
@@ -74,3 +87,20 @@ pub mod record;
 
 // Numeric type promotion
 pub mod numeric_promotion;
+
+// Bitwise operations
+pub mod bit_and;
+pub mod bit_or;
+pub mod bit_xor;
+pub mod bit_not;
+pub mod shl;
+pub mod shr;
+
+// String/type operations
+pub mod to_string;
+pub mod truthy;
+pub mod type_of;
+
+// I32/F32 buffers (for audio/DSP/computation)
+pub mod i32_buffer;
+pub mod f32_buffer;

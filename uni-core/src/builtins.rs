@@ -37,6 +37,7 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     add_builtin(interp, ".", crate::primitives::print::print_builtin);
     add_builtin(interp, "emit", crate::primitives::emit::emit_builtin);
     add_builtin(interp, "words", crate::primitives::words::words_builtin);
+    add_builtin(interp, "space", crate::primitives::space::space_builtin);
     // Note: cr is now defined in the prelude as [10 emit]
 
     // Utility primitives
@@ -49,6 +50,11 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     add_builtin(interp, "drop", sync_builtin!(crate::primitives::stack::drop_impl));
     add_builtin(interp, "pick", sync_builtin!(crate::primitives::pick::pick_impl));
     add_builtin(interp, "roll", sync_builtin!(crate::primitives::roll::roll_impl));
+
+    // Return stack primitives
+    add_builtin(interp, ">r", sync_builtin!(crate::primitives::return_stack::to_r_impl));
+    add_builtin(interp, "r>", sync_builtin!(crate::primitives::return_stack::from_r_impl));
+    add_builtin(interp, "r@", sync_builtin!(crate::primitives::return_stack::r_fetch_impl));
 
     // Sync arithmetic primitives (wrapped in async)
     add_builtin(interp, "+", sync_builtin!(crate::primitives::plus::add_impl));
@@ -75,10 +81,18 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     add_builtin(interp, "val", sync_builtin!(crate::primitives::val::val_impl));
     add_builtin(interp, "doc", sync_builtin!(crate::primitives::doc::doc_impl));
 
+    // Variable primitives
+    add_builtin(interp, "var", sync_builtin!(crate::primitives::var::var_impl));
+    add_builtin(interp, "@", sync_builtin!(crate::primitives::fetch::fetch_impl));
+    add_builtin(interp, "!", sync_builtin!(crate::primitives::store::store_impl));
+    add_builtin(interp, "lval", sync_builtin!(crate::primitives::lval::lval_impl));
+    add_builtin(interp, "lvar", sync_builtin!(crate::primitives::lvar::lvar_impl));
+
     // Sync list primitives (wrapped in async)
     add_builtin(interp, "cons", sync_builtin!(crate::primitives::cons::cons_impl));
     add_builtin(interp, "car", sync_builtin!(crate::primitives::head::car_impl));
     add_builtin(interp, "cdr", sync_builtin!(crate::primitives::tail::cdr_impl));
+    add_builtin(interp, "list", sync_builtin!(crate::primitives::list::list_impl));
 
     // Date/time primitives (wrapped in async)
     add_builtin(interp, "now", sync_builtin!(crate::primitives::now::now_impl));
@@ -105,6 +119,50 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     add_builtin(interp, "get-record-field", sync_builtin!(crate::primitives::record::get_record_field_impl));
     add_builtin(interp, "set-record-field!", sync_builtin!(crate::primitives::record::set_record_field_impl));
     add_builtin(interp, "record-type-of", sync_builtin!(crate::primitives::record::record_type_of_impl));
+
+    // Vector primitives
+    add_builtin(interp, "vector", sync_builtin!(crate::primitives::vector::vector_impl));
+    add_builtin(interp, "make-vector", sync_builtin!(crate::primitives::vector::make_vector_impl));
+    add_builtin(interp, "vector-length", sync_builtin!(crate::primitives::vector::vector_length_impl));
+    add_builtin(interp, "vector-ref", sync_builtin!(crate::primitives::vector::vector_ref_impl));
+    add_builtin(interp, "vector-set!", sync_builtin!(crate::primitives::vector::vector_set_impl));
+    add_builtin(interp, "vector->list", sync_builtin!(crate::primitives::vector::vector_to_list_impl));
+    add_builtin(interp, "list->vector", sync_builtin!(crate::primitives::vector::list_to_vector_impl));
+
+    // Bitwise primitives
+    add_builtin(interp, "&", sync_builtin!(crate::primitives::bit_and::bit_and_impl));
+    add_builtin(interp, "|", sync_builtin!(crate::primitives::bit_or::bit_or_impl));
+    add_builtin(interp, "^", sync_builtin!(crate::primitives::bit_xor::bit_xor_impl));
+    add_builtin(interp, "~", sync_builtin!(crate::primitives::bit_not::bit_not_impl));
+    add_builtin(interp, "<<", sync_builtin!(crate::primitives::shl::shl_impl));
+    add_builtin(interp, ">>", sync_builtin!(crate::primitives::shr::shr_impl));
+
+    // String/type primitives
+    add_builtin(interp, "->string", sync_builtin!(crate::primitives::to_string::to_string_impl));
+    add_builtin(interp, "truthy?", sync_builtin!(crate::primitives::truthy::truthy_impl));
+    add_builtin(interp, "type-of", sync_builtin!(crate::primitives::type_of::type_of_impl));
+
+    // I32 buffer primitives (for integer data and DSP)
+    add_builtin(interp, "i32-buffer", sync_builtin!(crate::primitives::i32_buffer::i32_buffer_impl));
+    add_builtin(interp, "i32@", sync_builtin!(crate::primitives::i32_buffer::i32_ref_impl));
+    add_builtin(interp, "i32!", sync_builtin!(crate::primitives::i32_buffer::i32_set_impl));
+    add_builtin(interp, "i32-length", sync_builtin!(crate::primitives::i32_buffer::i32_length_impl));
+    add_builtin(interp, "i32-push!", sync_builtin!(crate::primitives::i32_buffer::i32_push_impl));
+    add_builtin(interp, "i32-pop!", sync_builtin!(crate::primitives::i32_buffer::i32_pop_impl));
+    add_builtin(interp, "i32-max", sync_builtin!(crate::primitives::i32_buffer::i32_max_impl));
+    add_builtin(interp, "i32-min", sync_builtin!(crate::primitives::i32_buffer::i32_min_impl));
+    add_builtin(interp, "i32-avg", sync_builtin!(crate::primitives::i32_buffer::i32_avg_impl));
+
+    // F32 buffer primitives (for float data, audio/DSP, GPU compute)
+    add_builtin(interp, "f32-buffer", sync_builtin!(crate::primitives::f32_buffer::f32_buffer_impl));
+    add_builtin(interp, "f32@", sync_builtin!(crate::primitives::f32_buffer::f32_ref_impl));
+    add_builtin(interp, "f32!", sync_builtin!(crate::primitives::f32_buffer::f32_set_impl));
+    add_builtin(interp, "f32-length", sync_builtin!(crate::primitives::f32_buffer::f32_length_impl));
+    add_builtin(interp, "f32-push!", sync_builtin!(crate::primitives::f32_buffer::f32_push_impl));
+    add_builtin(interp, "f32-pop!", sync_builtin!(crate::primitives::f32_buffer::f32_pop_impl));
+    add_builtin(interp, "f32-max", sync_builtin!(crate::primitives::f32_buffer::f32_max_impl));
+    add_builtin(interp, "f32-min", sync_builtin!(crate::primitives::f32_buffer::f32_min_impl));
+    add_builtin(interp, "f32-avg", sync_builtin!(crate::primitives::f32_buffer::f32_avg_impl));
 
     // Create the date record type for use by the 'now' primitive
     // Field names: year month day hour minute second offset

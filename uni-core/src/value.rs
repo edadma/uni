@@ -66,11 +66,15 @@ pub enum Value {
         type_name: Rc<str>,
         field_names: Rc<Vec<Rc<str>>>,
     },
-    // RUST CONCEPT: I16 buffer for audio samples and DSP
-    // Stores 16-bit signed integers (standard for digital audio)
+    // RUST CONCEPT: I32 buffer for integer data and DSP
+    // Stores 32-bit signed integers
     // Dynamic size Vec for flexibility - can grow/shrink as needed
-    // Use with record types to add audio metadata (sample rate, channels)
-    I16Buffer(Rc<RefCell<Vec<i16>>>),
+    I32Buffer(Rc<RefCell<Vec<i32>>>),
+
+    // RUST CONCEPT: F32 buffer for single-precision floating point data
+    // Stores 32-bit floats (standard for audio/DSP, GPU compute)
+    // More memory-efficient than f64 for large datasets
+    F32Buffer(Rc<RefCell<Vec<f32>>>),
 }
 
 // Implement Debug manually since AsyncPrimitiveFn doesn't implement Debug
@@ -97,7 +101,8 @@ impl fmt::Debug for Value {
             Value::Nil => write!(f, "Nil"),
             Value::Record { type_name, fields } => write!(f, "Record({}:{:?})", type_name, fields),
             Value::RecordType { type_name, field_names } => write!(f, "RecordType({}:{:?})", type_name, field_names),
-            Value::I16Buffer(buf) => write!(f, "I16Buffer({:?})", buf),
+            Value::I32Buffer(buf) => write!(f, "I32Buffer({:?})", buf),
+            Value::F32Buffer(buf) => write!(f, "F32Buffer({:?})", buf),
         }
     }
 }
@@ -127,7 +132,8 @@ impl Value {
             Value::AsyncBuiltin(_) => "builtin",
             Value::Record { .. } => "record",
             Value::RecordType { .. } => "record-type",
-            Value::I16Buffer(_) => "i16-buffer",
+            Value::I32Buffer(_) => "i32-buffer",
+            Value::F32Buffer(_) => "f32-buffer",
         }
     }
 
@@ -336,12 +342,33 @@ impl fmt::Display for Value {
                 }
                 write!(f, ">")
             }
-            // RUST CONCEPT: Display for i16 buffers
+            // RUST CONCEPT: Display for i32 buffers
             // Shows buffer length and first few samples for debugging
-            Value::I16Buffer(buffer) => {
+            Value::I32Buffer(buffer) => {
                 let buffer_ref = buffer.borrow();
                 let len = buffer_ref.len();
-                write!(f, "#<i16-buffer:{}:[", len)?;
+                write!(f, "#<i32-buffer:{}:[", len)?;
+
+                // Show first 8 samples (or fewer if buffer is smaller)
+                let preview_count = len.min(8);
+                for i in 0..preview_count {
+                    if i > 0 {
+                        write!(f, " ")?;
+                    }
+                    write!(f, "{}", buffer_ref[i])?;
+                }
+
+                if len > preview_count {
+                    write!(f, " ...")?;
+                }
+                write!(f, "]>")
+            }
+            // RUST CONCEPT: Display for f32 buffers
+            // Shows buffer length and first few samples for debugging
+            Value::F32Buffer(buffer) => {
+                let buffer_ref = buffer.borrow();
+                let len = buffer_ref.len();
+                write!(f, "#<f32-buffer:{}:[", len)?;
 
                 // Show first 8 samples (or fewer if buffer is smaller)
                 let preview_count = len.min(8);
