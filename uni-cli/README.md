@@ -1,6 +1,6 @@
 # uni-cli
 
-![Version](https://img.shields.io/badge/version-0.0.11-blue)
+![Version](https://img.shields.io/badge/version-0.0.12-blue)
 ![License](https://img.shields.io/badge/license-MIT%20OR%20Unlicense-green)
 
 Command-line REPL and interpreter for the Uni programming language - a homoiconic stack-based language that unifies code and data.
@@ -26,7 +26,7 @@ uni
 | | | |_ __ (_)
 | | | | '_ \| |
 | |_| | | | | |
- \___/|_| |_|_| v0.0.11
+ \___/|_| |_|_| v0.0.12
 
 Type 'quit' or press Ctrl-D to exit
 uni> 5 3 +
@@ -94,8 +94,10 @@ drop         # Remove top item
 
 The CLI can also be built for embedded systems:
 
-- **micro:bit v2** - Interactive REPL over USB serial
-- **Raspberry Pi Pico W** - Full interpreter on ARM Cortex-M0+
+- **micro:bit v2** - Interactive REPL over USB serial (ARM Cortex-M4)
+- **Raspberry Pi Pico** - Full interpreter on ARM Cortex-M0+ with USB CDC
+- **Raspberry Pi Pico 2** - Enhanced with RP2350 dual-core @ 150MHz
+- **STM32H753ZI** - Async REPL using Embassy runtime (ARM Cortex-M7 @ 480MHz)
 
 For embedded builds and more documentation, see the main repository:
 
@@ -107,7 +109,7 @@ To embed Uni in your own application, use the `uni-core` library crate:
 
 ```toml
 [dependencies]
-uni-core = "0.0.11"
+uni-core = "0.0.12"
 ```
 
 See the `uni-core` crate documentation for API details.

@@ -4,28 +4,35 @@
 #[cfg(target_os = "none")]
 extern crate alloc;
 
+// output_adapter is only for sync targets
+#[cfg(not(feature = "target-stm32h753zi"))]
 mod output_adapter;
 
+#[cfg(not(feature = "target-stm32h753zi"))]
 use output_adapter::TerminalOutput;
 use uni_core::{Interpreter, RuntimeError, execute_string};
 #[cfg(not(target_os = "none"))]
 use uni_core::primitives;
-#[cfg(target_os = "none")]
+
+// Sync API imports - only for micro:bit, Pico, Pico 2 (not STM32 which uses async)
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 use editline::{LineEditor, Terminal};
 
-#[cfg(target_os = "none")]
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 use core::cell::RefCell;
-#[cfg(target_os = "none")]
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 use alloc::{rc::Rc, boxed::Box, format};
+#[cfg(feature = "target-stm32h753zi")]
+use alloc::{boxed::Box, format, vec::Vec};
 
 // Wrapper for shared Output access (interpreter needs it)
-// Only used by embedded targets - desktop uses uni-core's REPL
-#[cfg(target_os = "none")]
+// Only used by sync embedded targets (not STM32)
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 struct RefCellOutput<T: Terminal> {
     inner: Rc<RefCell<TerminalOutput<T>>>,
 }
 
-#[cfg(target_os = "none")]
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 impl<T: Terminal> uni_core::Output for RefCellOutput<T> {
     fn write(&mut self, data: &[u8]) -> Result<(), ()> {
         <TerminalOutput<T> as uni_core::Output>::write(&mut *self.inner.borrow_mut(), data)
@@ -37,13 +44,13 @@ impl<T: Terminal> uni_core::Output for RefCellOutput<T> {
 }
 
 // Wrapper for shared Terminal access (REPL needs it)
-// Only used by embedded targets - desktop uses uni-core's REPL
-#[cfg(target_os = "none")]
+// Only used by sync embedded targets (not STM32)
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 struct RefCellTerminal<T: Terminal> {
     inner: Rc<RefCell<TerminalOutput<T>>>,
 }
 
-#[cfg(target_os = "none")]
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 impl<T: Terminal> Terminal for RefCellTerminal<T> {
     fn read_byte(&mut self) -> editline::Result<u8> {
         self.inner.borrow_mut().read_byte()
@@ -88,7 +95,7 @@ use editline::terminals::StdioTerminal;
 #[cfg(not(target_os = "none"))]
 use std::env;
 
-#[cfg(target_os = "none")]
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 use panic_halt as _;
 #[cfg(target_os = "none")]
 use alloc_cortex_m::CortexMHeap;
@@ -109,9 +116,30 @@ fn TIMER1() {
     });
 }
 
-// Platform-specific line endings (only for embedded targets)
-#[cfg(target_os = "none")]
+// Platform-specific line endings (only for sync embedded targets)
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 const LINE_ENDING: &[u8] = b"\r\n";
+
+// Banner text for REPL (shared by all embedded targets)
+#[cfg(target_os = "none")]
+const BANNER_LINES: &[&[u8]] = &[
+    b"",
+    b" _   _       _ ",
+    b"| | | |_ __ (_)",
+    b"| | | | '_ \\| |",
+    b"| |_| | | | | |",
+    // Version line is dynamic, added separately
+];
+
+#[cfg(target_os = "none")]
+const BANNER_INSTRUCTIONS: &[&[u8]] = &[
+    b"",
+    b"Type 'quit' or press Ctrl-D to exit",
+    b"Type 'stack' to see the current stack",
+    b"Type 'clear' to clear the stack",
+    b"Type 'words' to see defined words",
+    b"",
+];
 
 // Linux/desktop main function
 #[cfg(not(target_os = "none"))]
@@ -327,8 +355,8 @@ fn run_repl() {
 }
 
 // Generic REPL loop that works with any Terminal implementation
-// Only used by embedded targets - desktop uses uni-core's REPL
-#[cfg(target_os = "none")]
+// Only used by sync embedded targets (not STM32)
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 fn run_repl_loop<T: Terminal + 'static>(editor: &mut LineEditor, terminal: T, interp: &mut Interpreter) {
     // Wrap terminal in Rc<RefCell<>> for shared access between REPL and interpreter
     let shared = Rc::new(RefCell::new(TerminalOutput::new(terminal)));
@@ -346,20 +374,15 @@ fn run_repl_loop<T: Terminal + 'static>(editor: &mut LineEditor, terminal: T, in
         inner: shared,
     };
 
-    // Print banner with blank line first
-    let _ = write_line(&mut repl_term, "");
-    let _ = write_line(&mut repl_term, " _   _       _ ");
-    let _ = write_line(&mut repl_term, "| | | |_ __ (_)");
-    let _ = write_line(&mut repl_term, "| | | | '_ \\| |");
-    let _ = write_line(&mut repl_term, "| |_| | | | | |");
+    // Print banner
+    for line in BANNER_LINES {
+        let _ = write_line(&mut repl_term, core::str::from_utf8(line).unwrap());
+    }
     let version_line = format!(" \\___/|_| |_|_| v{}", env!("CARGO_PKG_VERSION"));
     let _ = write_line(&mut repl_term, &version_line);
-    let _ = write_line(&mut repl_term, "");
-    let _ = write_line(&mut repl_term, "Type 'quit' or press Ctrl-D to exit");
-    let _ = write_line(&mut repl_term, "Type 'stack' to see the current stack");
-    let _ = write_line(&mut repl_term, "Type 'clear' to clear the stack");
-    let _ = write_line(&mut repl_term, "Type 'words' to see defined words");
-    let _ = write_line(&mut repl_term, "");
+    for line in BANNER_INSTRUCTIONS {
+        let _ = write_line(&mut repl_term, core::str::from_utf8(line).unwrap());
+    }
 
     loop {
         // Print prompt
@@ -404,14 +427,14 @@ fn run_repl_loop<T: Terminal + 'static>(editor: &mut LineEditor, terminal: T, in
 }
 
 // Helper to write a string without newline
-#[cfg(target_os = "none")]
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 fn write_str<T: Terminal>(terminal: &mut T, s: &str) -> editline::Result<()> {
     terminal.write(s.as_bytes())?;
     terminal.flush()
 }
 
 // Helper to write a line with platform-appropriate line ending
-#[cfg(target_os = "none")]
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 fn write_line<T: Terminal>(terminal: &mut T, s: &str) -> editline::Result<()> {
     terminal.write(s.as_bytes())?;
     terminal.write(LINE_ENDING)?;
@@ -420,7 +443,7 @@ fn write_line<T: Terminal>(terminal: &mut T, s: &str) -> editline::Result<()> {
 
 // Generic helper for REPL line execution
 // Returns true if REPL should continue, false if it should exit
-#[cfg(target_os = "none")]
+#[cfg(all(target_os = "none", not(feature = "target-stm32h753zi")))]
 fn execute_repl_line<T: Terminal>(terminal: &mut T, line: &str, interp: &mut Interpreter) -> bool {
     match execute_string(line, interp) {
         Ok(()) => {
@@ -726,4 +749,256 @@ fn run_repl<T: rp235x_hal::timer::TimerDevice>(mut terminal: UsbCdcTerminal<'sta
     loop {
         cortex_m::asm::wfi();
     }
+}
+
+// STM32H753ZI specific imports
+#[cfg(feature = "target-stm32h753zi")]
+use embassy_executor::Spawner;
+#[cfg(feature = "target-stm32h753zi")]
+use embassy_futures::join::join;
+#[cfg(feature = "target-stm32h753zi")]
+use embassy_stm32::gpio::{Level, Output, Speed};
+#[cfg(feature = "target-stm32h753zi")]
+use embassy_stm32::usb::Driver;
+#[cfg(feature = "target-stm32h753zi")]
+use embassy_stm32::{bind_interrupts, peripherals, usb, Config};
+#[cfg(feature = "target-stm32h753zi")]
+use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
+#[cfg(feature = "target-stm32h753zi")]
+use embassy_usb::Builder;
+#[cfg(feature = "target-stm32h753zi")]
+use editline::{AsyncLineEditor, AsyncTerminal, terminals::EmbassyUsbTerminal};
+#[cfg(feature = "target-stm32h753zi")]
+use {defmt_rtt as _, panic_probe as _};
+
+// Buffering output for async STM32 target
+// Uses Rc<RefCell<>> so we can share it between the interpreter and the REPL loop
+#[cfg(feature = "target-stm32h753zi")]
+use core::cell::RefCell;
+#[cfg(feature = "target-stm32h753zi")]
+use alloc::rc::Rc;
+
+#[cfg(feature = "target-stm32h753zi")]
+struct BufferedOutput {
+    buffer: Rc<RefCell<Vec<u8>>>,
+}
+
+#[cfg(feature = "target-stm32h753zi")]
+impl BufferedOutput {
+    fn new(buffer: Rc<RefCell<Vec<u8>>>) -> Self {
+        Self { buffer }
+    }
+}
+
+#[cfg(feature = "target-stm32h753zi")]
+impl uni_core::Output for BufferedOutput {
+    fn write(&mut self, data: &[u8]) -> Result<(), ()> {
+        self.buffer.borrow_mut().extend_from_slice(data);
+        Ok(())
+    }
+
+    fn flush(&mut self) -> Result<(), ()> {
+        // Buffered, so flush is a no-op (we'll flush to terminal after execution)
+        Ok(())
+    }
+}
+
+#[cfg(feature = "target-stm32h753zi")]
+bind_interrupts!(struct Irqs {
+    OTG_FS => usb::InterruptHandler<peripherals::USB_OTG_FS>;
+});
+
+#[cfg(feature = "target-stm32h753zi")]
+defmt::timestamp!("{=u64:us}", {
+    embassy_time::Instant::now().as_micros()
+});
+
+// STM32H753ZI main function
+#[cfg(feature = "target-stm32h753zi")]
+#[embassy_executor::main]
+async fn stm32_main(_spawner: Spawner) {
+    // Initialize the allocator
+    {
+        use core::mem::MaybeUninit;
+        const HEAP_SIZE: usize = 262144; // 256KB heap (conservative for now)
+        static mut HEAP: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
+
+        #[global_allocator]
+        static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
+
+        #[allow(static_mut_refs)]
+        unsafe { ALLOCATOR.init(HEAP.as_ptr() as usize, HEAP_SIZE) }
+    }
+
+    let mut config = Config::default();
+    {
+        use embassy_stm32::rcc::*;
+        config.rcc.hse = Some(Hse {
+            freq: embassy_stm32::time::Hertz(8_000_000),
+            mode: HseMode::Bypass,
+        });
+        config.rcc.hsi48 = Some(Hsi48Config { sync_from_usb: true });
+        config.rcc.pll1 = Some(Pll {
+            source: PllSource::HSE,
+            prediv: PllPreDiv::DIV4,
+            mul: PllMul::MUL240,
+            divp: Some(PllDiv::DIV2),
+            divq: Some(PllDiv::DIV8),
+            divr: None,
+        });
+        config.rcc.sys = Sysclk::PLL1_P;
+        config.rcc.ahb_pre = AHBPrescaler::DIV2;
+        config.rcc.apb1_pre = APBPrescaler::DIV2;
+        config.rcc.apb2_pre = APBPrescaler::DIV2;
+        config.rcc.apb3_pre = APBPrescaler::DIV2;
+        config.rcc.apb4_pre = APBPrescaler::DIV2;
+        config.rcc.voltage_scale = VoltageScale::Scale1;
+        config.rcc.mux.usbsel = mux::Usbsel::HSI48;
+    }
+
+    let p = embassy_stm32::init(config);
+
+    defmt::info!("STM32H753ZI Uni REPL");
+
+    // Create USB driver
+    let mut usb_config = usb::Config::default();
+    usb_config.vbus_detection = false;
+
+    let mut ep_out_buffer = [0u8; 256];
+    let driver = Driver::new_fs(p.USB_OTG_FS, Irqs, p.PA12, p.PA11, &mut ep_out_buffer, usb_config);
+
+    // Create USB device config
+    let mut config_descriptor = [0u8; 256];
+    let mut bos_descriptor = [0u8; 256];
+    let mut control_buf = [0u8; 64];
+
+    let mut usb_config = embassy_usb::Config::new(0xc0de, 0xcafe);
+    usb_config.manufacturer = Some("Uni");
+    usb_config.product = Some("STM32H753 Uni REPL");
+    usb_config.serial_number = Some("12345678");
+    usb_config.max_power = 100;
+    usb_config.max_packet_size_0 = 64;
+
+    // Create CDC ACM state
+    let mut state = State::new();
+
+    let mut builder = Builder::new(
+        driver,
+        usb_config,
+        &mut config_descriptor,
+        &mut bos_descriptor,
+        &mut [],
+        &mut control_buf,
+    );
+
+    // Create CDC ACM class
+    let class = CdcAcmClass::new(&mut builder, &mut state, 64);
+
+    // Build USB device
+    let mut usb = builder.build();
+
+    defmt::info!("USB device initialized");
+
+    // Turn on green LED to indicate we're ready
+    let mut _led = Output::new(p.PB0, Level::High, Speed::Low);
+
+    // Run USB device and REPL concurrently
+    let usb_fut = usb.run();
+
+    let repl_fut = async {
+        // Create terminal and editor
+        let mut terminal = EmbassyUsbTerminal::new(class);
+        let mut editor = AsyncLineEditor::new(1024, 20);
+        let mut interp = Interpreter::new();
+
+        // Create shared output buffer for the interpreter
+        let output_buffer = Rc::new(RefCell::new(Vec::new()));
+        interp.set_output(Box::new(BufferedOutput::new(Rc::clone(&output_buffer))));
+
+        defmt::info!("Waiting for terminal connection (DTR)...");
+        terminal.wait_connection().await;
+        defmt::info!("Terminal connected!");
+
+        // Send banner
+        for line in BANNER_LINES {
+            let _ = terminal.write(line).await;
+            let _ = terminal.write(b"\r\n").await;
+        }
+        let version_line = format!(" \\___/|_| |_|_| v{}\r\n", env!("CARGO_PKG_VERSION"));
+        let _ = terminal.write(version_line.as_bytes()).await;
+        for line in BANNER_INSTRUCTIONS {
+            let _ = terminal.write(line).await;
+            let _ = terminal.write(b"\r\n").await;
+        }
+        let _ = terminal.flush().await;
+
+        loop {
+            // Show prompt
+            let _ = terminal.write(b"uni> ").await;
+            let _ = terminal.flush().await;
+
+            // Read line with full editing support
+            match editor.read_line(&mut terminal).await {
+                Ok(line) => {
+                    let line = line.trim();
+                    defmt::info!("Got command: {}", line);
+
+                    if line.is_empty() {
+                        continue;
+                    }
+
+                    // Execute the line as Uni code
+                    match execute_string(line, &mut interp) {
+                        Ok(()) => {
+                            // Get and clear the buffered output
+                            let output_bytes = {
+                                let mut buf = output_buffer.borrow_mut();
+                                let bytes = buf.clone();
+                                buf.clear();
+                                bytes
+                            };
+
+                            // Write any buffered output first
+                            if !output_bytes.is_empty() {
+                                let _ = terminal.write(&output_bytes).await;
+                            }
+
+                            // Then show stack top if non-empty
+                            let _ = terminal.write(b"\r\n").await;
+                            if !interp.stack.is_empty() {
+                                if let Some(top) = interp.stack.last() {
+                                    let msg = format!(" => {} : {}\r\n", top, top.type_name());
+                                    let _ = terminal.write(msg.as_bytes()).await;
+                                }
+                            }
+                        }
+                        Err(RuntimeError::QuitRequested) => {
+                            let _ = terminal.write(b"Goodbye!\r\n").await;
+                            break;
+                        }
+                        Err(e) => {
+                            let _ = terminal.write(b"\r\n").await;
+                            let msg = format!("Error: {:?}\r\n", e);
+                            let _ = terminal.write(msg.as_bytes()).await;
+                        }
+                    }
+                    let _ = terminal.flush().await;
+                }
+                Err(_e) => {
+                    defmt::error!("Error reading line");
+                    break;
+                }
+            }
+
+            // Check if still connected
+            if !terminal.dtr() {
+                defmt::info!("Terminal disconnected");
+                break;
+            }
+        }
+
+        defmt::info!("REPL exited");
+    };
+
+    join(usb_fut, repl_fut).await;
 }

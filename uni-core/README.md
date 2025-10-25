@@ -1,6 +1,6 @@
 # uni-core
 
-![Version](https://img.shields.io/badge/version-0.0.11-blue)
+![Version](https://img.shields.io/badge/version-0.0.12-blue)
 ![License](https://img.shields.io/badge/license-MIT%20OR%20Unlicense-green)
 
 The core interpreter library for the Uni programming language - a homoiconic stack-based language that unifies code and data.
@@ -19,7 +19,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-uni-core = "0.0.11"
+uni-core = "0.0.12"
 ```
 
 Basic usage:
@@ -64,7 +64,8 @@ println!("{}", interp.stack.last().unwrap());  // Output: 25
 - `repl` - REPL (Read-Eval-Print Loop) with line editing support
 - `datetime` - Date/time operations (requires `std`)
 - `hardware-microbit` - micro:bit v2 hardware primitives
-- `hardware-pico` - Raspberry Pi Pico hardware primitives
+- `hardware-pico2` - Raspberry Pi Pico 2 (RP2350) hardware primitives
+- `hardware-stm32h753zi` - STM32H753ZI hardware primitives (async Embassy)
 
 ## Using the REPL
 
@@ -103,8 +104,8 @@ Enable the `repl` feature in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-uni-core = { version = "0.0.11", features = ["repl"] }
-editline = "0.0.19"
+uni-core = { version = "0.0.12", features = ["repl"] }
+editline = "0.0.20"
 ```
 
 ## Documentation

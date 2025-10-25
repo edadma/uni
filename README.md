@@ -1,6 +1,6 @@
 # Uni Programming Language
 
-![Version](https://img.shields.io/badge/version-0.0.11-blue)
+![Version](https://img.shields.io/badge/version-0.0.12-blue)
 ![License](https://img.shields.io/badge/license-MIT%20OR%20Unlicense-green)
 
 A homoiconic stack-based programming language that unifies code and data, featuring immediate execution, powerful list-based data structures, and precise numeric computing.
@@ -40,7 +40,7 @@ See `uni-core/examples/simple_calculator.rs` for a complete example.
 
 ## Platform Support
 
-Uni runs on desktop platforms (Linux, macOS, Windows) and embedded systems (micro:bit v2, Raspberry Pi Pico, Raspberry Pi Pico 2).
+Uni runs on desktop platforms (Linux, macOS, Windows) and embedded systems (micro:bit v2, Raspberry Pi Pico, Raspberry Pi Pico 2, STM32H753ZI).
 
 ### Desktop (Linux/macOS/Windows)
 
@@ -160,6 +160,40 @@ picocom /dev/ttyACM0 -b 115200
 - Complex numbers and Gaussian integers
 - Exact arithmetic with arbitrary-precision integers and rationals
 - Significantly more memory than Pico (520KB vs 264KB)
+
+### Embedded: STM32H753ZI (Nucleo-144)
+
+**Prerequisites:**
+- `probe-rs`: `cargo install probe-rs-tools --locked`
+- `arm-none-eabi-size`: `sudo apt install gcc-arm-none-eabi`
+- STM32 Nucleo-H753ZI board with USB cables (ST-LINK and USB device)
+
+**Build and flash:**
+```bash
+./build_stm32          # Build release binary
+./flash_stm32          # Flash to connected STM32H753ZI
+```
+
+**Connect to REPL:**
+```bash
+tio /dev/ttyACM1       # Or picocom /dev/ttyACM1 -b 115200
+```
+
+**Specifications:**
+- **Target:** ARM Cortex-M7 (thumbv7em-none-eabihf)
+- **MCU:** STM32H753ZI single-core @ 480MHz
+- **Flash:** 2MB
+- **RAM:** 1MB (DTCM + AXI SRAM)
+- **USB:** USB 2.0 OTG Full-Speed
+- **Heap size:** ~512KB (out of 1MB RAM)
+
+**Features:**
+- Async REPL using Embassy runtime over USB CDC
+- Full line editing with history (20 entries)
+- Advanced math with hardware floating-point unit (FPU)
+- Complex numbers and Gaussian integers
+- Exact arithmetic with arbitrary-precision integers and rationals
+- Most powerful platform with fastest CPU and most memory
 
 ## Language Overview
 
@@ -686,6 +720,7 @@ cargo build --release --no-default-features --features target-linux,std,advanced
 cargo +nightly build --release --target thumbv7em-none-eabihf --no-default-features --features target-microbit -Z build-std=core,alloc      # micro:bit
 cargo +nightly build --release --target thumbv6m-none-eabi --no-default-features --features target-pico -Z build-std=core,alloc            # Pico (RP2040)
 cargo +nightly build --release --target thumbv8m.main-none-eabihf --no-default-features --features target-pico2 -Z build-std=core,alloc  # Pico 2 (RP2350)
+cargo +nightly build --release --target thumbv7em-none-eabihf --no-default-features --features target-stm32h753zi -Z build-std=core,alloc  # STM32H753ZI
 ```
 
 ### Adding New Primitives
