@@ -2,7 +2,6 @@
 
 // Async I/O primitives
 pub mod print;
-pub mod cr;
 pub mod emit;
 pub mod words;
 
