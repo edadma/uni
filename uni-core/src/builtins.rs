@@ -35,8 +35,9 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
 
     // Async I/O primitives
     add_builtin(interp, ".", crate::primitives::print::print_builtin);
-    add_builtin(interp, "cr", crate::primitives::cr::cr_builtin);
+    add_builtin(interp, "emit", crate::primitives::emit::emit_builtin);
     add_builtin(interp, "words", crate::primitives::words::words_builtin);
+    // Note: cr is now defined in the prelude as [10 emit]
 
     // Utility primitives
     add_builtin(interp, "help", crate::primitives::help::help_builtin);

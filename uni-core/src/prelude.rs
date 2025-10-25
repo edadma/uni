@@ -37,6 +37,10 @@ pub async fn load_prelude(interp: &mut AsyncInterpreter) -> Result<(), RuntimeEr
         'nil? [[] =] def
         "( x -- bool ) Test if value is empty list" doc
 
+        \\ I/O operations
+        'cr [10 emit] def
+        "( -- ) Print a newline character" doc
+
         \\ Logical operations
         'not [[false] [true] if] def
         "( x -- bool ) Logical negation of truthiness" doc
