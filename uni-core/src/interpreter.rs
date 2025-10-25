@@ -70,6 +70,12 @@ impl AsyncInterpreter {
         interpreter
     }
 
+    // ASYNC CONCEPT: Async prelude loading
+    // Must be called after new() to load prelude definitions
+    pub async fn load_prelude(&mut self) -> Result<(), crate::value::RuntimeError> {
+        crate::prelude::load_prelude(self).await
+    }
+
     pub fn intern_atom(&mut self, text: &str) -> Rc<str> {
         if let Some(existing) = self.atoms.get(text) {
             existing.clone()

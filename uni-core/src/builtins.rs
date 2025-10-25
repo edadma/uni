@@ -39,11 +39,10 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     add_builtin(interp, "words", crate::primitives::words::words_builtin);
 
     // Sync stack primitives (wrapped in async)
-    add_builtin(interp, "dup", sync_builtin!(crate::primitives::stack::dup_impl));
+    // Note: swap, dup, over, rot are defined in the prelude using pick and roll
     add_builtin(interp, "drop", sync_builtin!(crate::primitives::stack::drop_impl));
-    add_builtin(interp, "swap", sync_builtin!(crate::primitives::stack::swap_impl));
-    add_builtin(interp, "over", sync_builtin!(crate::primitives::stack::over_impl));
-    add_builtin(interp, "rot", sync_builtin!(crate::primitives::stack::rot_impl));
+    add_builtin(interp, "pick", sync_builtin!(crate::primitives::pick::pick_impl));
+    add_builtin(interp, "roll", sync_builtin!(crate::primitives::roll::roll_impl));
 
     // Sync arithmetic primitives (wrapped in async)
     add_builtin(interp, "+", sync_builtin!(crate::primitives::plus::add_impl));
@@ -68,6 +67,7 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     // Sync definition primitives (wrapped in async)
     add_builtin(interp, "def", sync_builtin!(crate::primitives::def::def_impl));
     add_builtin(interp, "val", sync_builtin!(crate::primitives::val::val_impl));
+    add_builtin(interp, "doc", sync_builtin!(crate::primitives::doc::doc_impl));
 
     // Sync list primitives (wrapped in async)
     add_builtin(interp, "cons", sync_builtin!(crate::primitives::cons::cons_impl));

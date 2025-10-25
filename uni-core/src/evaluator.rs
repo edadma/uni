@@ -378,17 +378,19 @@ mod tests {
 
     // RUST CONCEPT: Test helper function
     // DRY principle - Don't Repeat Yourself
-    fn setup_interpreter() -> AsyncInterpreter {
-        // RUST CONCEPT: Automatic initialization
-        // AsyncInterpreter::new() now automatically loads builtins and prelude
-        AsyncInterpreter::new()
+    async fn setup_interpreter() -> AsyncInterpreter {
+        // RUST CONCEPT: Async interpreter setup
+        // Create interpreter and load prelude for tests
+        let mut interp = AsyncInterpreter::new();
+        interp.load_prelude().await.expect("Failed to load prelude in tests");
+        interp
     }
 
     // ASYNC CONCEPT: Async tests using tokio::test
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_execute_numbers() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // RUST CONCEPT: Testing basic functionality
         let number = Value::Number(42.0);
@@ -402,7 +404,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_execute_strings() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         let string_val: Rc<str> = "hello world".into();
         let string = Value::String(string_val);
@@ -415,7 +417,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_execute_lists_as_data() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // RUST CONCEPT: Testing that lists don't execute, just push themselves
         let plus_atom = interp.intern_atom("+");
@@ -438,7 +440,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_execute_builtin_functions() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // RUST CONCEPT: Testing builtin execution
         // Set up stack for addition: 3 + 5
@@ -457,7 +459,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_execute_undefined_atom() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // RUST CONCEPT: Testing error cases
         let undefined_atom = interp.intern_atom("nonexistent");
@@ -472,7 +474,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_execute_string_simple() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // RUST CONCEPT: Testing integration between parser and evaluator
         execute_string("42 3.14", &mut interp).await.unwrap();
@@ -488,7 +490,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_execute_string_with_builtin() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // RUST CONCEPT: Testing complete execution flow
         execute_string("5 3 +", &mut interp).await.unwrap();
@@ -508,7 +510,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_tail_recursive_factorial() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // Define simple tail-recursive countdown
         execute_string(
@@ -527,7 +529,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_deep_tail_recursion() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // Define a tail-recursive countdown that would overflow regular recursion
         execute_string(
@@ -546,7 +548,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_mutually_tail_recursive_functions() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // Define mutually recursive even/odd functions using available primitives
         execute_string("'even [dup 0 = [drop true] [1 - odd] if] def", &mut interp).await.unwrap();
@@ -565,7 +567,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_tail_call_in_if_branches() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // Test that both branches of if are tail-call optimized
         execute_string(
@@ -583,7 +585,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_execute_string_with_list() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // RUST CONCEPT: Testing that lists remain as data
         execute_string("[1 2 +] 42", &mut interp).await.unwrap();
@@ -599,7 +601,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_execute_quoted_atoms() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // RUST CONCEPT: Testing quote behavior
         // 'hello should parse as (quote hello) and quote should be a builtin that
@@ -628,7 +630,7 @@ mod tests {
     #[cfg(not(target_os = "none"))]
     #[tokio::test]
     async fn test_execute_string_parse_errors() {
-        let mut interp = setup_interpreter();
+        let mut interp = setup_interpreter().await;
 
         // RUST CONCEPT: Testing error propagation from parser
         let result = execute_string("[1 2", &mut interp).await; // Unclosed bracket

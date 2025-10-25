@@ -7,6 +7,8 @@ pub mod words;
 
 // Stack manipulation
 pub mod stack;
+pub mod pick;
+pub mod roll;
 
 // Arithmetic
 pub mod plus;
@@ -53,6 +55,7 @@ pub mod greater_equal;
 // Definitions
 pub mod def;
 pub mod val;
+pub mod doc;
 
 // Lists
 pub mod cons;

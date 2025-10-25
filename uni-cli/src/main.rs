@@ -72,7 +72,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(not(target_os = "none"))]
 async fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
-    use uni_core::builtins::register_async_builtins;
     use uni_core::evaluator::execute_string;
     use uni_core::interpreter::AsyncInterpreter;
     use uni_core::hardware::linux::LinuxTimeSource;
@@ -83,8 +82,11 @@ async fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     let output = Box::new(stdout_output::StdoutOutput::new());
     interp.set_async_output(output);
 
-    register_async_builtins(&mut interp);
     interp.set_time_source(Box::new(LinuxTimeSource::new()));
+
+    // Load prelude
+    interp.load_prelude().await
+        .map_err(|e| format!("Failed to load prelude: {}", e))?;
 
     execute_string(code, &mut interp).await
         .map_err(|e| format!("Error: {}", e))?;
@@ -94,7 +96,6 @@ async fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(not(target_os = "none"))]
 async fn execute_and_print(code: &str) -> Result<(), Box<dyn std::error::Error>> {
-    use uni_core::builtins::register_async_builtins;
     use uni_core::evaluator::execute_string;
     use uni_core::interpreter::AsyncInterpreter;
     use uni_core::hardware::linux::LinuxTimeSource;
@@ -105,8 +106,11 @@ async fn execute_and_print(code: &str) -> Result<(), Box<dyn std::error::Error>>
     let output = Box::new(stdout_output::StdoutOutput::new());
     interp.set_async_output(output);
 
-    register_async_builtins(&mut interp);
     interp.set_time_source(Box::new(LinuxTimeSource::new()));
+
+    // Load prelude
+    interp.load_prelude().await
+        .map_err(|e| format!("Failed to load prelude: {}", e))?;
 
     execute_string(code, &mut interp).await
         .map_err(|e| format!("Error: {}", e))?;

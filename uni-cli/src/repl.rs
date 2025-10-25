@@ -22,6 +22,11 @@ pub async fn run_repl() -> Result<(), Box<dyn std::error::Error>> {
         interp.set_time_source(Box::new(LinuxTimeSource::new()));
     }
 
+    // Load prelude (higher-level words defined in Uni)
+    if let Err(e) = interp.load_prelude().await {
+        eprintln!("Warning: Failed to load prelude: {:?}", e);
+    }
+
     // Create editline editor and terminal (sync)
     let mut editor = LineEditor::new(1024, 50);
     let mut terminal = StdioTerminal::new();

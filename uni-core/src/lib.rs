@@ -47,7 +47,7 @@ pub mod evaluator;
 pub mod primitives;
 pub mod time_source;
 pub mod hardware;
-// pub mod prelude;    // TODO: After evaluator
+pub mod prelude;
 
 // Internal module
 mod compat;
