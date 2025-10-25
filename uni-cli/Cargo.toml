@@ -1,0 +1,68 @@
+[package]
+name = "uni-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Command-line REPL and interpreter for the Uni async programming language"
+repository = "https://github.com/edadma/uni"
+readme = "README.md"
+
+[[bin]]
+name = "uni"
+path = "src/main.rs"
+
+[dependencies]
+uni-core = { version = "0.1.0", path = "../uni-core", default-features = false }
+editline = { version = "0.0.20", default-features = false }
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "io-std"], optional = true }
+
+# Embassy runtime for STM32 (optional)
+embassy-executor = { version = "0.9.0", optional = true }
+embassy-time = { version = "0.5.0", optional = true }
+embassy-stm32 = { version = "0.4.0", features = ["time-driver-any", "exti", "memory-x"], optional = true }
+embassy-usb = { version = "0.5.1", optional = true }
+embassy-futures = { version = "0.1.0", optional = true }
+defmt = { version = "0.3", optional = true }
+defmt-rtt = { version = "0.4", optional = true }
+panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
+
+# Embedded dependencies (optional)
+cortex-m = { version = "0.7", optional = true }
+cortex-m-rt = { version = "0.7", optional = true }
+alloc-cortex-m = { version = "0.4", optional = true }
+
+[features]
+# Default: full-featured Linux build
+default = ["target-linux", "std", "advanced_math", "complex_numbers"]
+
+# Target selection (mutually exclusive)
+target-linux = ["uni-core/std", "uni-core/repl", "editline/std", "tokio"]
+
+target-stm32h753zi = [
+    "uni-core/target-stm32h753zi",
+    "uni-core/repl",
+    "editline/stm32h753zi",
+    "embassy-executor",
+    "embassy-time",
+    "embassy-stm32",
+    "embassy-usb",
+    "embassy-futures",
+    "cortex-m/critical-section-single-core",
+    "cortex-m-rt",
+    "defmt",
+    "defmt-rtt",
+    "panic-probe",
+    "alloc-cortex-m",
+    "advanced_math",
+    "complex_numbers"
+]
+
+# Optional features (passed through to uni-core)
+std = ["uni-core/std"]
+advanced_math = ["uni-core/advanced_math"]
+complex_numbers = ["uni-core/complex_numbers"]
+
+# Embedded target dependencies (target_os = "none")
+[target.'cfg(target_os = "none")'.dependencies]
+embedded-hal = { version = "1.0", optional = true }
