@@ -27,3 +27,9 @@ pub mod val;
 pub mod cons;
 pub mod head;
 pub mod tail;
+
+// Date/time
+pub mod now;
+
+// Records
+pub mod record;

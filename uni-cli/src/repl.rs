@@ -15,6 +15,13 @@ pub async fn run_repl() -> Result<(), Box<dyn std::error::Error>> {
     let output = Box::new(StdoutOutput::new());
     interp.set_async_output(output);
 
+    // Inject Linux time source for date/time operations
+    #[cfg(feature = "std")]
+    {
+        use uni_core::hardware::linux::LinuxTimeSource;
+        interp.set_time_source(Box::new(LinuxTimeSource::new()));
+    }
+
     // Create editline editor and terminal (sync)
     let mut editor = LineEditor::new(1024, 50);
     let mut terminal = StdioTerminal::new();

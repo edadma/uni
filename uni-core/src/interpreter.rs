@@ -2,6 +2,7 @@ use crate::compat::{Rc, String, Vec, Box, ToString};
 use crate::tokenizer::SourcePos;
 use crate::value::{RuntimeError, Value};
 use crate::output::AsyncOutput;
+use crate::time_source::TimeSource;
 use num_traits::Zero;
 
 #[cfg(target_os = "none")]
@@ -43,6 +44,9 @@ pub struct AsyncInterpreter {
 
     // ASYNC CONCEPT: AsyncOutput instead of Output
     async_output: Option<Box<dyn AsyncOutput>>, // Optional async output for print/display (REPL mode)
+
+    // Time source for date/time operations (public for primitive access)
+    pub time_source: Option<Box<dyn TimeSource>>, // Optional time source for datetime operations
 }
 
 impl AsyncInterpreter {
@@ -56,6 +60,7 @@ impl AsyncInterpreter {
             current_pos: None,
             pending_doc_target: None,
             async_output: None,
+            time_source: None, // No time source by default (platform must inject)
         };
 
         // ASYNC CONCEPT: Automatic initialization
@@ -244,6 +249,15 @@ impl AsyncInterpreter {
             output.flush().await?;
         }
         Ok(())
+    }
+
+    // RUST CONCEPT: TimeSource management for datetime operations
+    pub fn set_time_source(&mut self, time_source: Box<dyn TimeSource>) {
+        self.time_source = Some(time_source);
+    }
+
+    pub fn has_time_source(&self) -> bool {
+        self.time_source.is_some()
     }
 }
 

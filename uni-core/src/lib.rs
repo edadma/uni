@@ -45,6 +45,8 @@ pub mod parser;
 pub mod builtins;
 pub mod evaluator;
 pub mod primitives;
+pub mod time_source;
+pub mod hardware;
 // pub mod prelude;    // TODO: After evaluator
 
 // Internal module
@@ -55,3 +57,4 @@ pub use interpreter::{AsyncInterpreter, DictEntry};
 pub use value::{Value, RuntimeError};
 pub use output::AsyncOutput;
 pub use evaluator::{execute, execute_string};
+pub use time_source::{TimeSource, DateComponents};

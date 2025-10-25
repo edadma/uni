@@ -30,14 +30,14 @@ editline = { version = "0.0.20", default-features = false, optional = true }
 num-complex = { version = "0.4", optional = true }
 
 # Datetime support (optional, requires std)
-chrono = { version = "0.4", optional = true, default-features = false }
+chrono = { version = "0.4", optional = true, default-features = false, features = ["clock"] }
 
 [features]
 # Default: async-enabled core without REPL
 default = []
 
 # Standard library support (for desktop/Linux builds)
-std = ["chrono?/std"]
+std = ["chrono?/std", "datetime"]
 
 # Advanced math operations
 advanced_math = []

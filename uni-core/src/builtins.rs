@@ -64,4 +64,50 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     add_builtin(interp, "cons", sync_builtin!(crate::primitives::cons::cons_impl));
     add_builtin(interp, "car", sync_builtin!(crate::primitives::head::car_impl));
     add_builtin(interp, "cdr", sync_builtin!(crate::primitives::tail::cdr_impl));
+
+    // Date/time primitives (wrapped in async)
+    add_builtin(interp, "now", sync_builtin!(crate::primitives::now::now_impl));
+
+    // Record primitives (wrapped in async)
+    add_builtin(interp, "make-record-type", sync_builtin!(crate::primitives::record::make_record_type_impl));
+    add_builtin(interp, "construct-record", sync_builtin!(crate::primitives::record::construct_record_impl));
+    add_builtin(interp, "is-record-type?", sync_builtin!(crate::primitives::record::is_record_type_impl));
+    add_builtin(interp, "get-record-field", sync_builtin!(crate::primitives::record::get_record_field_impl));
+    add_builtin(interp, "set-record-field!", sync_builtin!(crate::primitives::record::set_record_field_impl));
+    add_builtin(interp, "record-type-of", sync_builtin!(crate::primitives::record::record_type_of_impl));
+
+    // Create the date record type for use by the 'now' primitive
+    // Field names: year month day hour minute second offset
+    create_date_record_type(interp);
+}
+
+// Helper function to create the date record type used by 'now'
+fn create_date_record_type(interp: &mut AsyncInterpreter) {
+    use crate::compat::Rc;
+    use crate::primitives::record::make_record_type_impl;
+
+    // Build field names list: (year month day hour minute second offset)
+    let field_names = vec!["year", "month", "day", "hour", "minute", "second", "offset"];
+    let mut field_list = Value::Nil;
+    for name in field_names.iter().rev() {
+        let name_atom = interp.intern_atom(name);
+        field_list = Value::Pair(
+            Rc::new(Value::Atom(name_atom)),
+            Rc::new(field_list)
+        );
+    }
+
+    // Push arguments for make-record-type: field_list type_name
+    interp.push(field_list);
+    let date_atom = interp.intern_atom("date");
+    interp.push(Value::String(date_atom));
+
+    // Create the record type
+    if let Err(e) = make_record_type_impl(interp) {
+        // This should not fail during initialization
+        panic!("Failed to create date record type: {:?}", e);
+    }
+
+    // Pop the record type that was returned
+    interp.pop().expect("Expected record type on stack");
 }
