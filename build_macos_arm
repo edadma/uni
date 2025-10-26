@@ -1,6 +1,8 @@
 #!/bin/bash
 
 echo "Building Uni for macOS (Apple Silicon ARM64)..."
+echo "Note: This must be run on macOS or with osxcross configured"
+echo ""
 cargo build --release --target aarch64-apple-darwin --features target-linux,std,advanced_math,complex_numbers
 
 if [ $? -eq 0 ]; then
