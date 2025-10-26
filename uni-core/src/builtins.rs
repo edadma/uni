@@ -157,9 +157,7 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     add_builtin(interp, "list", sync_builtin!(crate::primitives::list::list_impl),
         Some("Create a list from stack items.\nUsage: n item1 ... itemN list => (item1 ... itemN)\nExample: 3 1 2 3 list => (1 2 3)"));
 
-    // Date/time primitives (wrapped in async)
-    add_builtin(interp, "now", sync_builtin!(crate::primitives::now::now_impl),
-        Some("Get current date and time as a record.\nUsage: now => date-record\nFields: year month day hour minute second offset"));
+    // Date/time primitives are platform-specific and registered below
 
     // Advanced math primitives (feature-gated, wrapped in async)
     #[cfg(feature = "advanced_math")]
@@ -278,38 +276,45 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     add_builtin(interp, "f32-avg", sync_builtin!(crate::primitives::f32_buffer::f32_avg_impl),
         Some("Calculate average of f32 buffer.\nUsage: buffer f32-avg => avg\nExample: buf f32-avg => 25.7"));
 
-    // Create the date record type for use by the 'now' primitive
-    // Field names: year month day hour minute second offset
-    create_date_record_type(interp);
+    // Register platform-specific primitives (time/date, hardware access, etc.)
+    #[cfg(feature = "std")]
+    crate::hardware::linux::register_linux_primitives(interp);
+
+    #[cfg(feature = "target-stm32h753zi")]
+    crate::hardware::stm32h753zi::register_stm32_primitives(interp);
 }
 
-// Helper function to create the date record type used by 'now'
-fn create_date_record_type(interp: &mut AsyncInterpreter) {
-    use crate::compat::{Rc, vec};
+/// Ensure the datetime record type exists
+/// This is a centralized helper that all platforms can use to ensure the datetime
+/// record type is available. It checks if the type already exists before creating it.
+///
+/// The datetime record has these fields: year month day hour minute second offset-minutes
+pub async fn ensure_datetime_record_type(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
+    use crate::compat::Rc;
+    use crate::value::Value;
     use crate::primitives::record::make_record_type_impl;
+    use crate::evaluator::execute_string;
 
-    // Build field names list: (year month day hour minute second offset)
-    let field_names = vec!["year", "month", "day", "hour", "minute", "second", "offset"];
-    let mut field_list = Value::Nil;
-    for name in field_names.iter().rev() {
-        let name_atom = interp.intern_atom(name);
-        field_list = Value::Pair(
-            Rc::new(Value::Atom(name_atom)),
-            Rc::new(field_list)
-        );
+    // Check if datetime record type already exists
+    let type_atom = interp.intern_atom("<record-type:datetime>");
+    let has_type = {
+        #[cfg(not(target_os = "none"))]
+        { interp.dictionary.lock().unwrap().contains_key(&type_atom) }
+        #[cfg(target_os = "none")]
+        { interp.dictionary.borrow().contains_key(&type_atom) }
+    };
+
+    if !has_type {
+        // Push field names list
+        let field_names_str = "[\"year\" \"month\" \"day\" \"hour\" \"minute\" \"second\" \"offset-minutes\"]";
+        execute_string(field_names_str, interp).await?;
+
+        // Push type name
+        interp.push(Value::String(Rc::<str>::from("datetime")));
+
+        // Create record type
+        make_record_type_impl(interp)?;
     }
 
-    // Push arguments for make-record-type: field_list type_name
-    interp.push(field_list);
-    let date_atom = interp.intern_atom("date");
-    interp.push(Value::String(date_atom));
-
-    // Create the record type
-    if let Err(e) = make_record_type_impl(interp) {
-        // This should not fail during initialization
-        panic!("Failed to create date record type: {:?}", e);
-    }
-
-    // Pop the record type that was returned
-    interp.pop().expect("Expected record type on stack");
+    Ok(())
 }

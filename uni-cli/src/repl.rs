@@ -26,12 +26,6 @@ pub async fn run_repl() -> Result<(), Box<dyn std::error::Error>> {
     interp.set_async_output(output);
 
     // Inject Linux time source for date/time operations
-    #[cfg(feature = "std")]
-    {
-        use uni_core::hardware::linux::LinuxTimeSource;
-        interp.set_time_source(Box::new(LinuxTimeSource::new()));
-    }
-
     // Load prelude (higher-level words defined in Uni)
     if let Err(e) = interp.load_prelude().await {
         eprintln!("Warning: Failed to load prelude: {:?}", e);

@@ -2,7 +2,6 @@ use crate::compat::{Rc, Arc, String, Vec, Box, ToString};
 use crate::tokenizer::SourcePos;
 use crate::value::{RuntimeError, Value};
 use crate::output::AsyncOutput;
-use crate::time_source::TimeSource;
 use num_traits::Zero;
 
 #[cfg(target_os = "none")]
@@ -58,8 +57,8 @@ pub struct AsyncInterpreter {
     // ASYNC CONCEPT: AsyncOutput instead of Output
     async_output: Option<Box<dyn AsyncOutput>>, // Optional async output for print/display (REPL mode)
 
-    // Time source for date/time operations (public for primitive access)
-    pub time_source: Option<Box<dyn TimeSource>>, // Optional time source for datetime operations
+    // Platform-specific hardware state (RTC, SPI, GPIO, etc.)
+    pub platform: crate::platform::Platform,
 
     // Embassy spawner for embedded targets
     #[cfg(feature = "target-stm32h753zi")]
@@ -80,7 +79,7 @@ impl AsyncInterpreter {
             current_pos: None,
             pending_doc_target: None,
             async_output: None,
-            time_source: None, // No time source by default (platform must inject)
+            platform: crate::platform::Platform::default(), // Platform-specific hardware state
             #[cfg(feature = "target-stm32h753zi")]
             spawner: None, // No spawner by default (platform must inject)
         };
@@ -296,14 +295,6 @@ impl AsyncInterpreter {
         Ok(())
     }
 
-    // RUST CONCEPT: TimeSource management for datetime operations
-    pub fn set_time_source(&mut self, time_source: Box<dyn TimeSource>) {
-        self.time_source = Some(time_source);
-    }
-
-    pub fn has_time_source(&self) -> bool {
-        self.time_source.is_some()
-    }
 
     // ASYNC CONCEPT: Embassy spawner management for task spawning on embedded targets
     #[cfg(feature = "target-stm32h753zi")]

@@ -23,6 +23,7 @@ embassy-executor = { version = "0.9.0", optional = true }
 embassy-time = { version = "0.5.0", optional = true }
 embassy-futures = { version = "0.1.0", optional = true }
 embassy-sync = { version = "0.7.0", optional = true }
+embassy-stm32 = { version = "0.4.0", features = ["time-driver-any", "exti"], optional = true }
 
 # Embedded data structures
 heapless = { version = "0.8", optional = true }
@@ -40,14 +41,17 @@ num-complex = { version = "0.4", default-features = false, optional = true }
 chrono = { version = "0.4", optional = true, default-features = false, features = ["clock"] }
 
 # Tokio for async delay on std platforms (optional)
-tokio = { version = "1.40", features = ["time"], optional = true }
+tokio = { version = "1.40", features = ["time", "rt"], optional = true }
+
+# Platform-specific system calls (Linux)
+libc = { version = "0.2", optional = true }
 
 [features]
 # Default: async-enabled core without REPL
 default = []
 
 # Standard library support (for desktop/Linux builds)
-std = ["chrono?/std", "datetime", "tokio"]
+std = ["chrono?/std", "datetime", "tokio", "libc"]
 
 # Advanced math operations
 advanced_math = []
@@ -62,7 +66,7 @@ repl = ["editline"]
 datetime = ["chrono", "std"]
 
 # Target-specific features
-target-stm32h753zi = ["embassy-executor", "embassy-time", "embassy-futures", "embassy-sync", "heapless", "defmt"]
+target-stm32h753zi = ["embassy-executor", "embassy-time", "embassy-futures", "embassy-sync", "embassy-stm32", "heapless", "defmt"]
 
 [dev-dependencies]
 tokio = { version = "1.40", features = ["rt", "macros"] }

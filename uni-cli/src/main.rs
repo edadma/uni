@@ -109,15 +109,12 @@ async fn main_async(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>>
 async fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     use uni_core::evaluator::execute_string;
     use uni_core::interpreter::AsyncInterpreter;
-    use uni_core::hardware::linux::LinuxTimeSource;
 
     let mut interp = AsyncInterpreter::new();
 
     // Set up stdout output handler
     let output = Box::new(uni_core::StdoutOutput::new());
     interp.set_async_output(output);
-
-    interp.set_time_source(Box::new(LinuxTimeSource::new()));
 
     // Load prelude
     interp.load_prelude().await
@@ -133,15 +130,12 @@ async fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
 async fn execute_and_print(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     use uni_core::evaluator::execute_string;
     use uni_core::interpreter::AsyncInterpreter;
-    use uni_core::hardware::linux::LinuxTimeSource;
 
     let mut interp = AsyncInterpreter::new();
 
     // Set up stdout output handler
     let output = Box::new(uni_core::StdoutOutput::new());
     interp.set_async_output(output);
-
-    interp.set_time_source(Box::new(LinuxTimeSource::new()));
 
     // Load prelude
     interp.load_prelude().await
@@ -286,11 +280,8 @@ async fn stm32_main(spawner: embassy_executor::Spawner) {
         // Inject spawner for async task spawning
         interp.set_spawner(spawner);
 
-        // Inject RTC time source
-        use crate::stm32_rtc::Stm32RtcTimeSource;
-        let time_source = Box::new(Stm32RtcTimeSource::new(rtc_arc.clone()));
-        interp.set_time_source(time_source);
-        defmt::info!("RTC time source injected into interpreter");
+        // TODO: Inject RTC into Platform
+        // Will be updated to use new Platform pattern instead of TimeSource
 
         // Load prelude
         match interp.load_prelude().await {

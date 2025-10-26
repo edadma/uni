@@ -48,6 +48,7 @@ pub mod evaluator;
 pub mod primitives;
 pub mod time_source;
 pub mod hardware;
+pub mod platform;
 pub mod prelude;
 pub mod platform_output;
 

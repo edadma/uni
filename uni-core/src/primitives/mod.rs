@@ -83,8 +83,8 @@ pub mod list;
 // Vectors
 pub mod vector;
 
-// Date/time
-pub mod now;
+// Date/time (now superseded by platform-specific primitives in hardware/)
+// pub mod now;
 
 // Records
 pub mod record;
