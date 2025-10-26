@@ -240,18 +240,14 @@ async fn stm32_main(spawner: embassy_executor::Spawner) {
     defmt::info!("USB device initialized");
     defmt::info!("Connect via USB serial (tio /dev/ttyACM0)");
 
-    // REPL using editline
+    // REPL using uni-core
     let repl_fut = async {
         use uni_core::interpreter::AsyncInterpreter;
-        use uni_core::evaluator::execute_string;
         use alloc::boxed::Box;
-        use editline::{AsyncLineEditor, AsyncTerminal, terminals::EmbassyUsbTerminal};
-        use embassy_futures::select::{select, Either};
-        use core::pin::pin;
+        use editline::{AsyncTerminal, terminals::EmbassyUsbTerminal};
 
-        // Create terminal and editor
+        // Create terminal
         let mut terminal = EmbassyUsbTerminal::new(class);
-        let mut editor = AsyncLineEditor::new(256, 10);
 
         defmt::info!("Waiting for terminal connection (DTR)...");
         terminal.wait_connection().await;
@@ -278,80 +274,14 @@ async fn stm32_main(spawner: embassy_executor::Spawner) {
         let _ = terminal.write(b"Type expressions to evaluate\r\n\r\n").await;
         let _ = terminal.flush().await;
 
-        loop {
-            // Drain any pending output from background tasks before showing prompt
-            while let Ok(data) = stm32_output::WRITE_CHANNEL.try_receive() {
-                let _ = terminal.write(&data).await;
+        // Run the REPL from uni-core
+        let _ = uni_core::repl::run_repl_with_async_output(
+            &mut terminal,
+            &mut interp,
+            || async {
+                Some(stm32_output::WRITE_CHANNEL.receive().await)
             }
-            let _ = terminal.flush().await;
-
-            // Show prompt
-            let _ = terminal.write(b"> ").await;
-            let _ = terminal.flush().await;
-
-            // Read line with full editing support (backspace, etc.)
-            match editor.read_line(&mut terminal).await {
-                Ok(line) => {
-                    defmt::info!("Got input: {}", line.as_str());
-
-                    if !line.trim().is_empty() {
-                        // Execute code while draining output in real-time
-                        let exec_result = {
-                            let exec_fut = pin!(execute_string(line.as_str(), &mut interp));
-                            let mut exec_fut = exec_fut;
-
-                            // Continuously drain output until execution completes
-                            loop {
-                                match select(&mut exec_fut, stm32_output::WRITE_CHANNEL.receive()).await {
-                                    Either::First(result) => {
-                                        // Execution completed
-                                        break result;
-                                    }
-                                    Either::Second(data) => {
-                                        // Output available - write it immediately
-                                        let _ = terminal.write(&data).await;
-                                        let _ = terminal.flush().await;
-                                    }
-                                }
-                            }
-                        };
-
-                        // Drain any remaining output
-                        while let Ok(data) = stm32_output::WRITE_CHANNEL.try_receive() {
-                            let _ = terminal.write(&data).await;
-                        }
-                        let _ = terminal.flush().await;
-
-                        // Handle execution result
-                        match exec_result {
-                            Ok(_) => {
-                                // Print stack top
-                                if let Some(value) = interp.stack.last() {
-                                    let val_str = alloc::format!("{}\r\n", value);
-                                    let _ = terminal.write(val_str.as_bytes()).await;
-                                    let _ = terminal.flush().await;
-                                }
-                            }
-                            Err(e) => {
-                                let err_str = alloc::format!("Error: {}\r\n", e);
-                                let _ = terminal.write(err_str.as_bytes()).await;
-                                let _ = terminal.flush().await;
-                            }
-                        }
-                    }
-                }
-                Err(_e) => {
-                    defmt::error!("Error reading line");
-                    break;
-                }
-            }
-
-            // Check if still connected
-            if !terminal.dtr() {
-                defmt::info!("Terminal disconnected");
-                break;
-            }
-        }
+        ).await;
 
         defmt::info!("REPL exited");
     };

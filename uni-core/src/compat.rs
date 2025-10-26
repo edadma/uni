@@ -7,6 +7,7 @@ extern crate alloc;
 #[cfg(not(target_os = "none"))]
 pub use std::{
     boxed::Box,
+    collections::BTreeMap,
     fmt,
     format,
     rc::Rc,
@@ -18,6 +19,7 @@ pub use std::{
 #[cfg(target_os = "none")]
 pub use self::alloc::{
     boxed::Box,
+    collections::BTreeMap,
     format,
     rc::Rc,
     string::{String, ToString},

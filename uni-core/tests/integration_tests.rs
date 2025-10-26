@@ -760,6 +760,7 @@ async fn test_int32_with_complex_from_float() {
 }
 
 #[tokio::test]
+#[cfg(feature = "complex_numbers")]
 async fn test_int32_with_gaussian_int() {
     // Test Int32 * GaussianInt: 5 * (3+4i)
     let code = "5 3 4 i * + *";  // 5 * (3+4i) = 15+20i
@@ -774,6 +775,7 @@ async fn test_int32_with_gaussian_int() {
 }
 
 #[tokio::test]
+#[cfg(feature = "complex_numbers")]
 async fn test_int32_addition_with_gaussian_int() {
     // Test Int32 + GaussianInt: 5 + (3+4i)
     let code = "5 3 4 i * + +";  // 5 + (3+4i) = 8+4i
@@ -788,6 +790,7 @@ async fn test_int32_addition_with_gaussian_int() {
 }
 
 #[tokio::test]
+#[cfg(feature = "complex_numbers")]
 async fn test_gaussian_int_demotes_to_int32() {
     // Test GaussianInt with zero imaginary part demotes to Int32
     let code = "5 0 i * + 3 0 i * + +";  // (5+0i) + (3+0i) = 8
@@ -933,6 +936,7 @@ async fn test_int32_mixed_with_float_promotes() {
 }
 
 #[tokio::test]
+#[cfg(feature = "complex_numbers")]
 async fn test_gaussian_int_multiplication_demotes() {
     // Test GaussianInt multiplication that yields real result demotes
     let code = "1 i + 1 -1 i * + *";  // (1+i)*(1-i) = 1-i+i-i² = 1-(-1) = 2
@@ -940,6 +944,78 @@ async fn test_gaussian_int_multiplication_demotes() {
     assert!(
         matches!(result, Value::Int32(2)),
         "Expected Int32(2) after GaussianInt multiplication demotion, got {:?}",
+        result
+    );
+}
+
+// RUST CONCEPT: Control flow primitive tests
+// Tests for while loops and control flow constructs
+
+#[tokio::test]
+async fn test_while_loop_with_counter() {
+    // Test while loop with a variable counter
+    // This tests the while primitive, variable creation, fetch (@), and store (!)
+    let code = r#"
+        0 'counter var
+        [ counter @ 3 < ] [ counter @ 1 + counter ! ] while
+        counter @
+    "#;
+    let result = execute_and_get_top(code).await.unwrap();
+    assert!(
+        matches!(result, Value::Int32(3)),
+        "Expected counter to reach 3, got {:?}",
+        result
+    );
+}
+
+#[tokio::test]
+async fn test_while_loop_zero_iterations() {
+    // Test while loop that should not execute at all (condition false from start)
+    let code = r#"
+        10 'counter var
+        [ counter @ 3 < ] [ counter @ 1 + counter ! ] while
+        counter @
+    "#;
+    let result = execute_and_get_top(code).await.unwrap();
+    assert!(
+        matches!(result, Value::Int32(10)),
+        "Expected counter to remain 10, got {:?}",
+        result
+    );
+}
+
+#[tokio::test]
+async fn test_while_loop_countdown() {
+    // Test while loop that counts down instead of up
+    let code = r#"
+        5 'counter var
+        [ counter @ 0 > ] [ counter @ 1 - counter ! ] while
+        counter @
+    "#;
+    let result = execute_and_get_top(code).await.unwrap();
+    assert!(
+        matches!(result, Value::Int32(0)),
+        "Expected counter to reach 0, got {:?}",
+        result
+    );
+}
+
+#[tokio::test]
+async fn test_while_loop_with_accumulator() {
+    // Test while loop that accumulates a sum: sum of 1+2+3+4+5 = 15
+    let code = r#"
+        0 'sum var
+        1 'i var
+        [ i @ 6 < ] [
+            sum @ i @ + sum !
+            i @ 1 + i !
+        ] while
+        sum @
+    "#;
+    let result = execute_and_get_top(code).await.unwrap();
+    assert!(
+        matches!(result, Value::Int32(15)),
+        "Expected sum to be 15, got {:?}",
         result
     );
 }

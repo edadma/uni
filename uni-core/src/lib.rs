@@ -50,6 +50,10 @@ pub mod hardware;
 pub mod prelude;
 pub mod platform_output;
 
+// REPL module (optional, gated by "repl" feature)
+#[cfg(feature = "repl")]
+pub mod repl;
+
 // Internal module
 mod compat;
 

@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 uni-core = { version = "0.1.0", path = "../uni-core", default-features = false }
-editline = { version = "0.0.21", default-features = false }
+editline = { version = "0.0.24", default-features = false }
 tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "io-std"], optional = true }
 
 # Embassy runtime for STM32 (optional)

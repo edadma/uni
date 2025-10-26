@@ -256,7 +256,12 @@ impl AsyncInterpreter {
 
     /// Write text to the async output without a newline
     pub async fn write_str_async(&mut self, text: &str) -> Result<(), ()> {
+        #[cfg(feature = "target-stm32h753zi")]
+        defmt::info!("write_str_async called with {} bytes, has_output={}", text.len(), self.async_output.is_some());
+
         if let Some(output) = &mut self.async_output {
+            #[cfg(feature = "target-stm32h753zi")]
+            defmt::info!("write_str_async: calling output.write()");
             output.write(text.as_bytes()).await?;
             output.flush().await?;
         }

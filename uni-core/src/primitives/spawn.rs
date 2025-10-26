@@ -63,11 +63,10 @@ async fn spawn_task_embassy(quotation: Value, interp: &mut AsyncInterpreter) -> 
 #[embassy_executor::task]
 async fn background_task(
     quotation: Value,
-    dictionary: alloc::collections::BTreeMap<crate::compat::Rc<str>, crate::interpreter::DictEntry>,
+    dictionary: crate::compat::BTreeMap<crate::compat::Rc<str>, crate::interpreter::DictEntry>,
 ) {
-    use crate::evaluator::execute;
     use crate::interpreter::AsyncInterpreter;
-    use alloc::boxed::Box;
+    use crate::compat::Box;
 
     defmt::info!("Background task started");
 
@@ -80,11 +79,17 @@ async fn background_task(
     // Set up output to use the same channel
     let output = Box::new(UsbOutputForTask::new());
     task_interp.set_async_output(output);
+    defmt::info!("Background task: output handler set");
 
-    defmt::info!("Background task executing quotation");
+    defmt::info!("Background task executing quotation with {} items in dict", task_interp.dictionary.len());
 
-    // Execute the quotation
-    match execute(&quotation, &mut task_interp).await {
+    // Execute the quotation by pushing it and calling exec
+    // Push quotation to stack
+    task_interp.stack.push(quotation.clone());
+
+    // Execute "exec" to actually run the quotation
+    use crate::evaluator::execute_string;
+    match execute_string("exec", &mut task_interp).await {
         Ok(_) => defmt::info!("Background task completed successfully"),
         Err(e) => defmt::error!("Background task error: {:?}", defmt::Debug2Format(&e)),
     }
@@ -108,7 +113,7 @@ impl crate::output::AsyncOutput for UsbOutputForTask {
     fn write<'a>(&'a mut self, data: &'a [u8])
         -> core::pin::Pin<Box<dyn core::future::Future<Output = Result<(), ()>> + 'a>>
     {
-        use alloc::boxed::Box;
+        use crate::compat::Box;
         Box::pin(async move {
             if !data.is_empty() {
                 defmt::info!("UsbOutputForTask: writing {} bytes", data.len());
@@ -132,7 +137,7 @@ impl crate::output::AsyncOutput for UsbOutputForTask {
     fn flush<'a>(&'a mut self)
         -> core::pin::Pin<Box<dyn core::future::Future<Output = Result<(), ()>> + 'a>>
     {
-        use alloc::boxed::Box;
+        use crate::compat::Box;
         Box::pin(async move {
             Ok(())
         })
