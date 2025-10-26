@@ -155,7 +155,7 @@ embassy_stm32::bind_interrupts!(struct Irqs {
 // STM32H753ZI async entry point
 #[cfg(all(target_os = "none", feature = "target-stm32h753zi"))]
 #[embassy_executor::main]
-async fn stm32_main(spawner: embassy_executor::Spawner) {
+async fn stm32_main(_spawner: embassy_executor::Spawner) {
     use embassy_stm32::{usb, Config};
     use embassy_stm32::rcc::*;
     use embassy_stm32::usb::Driver;
@@ -232,7 +232,7 @@ async fn stm32_main(spawner: embassy_executor::Spawner) {
     );
 
     // Create CDC ACM class
-    let mut class = CdcAcmClass::new(&mut builder, unsafe { &mut *addr_of_mut!(STATE) }, 64);
+    let class = CdcAcmClass::new(&mut builder, unsafe { &mut *addr_of_mut!(STATE) }, 64);
 
     // Build USB device
     let mut usb = builder.build();
@@ -246,6 +246,8 @@ async fn stm32_main(spawner: embassy_executor::Spawner) {
         use uni_core::evaluator::execute_string;
         use alloc::boxed::Box;
         use editline::{AsyncLineEditor, AsyncTerminal, terminals::EmbassyUsbTerminal};
+        use embassy_futures::select::{select, Either};
+        use core::pin::pin;
 
         // Create terminal and editor
         let mut terminal = EmbassyUsbTerminal::new(class);
@@ -284,30 +286,49 @@ async fn stm32_main(spawner: embassy_executor::Spawner) {
                     defmt::info!("Got input: {}", line.as_str());
 
                     if !line.trim().is_empty() {
-                        match execute_string(line.as_str(), &mut interp).await {
-                            Ok(_) => {
-                                // Drain any pending output from primitives
-                                while let Ok(data) = stm32_output::WRITE_CHANNEL.try_receive() {
-                                    let _ = terminal.write(&data).await;
-                                }
+                        // Execute code while draining output in real-time
+                        let exec_result = {
+                            let exec_fut = pin!(execute_string(line.as_str(), &mut interp));
+                            let mut exec_fut = exec_fut;
 
+                            // Continuously drain output until execution completes
+                            loop {
+                                match select(&mut exec_fut, stm32_output::WRITE_CHANNEL.receive()).await {
+                                    Either::First(result) => {
+                                        // Execution completed
+                                        break result;
+                                    }
+                                    Either::Second(data) => {
+                                        // Output available - write it immediately
+                                        let _ = terminal.write(&data).await;
+                                        let _ = terminal.flush().await;
+                                    }
+                                }
+                            }
+                        };
+
+                        // Drain any remaining output
+                        while let Ok(data) = stm32_output::WRITE_CHANNEL.try_receive() {
+                            let _ = terminal.write(&data).await;
+                        }
+                        let _ = terminal.flush().await;
+
+                        // Handle execution result
+                        match exec_result {
+                            Ok(_) => {
                                 // Print stack top
                                 if let Some(value) = interp.stack.last() {
                                     let val_str = alloc::format!("{}\r\n", value);
                                     let _ = terminal.write(val_str.as_bytes()).await;
+                                    let _ = terminal.flush().await;
                                 }
                             }
                             Err(e) => {
-                                // Drain any pending output
-                                while let Ok(data) = stm32_output::WRITE_CHANNEL.try_receive() {
-                                    let _ = terminal.write(&data).await;
-                                }
-
                                 let err_str = alloc::format!("Error: {}\r\n", e);
                                 let _ = terminal.write(err_str.as_bytes()).await;
+                                let _ = terminal.flush().await;
                             }
                         }
-                        let _ = terminal.flush().await;
                     }
                 }
                 Err(_e) => {
