@@ -37,3 +37,49 @@ pub fn equals_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     interp.push(Value::Boolean(result));
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_equals_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        // Test number equality
+        interp.push(Value::Number(5.0));
+        interp.push(Value::Number(5.0));
+        equals_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test number inequality
+        interp.push(Value::Number(3.0));
+        interp.push(Value::Number(7.0));
+        equals_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+
+        // Test integer equality
+        interp.push(Value::Int32(42));
+        interp.push(Value::Int32(42));
+        equals_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test boolean equality
+        interp.push(Value::Boolean(true));
+        interp.push(Value::Boolean(true));
+        equals_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        // Test null equality
+        interp.push(Value::Null);
+        interp.push(Value::Null);
+        equals_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+    }
+}

@@ -25,3 +25,32 @@ pub fn greater_equal_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeEr
     interp.push(Value::Boolean(result));
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_greater_equal_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        interp.push(Value::Number(5.0));
+        interp.push(Value::Number(5.0));
+        greater_equal_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        interp.push(Value::Number(10.0));
+        interp.push(Value::Number(5.0));
+        greater_equal_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        interp.push(Value::Number(3.0));
+        interp.push(Value::Number(7.0));
+        greater_equal_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+    }
+}

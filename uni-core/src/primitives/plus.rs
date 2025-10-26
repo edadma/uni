@@ -64,3 +64,98 @@ pub fn add_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     interp.push(result);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    fn setup_interpreter() -> AsyncInterpreter {
+        AsyncInterpreter::new()
+    }
+
+    #[test]
+    fn test_add_impl() {
+        let mut interp = setup_interpreter();
+
+        // Test basic addition
+        interp.push(Value::Number(3.0));
+        interp.push(Value::Number(5.0));
+        add_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 8.0));
+
+        // Test with negative numbers
+        interp.push(Value::Number(-2.0));
+        interp.push(Value::Number(7.0));
+        add_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 5.0));
+
+        // Test with zero
+        interp.push(Value::Number(0.0));
+        interp.push(Value::Number(42.0));
+        add_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 42.0));
+    }
+
+    #[test]
+    fn test_add_impl_stack_underflow() {
+        let mut interp = setup_interpreter();
+
+        // Test with empty stack
+        let result = add_impl(&mut interp);
+        assert!(result.is_err());
+
+        // Test with only one element
+        interp.push(Value::Number(5.0));
+        let result = add_impl(&mut interp);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_add_impl_string_concatenation() {
+        let mut interp = setup_interpreter();
+
+        // Test string + string
+        interp.push(Value::String("Hello ".into()));
+        interp.push(Value::String("World".into()));
+        add_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::String(s) if s.as_ref() == "Hello World"));
+
+        // Test string + number
+        interp.push(Value::String("Count: ".into()));
+        interp.push(Value::Number(42.0));
+        add_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::String(s) if s.as_ref() == "Count: 42"));
+
+        // Test number + string
+        interp.push(Value::Number(3.14));
+        interp.push(Value::String(" is pi".into()));
+        add_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::String(s) if s.as_ref() == "3.14 is pi"));
+    }
+
+    #[test]
+    fn test_add_impl_integers() {
+        let mut interp = setup_interpreter();
+
+        // Test Int32 addition
+        interp.push(Value::Int32(10));
+        interp.push(Value::Int32(20));
+        add_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(30)));
+    }
+}

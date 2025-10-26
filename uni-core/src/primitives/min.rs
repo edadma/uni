@@ -36,3 +36,26 @@ pub fn min_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     interp.push(result);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_min_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        interp.push(Value::Number(3.0));
+        interp.push(Value::Number(7.0));
+        min_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 3.0));
+
+        interp.push(Value::Int32(10));
+        interp.push(Value::Int32(5));
+        min_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(5)));
+    }
+}

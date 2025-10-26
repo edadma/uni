@@ -64,3 +64,40 @@ pub fn div_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     interp.push(result);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_div_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        // Test basic division
+        interp.push(Value::Number(20.0));
+        interp.push(Value::Number(4.0));
+        div_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 5.0));
+
+        // Test fractional division
+        interp.push(Value::Number(7.0));
+        interp.push(Value::Number(2.0));
+        div_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 3.5));
+    }
+
+    #[test]
+    fn test_div_impl_by_zero() {
+        let mut interp = AsyncInterpreter::new();
+
+        interp.push(Value::Number(10.0));
+        interp.push(Value::Number(0.0));
+        let result = div_impl(&mut interp);
+        assert!(result.is_err());
+    }
+}

@@ -53,3 +53,22 @@ async fn stack_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_drop_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        interp.push(Value::Number(1.0));
+        interp.push(Value::Number(2.0));
+        drop_impl(&mut interp).unwrap();
+
+        assert_eq!(interp.stack.len(), 1);
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 1.0));
+    }
+}

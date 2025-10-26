@@ -37,3 +37,26 @@ pub fn not_equal_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError>
     interp.push(Value::Boolean(!are_equal));
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_not_equal_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        interp.push(Value::Number(3.0));
+        interp.push(Value::Number(7.0));
+        not_equal_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(true)));
+
+        interp.push(Value::Number(5.0));
+        interp.push(Value::Number(5.0));
+        not_equal_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Boolean(false)));
+    }
+}

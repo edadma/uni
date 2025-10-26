@@ -49,3 +49,42 @@ pub fn mul_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     interp.push(result);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_mul_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        // Test basic multiplication
+        interp.push(Value::Number(6.0));
+        interp.push(Value::Number(7.0));
+        mul_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 42.0));
+
+        // Test with negative numbers
+        interp.push(Value::Number(-3.0));
+        interp.push(Value::Number(4.0));
+        mul_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == -12.0));
+    }
+
+    #[test]
+    fn test_mul_impl_integers() {
+        let mut interp = AsyncInterpreter::new();
+
+        interp.push(Value::Int32(12));
+        interp.push(Value::Int32(5));
+        mul_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(60)));
+    }
+}

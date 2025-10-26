@@ -61,3 +61,28 @@ pub fn trunc_div_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError>
     interp.push(result);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_trunc_div_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        // Test positive truncating division
+        interp.push(Value::Number(7.0));
+        interp.push(Value::Number(2.0));
+        trunc_div_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 3.0));
+
+        // Test negative truncating division
+        interp.push(Value::Number(-7.0));
+        interp.push(Value::Number(2.0));
+        trunc_div_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == -3.0));
+    }
+}

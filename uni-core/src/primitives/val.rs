@@ -28,3 +28,23 @@ pub fn val_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_val_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        let name = interp.intern_atom("pi");
+        interp.push(Value::Atom(name.clone()));
+        interp.push(Value::Number(3.14159));
+        val_impl(&mut interp).unwrap();
+
+        let entry = interp.dictionary.get(&name).unwrap();
+        assert!(!entry.is_executable);
+        assert!(matches!(entry.value, Value::Number(n) if (n - 3.14159).abs() < 0.001));
+    }
+}

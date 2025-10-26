@@ -37,3 +37,41 @@ pub fn list_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     interp.push(list);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_list_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        interp.push(Value::Number(1.0));
+        interp.push(Value::Number(2.0));
+        interp.push(Value::Number(3.0));
+        interp.push(Value::Number(3.0)); // count
+        list_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        match result {
+            Value::Pair(car, cdr) => {
+                assert!(matches!(car.as_ref(), Value::Number(n) if *n == 1.0));
+                match cdr.as_ref() {
+                    Value::Pair(car2, cdr2) => {
+                        assert!(matches!(car2.as_ref(), Value::Number(n) if *n == 2.0));
+                        match cdr2.as_ref() {
+                            Value::Pair(car3, cdr3) => {
+                                assert!(matches!(car3.as_ref(), Value::Number(n) if *n == 3.0));
+                                assert!(matches!(cdr3.as_ref(), Value::Nil));
+                            }
+                            _ => panic!("Expected pair for third element"),
+                        }
+                    }
+                    _ => panic!("Expected pair for second element"),
+                }
+            }
+            _ => panic!("Expected list (pair)"),
+        }
+    }
+}

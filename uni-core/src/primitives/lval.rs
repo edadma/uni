@@ -42,3 +42,34 @@ pub fn lval_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[cfg(not(target_os = "none"))]
+    use std::collections::HashMap;
+    #[cfg(target_os = "none")]
+    use alloc::collections::BTreeMap as HashMap;
+
+    #[test]
+    fn test_lval_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        // Create a local frame
+        interp.local_frames.push(HashMap::new());
+
+        let name = interp.intern_atom("x");
+        interp.push(Value::Number(42.0));
+        interp.push(Value::Atom(name.clone()));
+        lval_impl(&mut interp).unwrap();
+
+        let frame = &interp.local_frames[0];
+        let value = frame.get(&name).unwrap();
+        assert!(matches!(value, Value::Number(n) if *n == 42.0));
+
+        // Clean up
+        interp.local_frames.pop();
+    }
+}

@@ -79,3 +79,28 @@ pub fn floor_div_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError>
     interp.push(result);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_floor_div_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        // Test positive floor division
+        interp.push(Value::Number(7.0));
+        interp.push(Value::Number(2.0));
+        floor_div_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 3.0));
+
+        // Test negative floor division
+        interp.push(Value::Number(-7.0));
+        interp.push(Value::Number(2.0));
+        floor_div_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == -4.0));
+    }
+}

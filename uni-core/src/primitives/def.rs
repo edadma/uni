@@ -31,3 +31,22 @@ pub fn def_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_def_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        let name = interp.intern_atom("test");
+        interp.push(Value::Atom(name.clone()));
+        interp.push(interp.make_list(vec![Value::Number(42.0)]));
+        def_impl(&mut interp).unwrap();
+
+        let entry = interp.dictionary.get(&name).unwrap();
+        assert!(entry.is_executable);
+    }
+}

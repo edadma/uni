@@ -47,3 +47,31 @@ pub fn mod_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     interp.push(result);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_mod_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        interp.push(Value::Number(13.0));
+        interp.push(Value::Number(5.0));
+        mod_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 3.0));
+    }
+
+    #[test]
+    fn test_mod_impl_by_zero() {
+        let mut interp = AsyncInterpreter::new();
+
+        interp.push(Value::Number(10.0));
+        interp.push(Value::Number(0.0));
+        let result = mod_impl(&mut interp);
+        assert!(result.is_err());
+    }
+}

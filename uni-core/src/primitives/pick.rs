@@ -23,3 +23,31 @@ pub fn pick_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_pick_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        // Test 0 pick (dup)
+        interp.push(Value::Number(42.0));
+        interp.push(Value::Int32(0));
+        pick_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 42.0));
+        let original = interp.pop().unwrap();
+        assert!(matches!(original, Value::Number(n) if n == 42.0));
+
+        // Test 1 pick (over)
+        interp.push(Value::Number(1.0));
+        interp.push(Value::Number(2.0));
+        interp.push(Value::Int32(1));
+        pick_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 1.0));
+    }
+}

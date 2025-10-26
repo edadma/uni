@@ -44,3 +44,42 @@ pub fn sub_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     interp.push(result);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_sub_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        // Test basic subtraction
+        interp.push(Value::Number(10.0));
+        interp.push(Value::Number(3.0));
+        sub_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 7.0));
+
+        // Test with negative numbers
+        interp.push(Value::Number(5.0));
+        interp.push(Value::Number(-3.0));
+        sub_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 8.0));
+    }
+
+    #[test]
+    fn test_sub_impl_integers() {
+        let mut interp = AsyncInterpreter::new();
+
+        interp.push(Value::Int32(50));
+        interp.push(Value::Int32(30));
+        sub_impl(&mut interp).unwrap();
+
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Int32(20)));
+    }
+}

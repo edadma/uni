@@ -28,3 +28,32 @@ pub fn roll_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_roll_impl() {
+        let mut interp = AsyncInterpreter::new();
+
+        // Test 1 roll (swap)
+        interp.push(Value::Number(1.0));
+        interp.push(Value::Number(2.0));
+        interp.push(Value::Int32(1));
+        roll_impl(&mut interp).unwrap();
+
+        let top = interp.pop().unwrap();
+        assert!(matches!(top, Value::Number(n) if n == 1.0));
+        let next = interp.pop().unwrap();
+        assert!(matches!(next, Value::Number(n) if n == 2.0));
+
+        // Test 0 roll (no-op)
+        interp.push(Value::Number(42.0));
+        interp.push(Value::Int32(0));
+        roll_impl(&mut interp).unwrap();
+        let result = interp.pop().unwrap();
+        assert!(matches!(result, Value::Number(n) if n == 42.0));
+    }
+}
