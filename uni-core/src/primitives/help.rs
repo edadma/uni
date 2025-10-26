@@ -1,4 +1,4 @@
-use crate::compat::{format, Rc, ToString};
+use crate::compat::{Box, format, Rc, ToString};
 use crate::interpreter::AsyncInterpreter;
 use crate::value::{RuntimeError, Value};
 use core::future::Future;

@@ -3,7 +3,7 @@
 // Example: 65 emit  => prints 'A'
 //          10 emit  => prints newline
 
-use crate::compat::ToString;
+use crate::compat::{Box, ToString};
 use crate::interpreter::AsyncInterpreter;
 use crate::value::RuntimeError;
 use core::future::Future;

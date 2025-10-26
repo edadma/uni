@@ -1,7 +1,7 @@
 // ASYNC CONCEPT: Words builtin - displays all defined words in the dictionary
 // Usage: words  (displays all defined words in sorted, columnar format)
 
-use crate::compat::{format, String, Vec};
+use crate::compat::{Box, format, String, Vec};
 use crate::interpreter::AsyncInterpreter;
 use crate::value::RuntimeError;
 use core::future::Future;

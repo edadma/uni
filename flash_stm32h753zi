@@ -1,0 +1,26 @@
+#!/bin/bash
+
+echo "Flashing Uni REPL to STM32H753ZI..."
+echo ""
+
+# Check if binary exists
+if [ ! -f "target/thumbv7em-none-eabihf/release/uni" ]; then
+    echo "Binary not found. Building first..."
+    ./build_stm32h753zi
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+fi
+
+# Flash to board
+echo "Flashing to STM32H753ZI Nucleo board..."
+probe-rs download --chip STM32H753ZITx --binary-format Elf target/thumbv7em-none-eabihf/release/uni
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "Flash complete! Connect via USB serial to use the Uni REPL."
+    echo "Use: picocom /dev/ttyACM0 -b 115200"
+else
+    echo "Flash failed!"
+    exit 1
+fi

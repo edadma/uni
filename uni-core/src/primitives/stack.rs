@@ -1,7 +1,7 @@
 // Stack manipulation primitives
 // Note: swap, dup, over, rot are defined in the prelude using pick and roll
 
-use crate::compat::{format, Vec};
+use crate::compat::{Box, format, Vec};
 use crate::interpreter::AsyncInterpreter;
 use crate::value::RuntimeError;
 use core::future::Future;

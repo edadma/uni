@@ -198,6 +198,10 @@ pub async fn load_prelude(interp: &mut AsyncInterpreter) -> Result<(), RuntimeEr
     #[cfg(target_os = "none")]
     {
         let hardware_prelude = r#"
+            \\ Override cr for serial terminals (needs CR+LF)
+            'cr [13 emit 10 emit] def
+            "( -- ) Print a newline character (CR+LF for serial)" doc
+
             \\ Hardware convenience wrappers (embedded targets only)
             'button-a? [0 button-read] def
             "( -- bool ) Read button A state (true = pressed)" doc

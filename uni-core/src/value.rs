@@ -1,4 +1,4 @@
-use crate::compat::{Rc, String, Vec, fmt};
+use crate::compat::{Box, Rc, String, Vec, fmt};
 use crate::tokenizer::SourcePos;
 
 #[cfg(not(target_os = "none"))]

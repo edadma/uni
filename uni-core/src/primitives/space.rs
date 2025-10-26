@@ -1,5 +1,6 @@
 // Space primitive - outputs a single space character
 
+use crate::compat::Box;
 use crate::interpreter::AsyncInterpreter;
 use crate::value::RuntimeError;
 use core::future::Future;

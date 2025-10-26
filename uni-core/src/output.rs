@@ -5,6 +5,7 @@
 //!
 //! Unlike the sync version, all I/O operations are truly async and non-blocking.
 
+use crate::compat::Box;
 use core::future::Future;
 use core::pin::Pin;
 

@@ -265,7 +265,7 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
 
 // Helper function to create the date record type used by 'now'
 fn create_date_record_type(interp: &mut AsyncInterpreter) {
-    use crate::compat::Rc;
+    use crate::compat::{Rc, vec};
     use crate::primitives::record::make_record_type_impl;
 
     // Build field names list: (year month day hour minute second offset)

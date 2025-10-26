@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo "Building Uni REPL for STM32H753ZI (Cortex-M7)..."
+cargo +nightly build --release --target thumbv7em-none-eabihf --features target-stm32h753zi --no-default-features -Z build-std=core,alloc
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "Build complete!"
+    echo "Binary location: target/thumbv7em-none-eabihf/release/uni"
+    echo ""
+    echo "Flash with: ./flash_stm32h753zi"
+    echo ""
+else
+    echo "Build failed!"
+    exit 1
+fi

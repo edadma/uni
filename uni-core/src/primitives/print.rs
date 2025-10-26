@@ -1,7 +1,7 @@
 // ASYNC CONCEPT: Print builtin - pops and displays the top stack value
 // Usage: 42 .  (prints "42" and removes it from stack)
 
-use crate::compat::format;
+use crate::compat::{Box, format};
 use crate::interpreter::AsyncInterpreter;
 use crate::value::{RuntimeError, Value};
 use core::future::Future;
