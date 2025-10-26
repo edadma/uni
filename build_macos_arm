@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo "Building Uni for macOS (Apple Silicon ARM64)..."
+cargo build --release --target aarch64-apple-darwin --features target-linux,std,advanced_math,complex_numbers
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "Build complete!"
+    echo "Binary location: target/aarch64-apple-darwin/release/uni"
+    echo ""
+    echo "Transfer this file to a macOS machine (Apple Silicon) to run it."
+    echo ""
+else
+    echo "Build failed!"
+    exit 1
+fi

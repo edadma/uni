@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "Building Uni for Linux..."
+cargo build --release --features target-linux,std,advanced_math,complex_numbers
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "Build complete!"
+    echo "Binary location: target/release/uni"
+    echo ""
+else
+    echo "Build failed!"
+    exit 1
+fi

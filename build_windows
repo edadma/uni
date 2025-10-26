@@ -1,0 +1,19 @@
+#!/bin/bash
+
+echo "Note: Windows support for the async version is currently limited"
+echo "due to StdioTerminal not being Send-safe on Windows."
+echo ""
+echo "Building Uni for Windows..."
+cargo build --release --target x86_64-pc-windows-gnu --features target-linux,std,advanced_math,complex_numbers
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "Build complete!"
+    echo "Binary location: target/x86_64-pc-windows-gnu/release/uni.exe"
+    echo ""
+    echo "Transfer this file to a Windows machine to run it."
+    echo ""
+else
+    echo "Build failed!"
+    exit 1
+fi
