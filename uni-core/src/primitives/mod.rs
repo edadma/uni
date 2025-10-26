@@ -8,8 +8,7 @@ pub mod space;
 
 // Async concurrency primitives
 pub mod delay;
-// TODO: Re-enable spawn once we handle quotation/list representation
-// pub mod spawn;
+pub mod spawn;
 
 // Utility primitives
 pub mod help;

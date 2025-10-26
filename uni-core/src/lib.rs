@@ -48,6 +48,7 @@ pub mod primitives;
 pub mod time_source;
 pub mod hardware;
 pub mod prelude;
+pub mod platform_output;
 
 // Internal module
 mod compat;

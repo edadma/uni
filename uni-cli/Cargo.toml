@@ -32,6 +32,7 @@ panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 cortex-m = { version = "0.7", optional = true }
 cortex-m-rt = { version = "0.7", optional = true }
 alloc-cortex-m = { version = "0.4", optional = true }
+heapless = { version = "0.8", optional = true }
 
 [features]
 # Default: full-featured Linux build
@@ -57,6 +58,7 @@ target-stm32h753zi = [
     "defmt-rtt",
     "panic-probe",
     "alloc-cortex-m",
+    "heapless",
     "advanced_math",
     "complex_numbers"
 ]

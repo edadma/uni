@@ -49,9 +49,8 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     // Async concurrency primitives
     add_builtin(interp, "delay", crate::primitives::delay::delay,
         Some("Wait for N milliseconds while letting other tasks run.\nUsage: ms delay\nExample: 1000 delay => (waits 1 second)"));
-    // TODO: Implement spawn once we understand quotation/list representation
-    // add_builtin(interp, "spawn", crate::primitives::spawn::spawn,
-    //     Some("Spawn a quotation as a background task.\nUsage: [code] spawn\nExample: [\"tick\" . cr 1000 delay] spawn"));
+    add_builtin(interp, "spawn", crate::primitives::spawn::spawn,
+        Some("Spawn a quotation as a background task.\nUsage: [code] spawn\nExample: [\"tick\" . cr 5000 delay] spawn"));
 
     // Utility primitives
     add_builtin(interp, "help", crate::primitives::help::help_builtin,

@@ -279,6 +279,12 @@ async fn stm32_main(spawner: embassy_executor::Spawner) {
         let _ = terminal.flush().await;
 
         loop {
+            // Drain any pending output from background tasks before showing prompt
+            while let Ok(data) = stm32_output::WRITE_CHANNEL.try_receive() {
+                let _ = terminal.write(&data).await;
+            }
+            let _ = terminal.flush().await;
+
             // Show prompt
             let _ = terminal.write(b"> ").await;
             let _ = terminal.flush().await;

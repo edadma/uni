@@ -1,22 +1,18 @@
 //! STM32 output for Uni REPL using async channel
 //!
 //! This module provides an AsyncOutput implementation that sends output
-//! via an async channel. A separate task drains this channel and writes to USB.
+//! via an async channel shared with uni-core. This allows both the main REPL
+//! and spawned background tasks to output to USB.
 
 #[cfg(target_os = "none")]
 use alloc::boxed::Box;
-#[cfg(target_os = "none")]
-use alloc::vec::Vec;
 
 use uni_core::output::AsyncOutput;
 use core::future::Future;
 use core::pin::Pin;
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::channel::Channel;
 
-// Static channel for USB write requests
-// Large capacity (200 messages) to handle big outputs like `words`
-pub static WRITE_CHANNEL: Channel<CriticalSectionRawMutex, Vec<u8>, 200> = Channel::new();
+// Re-export the channel from uni-core for convenience
+pub use uni_core::platform_output::WRITE_CHANNEL;
 
 pub struct UsbOutput;
 
@@ -32,9 +28,11 @@ impl AsyncOutput for UsbOutput {
     {
         Box::pin(async move {
             if !data.is_empty() {
-                let vec = Vec::from(data);
-                // Send to channel - will be drained by output task
-                WRITE_CHANNEL.send(vec).await;
+                // Write to the shared channel - same as spawned tasks
+                let mut buf = heapless::Vec::<u8, 256>::new();
+                if buf.extend_from_slice(data).is_ok() {
+                    WRITE_CHANNEL.send(buf).await;
+                }
             }
             Ok(())
         })
