@@ -1,4 +1,4 @@
-use crate::compat::{Rc, String, Vec, Box, ToString};
+use crate::compat::{Rc, Arc, String, Vec, Box, ToString};
 use crate::tokenizer::SourcePos;
 use crate::value::{RuntimeError, Value};
 use crate::output::AsyncOutput;
@@ -13,8 +13,11 @@ use std::collections::HashMap;
 #[cfg(target_os = "none")]
 use alloc::collections::BTreeMap as HashMap;
 
+// For std: use Mutex for thread-safe dictionary access
 #[cfg(not(target_os = "none"))]
-use std::cell::RefCell;
+use std::sync::Mutex;
+
+// For no_std: use RefCell for single-threaded dictionary access
 #[cfg(target_os = "none")]
 use core::cell::RefCell;
 
@@ -41,7 +44,12 @@ impl core::fmt::Debug for DictEntry {
 pub struct AsyncInterpreter {
     pub stack: Vec<Value>,
     pub return_stack: Vec<Value>, // Return stack for Forth-like operations
-    pub dictionary: Rc<RefCell<HashMap<Rc<str>, DictEntry>>>,
+    // For std: Arc<Mutex<>> for thread-safe dictionary access (needed for tokio::spawn)
+    // For no_std: Arc<RefCell<>> for atomic reference counting with single-threaded mutation
+    #[cfg(not(target_os = "none"))]
+    pub dictionary: Arc<Mutex<HashMap<Rc<str>, DictEntry>>>,
+    #[cfg(target_os = "none")]
+    pub dictionary: Arc<RefCell<HashMap<Rc<str>, DictEntry>>>,
     pub atoms: HashMap<String, Rc<str>>,
     pub local_frames: Vec<HashMap<Rc<str>, Value>>, // Stack of local variable frames for lexical scoping
     pub current_pos: Option<SourcePos>, // Track current execution position for error messages
@@ -63,7 +71,10 @@ impl AsyncInterpreter {
         let mut interpreter = Self {
             stack: Vec::new(),
             return_stack: Vec::new(),
-            dictionary: Rc::new(RefCell::new(HashMap::new())),
+            #[cfg(not(target_os = "none"))]
+            dictionary: Arc::new(Mutex::new(HashMap::new())),
+            #[cfg(target_os = "none")]
+            dictionary: Arc::new(RefCell::new(HashMap::new())),
             atoms: HashMap::new(),
             local_frames: Vec::new(),
             current_pos: None,
@@ -106,11 +117,23 @@ impl AsyncInterpreter {
     }
 
     pub fn attach_doc(&mut self, atom: &Rc<str>, doc: Rc<str>) -> Result<(), RuntimeError> {
-        if let Some(entry) = self.dictionary.borrow_mut().get_mut(atom) {
-            entry.doc = Some(doc);
-            Ok(())
-        } else {
-            Err(RuntimeError::UndefinedWord(atom.to_string()))
+        #[cfg(not(target_os = "none"))]
+        {
+            if let Some(entry) = self.dictionary.lock().unwrap().get_mut(atom) {
+                entry.doc = Some(doc);
+                Ok(())
+            } else {
+                Err(RuntimeError::UndefinedWord(atom.to_string()))
+            }
+        }
+        #[cfg(target_os = "none")]
+        {
+            if let Some(entry) = self.dictionary.borrow_mut().get_mut(atom) {
+                entry.doc = Some(doc);
+                Ok(())
+            } else {
+                Err(RuntimeError::UndefinedWord(atom.to_string()))
+            }
         }
     }
 
@@ -286,6 +309,27 @@ impl AsyncInterpreter {
     #[cfg(feature = "target-stm32h753zi")]
     pub fn set_spawner(&mut self, spawner: embassy_executor::Spawner) {
         self.spawner = Some(spawner);
+    }
+
+    // Helper methods for dictionary access across different platforms
+    #[cfg(not(target_os = "none"))]
+    pub fn dict_get(&self, key: &crate::compat::Rc<str>) -> Option<DictEntry> {
+        self.dictionary.lock().unwrap().get(key).cloned()
+    }
+
+    #[cfg(target_os = "none")]
+    pub fn dict_get(&self, key: &crate::compat::Rc<str>) -> Option<DictEntry> {
+        self.dictionary.borrow().get(key).cloned()
+    }
+
+    #[cfg(not(target_os = "none"))]
+    pub fn dict_insert(&mut self, key: crate::compat::Rc<str>, entry: DictEntry) {
+        self.dictionary.lock().unwrap().insert(key, entry);
+    }
+
+    #[cfg(target_os = "none")]
+    pub fn dict_insert(&mut self, key: crate::compat::Rc<str>, entry: DictEntry) {
+        self.dictionary.borrow_mut().insert(key, entry);
     }
 }
 

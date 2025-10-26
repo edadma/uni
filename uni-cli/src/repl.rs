@@ -2,8 +2,7 @@
 
 use editline::{LineEditor, terminals::StdioTerminal};
 use std::io::Write;
-use uni_core::{AsyncInterpreter, execute_string};
-use crate::stdout_output::StdoutOutput;
+use uni_core::{AsyncInterpreter, execute_string, StdoutOutput};
 
 pub async fn run_repl() -> Result<(), Box<dyn std::error::Error>> {
     // Print ASCII art banner
@@ -44,7 +43,7 @@ pub async fn run_repl() -> Result<(), Box<dyn std::error::Error>> {
 
     loop {
         // Print prompt
-        print!("uni> ");
+        print!("\n> ");
         std::io::stdout().flush()?;
 
         // Read a line using editline in a blocking task

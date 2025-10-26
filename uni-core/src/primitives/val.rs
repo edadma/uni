@@ -17,7 +17,7 @@ pub fn val_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     };
 
     // Insert into dictionary as non-executable (constant)
-    interp.dictionary.borrow_mut().insert(
+    interp.dict_insert(
         atom,
         DictEntry {
             value,
@@ -43,7 +43,7 @@ mod tests {
         interp.push(Value::Number(3.14159));
         val_impl(&mut interp).unwrap();
 
-        let entry = interp.dictionary.borrow().get(&name).cloned().unwrap();
+        let entry = interp.dict_get(&name).unwrap();
         assert!(!entry.is_executable);
         assert!(matches!(entry.value, Value::Number(n) if (n - 3.14159).abs() < 0.001));
     }

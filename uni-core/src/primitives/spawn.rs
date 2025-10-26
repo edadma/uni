@@ -1,15 +1,19 @@
 //! Async spawn primitive - spawns a quotation as a background task
 
 use crate::interpreter::AsyncInterpreter;
-use crate::value::{RuntimeError, Value};
+use crate::value::RuntimeError;
 use crate::compat::Box;
 use core::future::Future;
 use core::pin::Pin;
 
-#[cfg(not(target_os = "none"))]
-use std::collections::HashMap;
-#[cfg(target_os = "none")]
+// Import Value for both targets
+use crate::value::Value;
+
+// Import HashMap for type signatures (BTreeMap for STM32, HashMap for Linux)
+#[cfg(feature = "target-stm32h753zi")]
 use alloc::collections::BTreeMap as HashMap;
+#[cfg(not(feature = "target-stm32h753zi"))]
+use std::collections::HashMap;
 
 pub fn spawn(interp: &mut AsyncInterpreter) -> Pin<Box<dyn Future<Output = Result<(), RuntimeError>> + '_>> {
     Box::pin(async move {
@@ -23,8 +27,7 @@ pub fn spawn(interp: &mut AsyncInterpreter) -> Pin<Box<dyn Future<Output = Resul
         }
         #[cfg(not(feature = "target-stm32h753zi"))]
         {
-            let _ = quotation; // Silence unused warning
-            Err(RuntimeError::TypeError("spawn only supported on STM32 target currently".into()))
+            spawn_task_tokio(quotation, interp).await
         }
     })
 }
@@ -68,7 +71,7 @@ async fn spawn_task_embassy(quotation: Value, interp: &mut AsyncInterpreter) -> 
 #[embassy_executor::task]
 async fn background_task(
     quotation: Value,
-    dictionary: crate::compat::Rc<core::cell::RefCell<HashMap<crate::compat::Rc<str>, crate::interpreter::DictEntry>>>,
+    dictionary: crate::compat::Arc<core::cell::RefCell<HashMap<crate::compat::Rc<str>, crate::interpreter::DictEntry>>>,
 ) {
     use crate::interpreter::AsyncInterpreter;
     use crate::compat::Box;
@@ -81,11 +84,12 @@ async fn background_task(
     // Share the dictionary with the main task
     task_interp.dictionary = dictionary;
 
-    // Set up output to use the same channel
+    // Set up output to use the same USB channel
     let output = Box::new(UsbOutputForTask::new());
     task_interp.set_async_output(output);
     defmt::info!("Background task: output handler set");
 
+    #[cfg(target_os = "none")]
     defmt::info!("Background task executing quotation with {} items in dict", task_interp.dictionary.borrow().len());
 
     // Execute the quotation by pushing it and calling exec
@@ -100,9 +104,8 @@ async fn background_task(
     }
 }
 
-// Output implementation for spawned tasks
-// Note: This uses the UsbOutput type which is defined in the platform-specific code
-// For STM32, spawned tasks will write to the same global WRITE_CHANNEL
+// Output implementation for spawned tasks on STM32
+// Writes to the same global WRITE_CHANNEL as the main REPL
 #[cfg(feature = "target-stm32h753zi")]
 struct UsbOutputForTask;
 
@@ -146,5 +149,59 @@ impl crate::output::AsyncOutput for UsbOutputForTask {
         Box::pin(async move {
             Ok(())
         })
+    }
+}
+
+// Tokio spawn implementation for Linux/std targets
+#[cfg(not(feature = "target-stm32h753zi"))]
+async fn spawn_task_tokio(quotation: Value, interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
+    // Validate it's a list/quotation
+    match &quotation {
+        Value::Pair(_, _) | Value::Nil => {
+            // Clone quotation and dictionary for the spawned task
+            let quotation_clone = quotation.clone();
+            let dict_clone = interp.dictionary.clone();
+
+            // Check if we have async output
+            let has_output = interp.has_async_output();
+
+            // Spawn the task using tokio::task::spawn_local
+            // This allows us to use !Send types like Rc<>
+            tokio::task::spawn_local(background_task_tokio(quotation_clone, dict_clone, has_output));
+
+            Ok(())
+        }
+        _ => Err(RuntimeError::TypeError("spawn requires a quotation (list)".into())),
+    }
+}
+
+// Tokio background task for executing Uni code
+#[cfg(not(feature = "target-stm32h753zi"))]
+async fn background_task_tokio(
+    quotation: Value,
+    dictionary: std::sync::Arc<std::sync::Mutex<HashMap<std::rc::Rc<str>, crate::interpreter::DictEntry>>>,
+    has_output: bool,
+) {
+    use crate::interpreter::AsyncInterpreter;
+
+    // Create new interpreter for this task
+    let mut task_interp = AsyncInterpreter::new();
+
+    // Share the dictionary with the main task
+    task_interp.dictionary = dictionary;
+
+    // Set up output if needed
+    if has_output {
+        let output = Box::new(crate::stdout_output::StdoutOutput::new()) as Box<dyn crate::output::AsyncOutput>;
+        task_interp.set_async_output(output);
+    }
+
+    // Execute the quotation by pushing it and calling exec
+    task_interp.stack.push(quotation.clone());
+
+    // Execute "exec" to actually run the quotation
+    use crate::evaluator::execute_string;
+    if let Err(e) = execute_string("exec", &mut task_interp).await {
+        eprintln!("Background task error: {}", e);
     }
 }

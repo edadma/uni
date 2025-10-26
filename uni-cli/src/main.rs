@@ -30,8 +30,6 @@ defmt::timestamp!("{=u64:us}", {
 
 // Linux/std modules
 #[cfg(not(target_os = "none"))]
-mod stdout_output;
-#[cfg(not(target_os = "none"))]
 mod repl;
 
 // STM32 modules
@@ -43,10 +41,22 @@ mod stm32_output;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use std::env;
-    use std::io::{self, IsTerminal, Read};
-    use std::fs;
+    use tokio::task::LocalSet;
 
     let args: Vec<String> = env::args().collect();
+
+    // Create LocalSet for spawn support (allows !Send types like Rc<>)
+    let local = LocalSet::new();
+
+    local.run_until(async move {
+        main_async(args).await
+    }).await
+}
+
+#[cfg(not(target_os = "none"))]
+async fn main_async(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
+    use std::io::{self, IsTerminal, Read};
+    use std::fs;
 
     // Parse command line arguments
     if args.len() > 1 {
@@ -102,7 +112,7 @@ async fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     let mut interp = AsyncInterpreter::new();
 
     // Set up stdout output handler
-    let output = Box::new(stdout_output::StdoutOutput::new());
+    let output = Box::new(uni_core::StdoutOutput::new());
     interp.set_async_output(output);
 
     interp.set_time_source(Box::new(LinuxTimeSource::new()));
@@ -126,7 +136,7 @@ async fn execute_and_print(code: &str) -> Result<(), Box<dyn std::error::Error>>
     let mut interp = AsyncInterpreter::new();
 
     // Set up stdout output handler
-    let output = Box::new(stdout_output::StdoutOutput::new());
+    let output = Box::new(uni_core::StdoutOutput::new());
     interp.set_async_output(output);
 
     interp.set_time_source(Box::new(LinuxTimeSource::new()));

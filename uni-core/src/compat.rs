@@ -10,6 +10,7 @@ pub use std::{
     fmt,
     format,
     rc::Rc,
+    sync::Arc,
     string::{String, ToString},
     vec,
     vec::Vec,
@@ -18,9 +19,9 @@ pub use std::{
 #[cfg(target_os = "none")]
 pub use self::alloc::{
     boxed::Box,
-    collections::BTreeMap,
     format,
     rc::Rc,
+    sync::Arc,
     string::{String, ToString},
     vec,
     vec::Vec,

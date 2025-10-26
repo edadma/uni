@@ -35,12 +35,25 @@ async fn help_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     } else if atom.as_ref() == "quit" {
         (Some(Rc::<str>::from(QUIT_DOC)), true)
     } else {
-        let entry = interp
-            .dictionary
-            .borrow()
-            .get(&atom)
-            .cloned()
-            .ok_or_else(|| RuntimeError::UndefinedWord(atom.to_string()))?;
+        #[cfg(not(target_os = "none"))]
+        let entry = {
+            interp
+                .dictionary
+                .lock()
+                .unwrap()
+                .get(&atom)
+                .cloned()
+                .ok_or_else(|| RuntimeError::UndefinedWord(atom.to_string()))?
+        };
+        #[cfg(target_os = "none")]
+        let entry = {
+            interp
+                .dictionary
+                .borrow()
+                .get(&atom)
+                .cloned()
+                .ok_or_else(|| RuntimeError::UndefinedWord(atom.to_string()))?
+        };
         (entry.doc.clone(), entry.is_executable)
     };
 

@@ -25,14 +25,28 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     // Helper to add async builtin with optional documentation
     let add_builtin = |interp: &mut AsyncInterpreter, name: &str, func: AsyncBuiltinFn, doc: Option<&str>| {
         let atom = interp.intern_atom(name);
-        interp.dictionary.borrow_mut().insert(
-            atom,
-            DictEntry {
-                value: Value::AsyncBuiltin(func),
-                is_executable: true,
-                doc: doc.map(|s| Rc::<str>::from(s)),
-            },
-        );
+        #[cfg(not(target_os = "none"))]
+        {
+            interp.dictionary.lock().unwrap().insert(
+                atom,
+                DictEntry {
+                    value: Value::AsyncBuiltin(func),
+                    is_executable: true,
+                    doc: doc.map(|s| Rc::<str>::from(s)),
+                },
+            );
+        }
+        #[cfg(target_os = "none")]
+        {
+            interp.dictionary.borrow_mut().insert(
+                atom,
+                DictEntry {
+                    value: Value::AsyncBuiltin(func),
+                    is_executable: true,
+                    doc: doc.map(|s| Rc::<str>::from(s)),
+                },
+            );
+        }
     };
 
     // Async I/O primitives

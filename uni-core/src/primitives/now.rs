@@ -27,7 +27,7 @@ pub fn now_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     // Look up the date record type in the dictionary
     // Record types are stored with the key "<record-type:typename>"
     let date_type_key = interp.intern_atom("<record-type:date>");
-    let date_entry = interp.dictionary.borrow().get(&date_type_key).cloned().ok_or_else(|| {
+    let date_entry = interp.dict_get(&date_type_key).ok_or_else(|| {
         RuntimeError::TypeError(
             "now: date record type not found - prelude not loaded?".to_string(),
         )

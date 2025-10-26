@@ -38,6 +38,7 @@ extern crate alloc;
 
 // Public modules
 pub mod output;
+pub mod stdout_output;
 pub mod value;
 pub mod interpreter;
 pub mod tokenizer;
@@ -61,5 +62,7 @@ mod compat;
 pub use interpreter::{AsyncInterpreter, DictEntry};
 pub use value::{Value, RuntimeError};
 pub use output::AsyncOutput;
+#[cfg(feature = "std")]
+pub use stdout_output::StdoutOutput;
 pub use evaluator::{execute, execute_string};
 pub use time_source::{TimeSource, DateComponents};

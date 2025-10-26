@@ -31,7 +31,7 @@ heapless = { version = "0.8", optional = true }
 defmt = { version = "0.3", optional = true }
 
 # Optional async line editing for REPL
-editline = { version = "0.0.24", default-features = false, optional = true }
+editline = { version = "0.0.24", default-features = false, features = ["async"], optional = true }
 
 # Complex numbers (optional, no_std compatible)
 num-complex = { version = "0.4", default-features = false, optional = true }
@@ -39,12 +39,15 @@ num-complex = { version = "0.4", default-features = false, optional = true }
 # Datetime support (optional, requires std)
 chrono = { version = "0.4", optional = true, default-features = false, features = ["clock"] }
 
+# Tokio for async delay on std platforms (optional)
+tokio = { version = "1.40", features = ["time"], optional = true }
+
 [features]
 # Default: async-enabled core without REPL
 default = []
 
 # Standard library support (for desktop/Linux builds)
-std = ["chrono?/std", "datetime"]
+std = ["chrono?/std", "datetime", "tokio"]
 
 # Advanced math operations
 advanced_math = []

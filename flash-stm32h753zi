@@ -6,7 +6,7 @@ echo ""
 # Check if binary exists
 if [ ! -f "target/thumbv7em-none-eabihf/release/uni" ]; then
     echo "Binary not found. Building first..."
-    ./build_stm32h753zi
+    ./build-stm32h753zi
     if [ $? -ne 0 ]; then
         exit 1
     fi

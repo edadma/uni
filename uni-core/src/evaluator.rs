@@ -331,8 +331,16 @@ async fn execute_atom_with_continuations(
 
     // Not in local frames - try dictionary lookup
     let entry_copy = {
-        let dict = interp.dictionary.borrow();
-        dict.get(atom_name).cloned()
+        #[cfg(not(target_os = "none"))]
+        {
+            let dict = interp.dictionary.lock().unwrap();
+            dict.get(atom_name).cloned()
+        }
+        #[cfg(target_os = "none")]
+        {
+            let dict = interp.dictionary.borrow();
+            dict.get(atom_name).cloned()
+        }
     };
 
     match entry_copy {

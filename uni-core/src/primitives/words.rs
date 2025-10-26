@@ -12,12 +12,27 @@ pub fn words_builtin(interp: &mut AsyncInterpreter)
 {
     Box::pin(async move {
         // Collect all words first to avoid borrow checker issues
-        let mut words: Vec<String> = interp
-            .dictionary
-            .borrow()
-            .keys()
-            .map(|k| String::from(k.as_ref()))
-            .collect();
+        let mut words: Vec<String> = {
+            #[cfg(not(target_os = "none"))]
+            {
+                interp
+                    .dictionary
+                    .lock()
+                    .unwrap()
+                    .keys()
+                    .map(|k| String::from(k.as_ref()))
+                    .collect()
+            }
+            #[cfg(target_os = "none")]
+            {
+                interp
+                    .dictionary
+                    .borrow()
+                    .keys()
+                    .map(|k| String::from(k.as_ref()))
+                    .collect()
+            }
+        };
 
         // Add special words that aren't in the dictionary
         words.push(String::from("exec"));
