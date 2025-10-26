@@ -6,8 +6,19 @@ use uni_core::{AsyncInterpreter, execute_string};
 use crate::stdout_output::StdoutOutput;
 
 pub async fn run_repl() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Uni Async v0.1.0");
-    println!("Type 'quit' to exit, 'words' to see available words");
+    // Print ASCII art banner
+    println!();
+    println!(" _   _       _ ");
+    println!("| | | |_ __ (_)");
+    println!("| | | | '_ \\| |");
+    println!("| |_| | | | | |");
+    println!(" \\___/|_| |_|_| v{}", env!("CARGO_PKG_VERSION"));
+    println!();
+    println!("Type `quit` or press Ctrl-D to exit");
+    println!("Type `stack` to see the current stack");
+    println!("Type `clear` to clear the stack");
+    println!("Type `words` to see defined words");
+    println!("Type `'<word> help` to get help for a word (note the tick before the word)");
     println!();
 
     // Create interpreter with stdout output
