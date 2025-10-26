@@ -35,6 +35,8 @@ mod repl;
 // STM32 modules
 #[cfg(all(target_os = "none", feature = "target-stm32h753zi"))]
 mod stm32_output;
+#[cfg(all(target_os = "none", feature = "target-stm32h753zi"))]
+mod stm32_rtc;
 
 // Linux entry point
 #[cfg(not(target_os = "none"))]
@@ -208,6 +210,17 @@ async fn stm32_main(spawner: embassy_executor::Spawner) {
     defmt::info!("Uni REPL for STM32H753ZI");
     defmt::info!("Heap initialized: {} bytes", HEAP_SIZE);
 
+    // Initialize RTC with LSE (Low Speed External) clock for battery backup
+    use embassy_stm32::rtc::{Rtc, RtcConfig};
+    use alloc::sync::Arc;
+    use core::cell::RefCell;
+
+    let rtc_config = RtcConfig::default();
+    let rtc = Rtc::new(p.RTC, rtc_config);
+    let rtc_arc = Arc::new(RefCell::new(rtc));
+
+    defmt::info!("RTC initialized");
+
     // Create USB driver
     let mut usb_config = usb::Config::default();
     usb_config.vbus_detection = false;
@@ -272,6 +285,12 @@ async fn stm32_main(spawner: embassy_executor::Spawner) {
 
         // Inject spawner for async task spawning
         interp.set_spawner(spawner);
+
+        // Inject RTC time source
+        use crate::stm32_rtc::Stm32RtcTimeSource;
+        let time_source = Box::new(Stm32RtcTimeSource::new(rtc_arc.clone()));
+        interp.set_time_source(time_source);
+        defmt::info!("RTC time source injected into interpreter");
 
         // Load prelude
         match interp.load_prelude().await {
