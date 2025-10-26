@@ -47,6 +47,10 @@ pub struct AsyncInterpreter {
 
     // Time source for date/time operations (public for primitive access)
     pub time_source: Option<Box<dyn TimeSource>>, // Optional time source for datetime operations
+
+    // Embassy spawner for embedded targets
+    #[cfg(feature = "target-stm32h753zi")]
+    pub spawner: Option<embassy_executor::Spawner>,
 }
 
 impl AsyncInterpreter {
@@ -61,6 +65,8 @@ impl AsyncInterpreter {
             pending_doc_target: None,
             async_output: None,
             time_source: None, // No time source by default (platform must inject)
+            #[cfg(feature = "target-stm32h753zi")]
+            spawner: None, // No spawner by default (platform must inject)
         };
 
         // ASYNC CONCEPT: Automatic initialization
@@ -264,6 +270,12 @@ impl AsyncInterpreter {
 
     pub fn has_time_source(&self) -> bool {
         self.time_source.is_some()
+    }
+
+    // ASYNC CONCEPT: Embassy spawner management for task spawning on embedded targets
+    #[cfg(feature = "target-stm32h753zi")]
+    pub fn set_spawner(&mut self, spawner: embassy_executor::Spawner) {
+        self.spawner = Some(spawner);
     }
 }
 

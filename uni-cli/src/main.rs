@@ -155,7 +155,7 @@ embassy_stm32::bind_interrupts!(struct Irqs {
 // STM32H753ZI async entry point
 #[cfg(all(target_os = "none", feature = "target-stm32h753zi"))]
 #[embassy_executor::main]
-async fn stm32_main(_spawner: embassy_executor::Spawner) {
+async fn stm32_main(spawner: embassy_executor::Spawner) {
     use embassy_stm32::{usb, Config};
     use embassy_stm32::rcc::*;
     use embassy_stm32::usb::Driver;
@@ -263,6 +263,9 @@ async fn stm32_main(_spawner: embassy_executor::Spawner) {
         // Set up channel-based output
         let output = Box::new(stm32_output::UsbOutput::new());
         interp.set_async_output(output);
+
+        // Inject spawner for async task spawning
+        interp.set_spawner(spawner);
 
         // Load prelude
         match interp.load_prelude().await {
