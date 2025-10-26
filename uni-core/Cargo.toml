@@ -24,7 +24,7 @@ embassy-time = { version = "0.5.0", optional = true }
 embassy-futures = { version = "0.1.0", optional = true }
 
 # Optional async line editing for REPL
-editline = { version = "0.0.20", default-features = false, optional = true }
+editline = { version = "0.0.21", default-features = false, optional = true }
 
 # Complex numbers (optional, no_std compatible)
 num-complex = { version = "0.4", default-features = false, optional = true }
