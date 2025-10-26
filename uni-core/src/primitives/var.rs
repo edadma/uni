@@ -34,7 +34,7 @@ pub fn var_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
         doc: None,
     };
 
-    interp.dictionary.insert(name, dict_entry);
+    interp.dictionary.borrow_mut().insert(name, dict_entry);
     Ok(())
 }
 
@@ -56,7 +56,7 @@ mod tests {
         var_impl(&mut interp).unwrap();
 
         // Verify variable exists in dictionary
-        assert!(interp.dictionary.contains_key(&name));
+        assert!(interp.dictionary.borrow().contains_key(&name));
     }
 
     #[test]
@@ -69,7 +69,7 @@ mod tests {
         var_impl(&mut interp).unwrap();
 
         // Verify it's marked as executable
-        let entry = interp.dictionary.get(&name).unwrap();
+        let entry = interp.dictionary.borrow().get(&name).cloned().unwrap();
         assert!(entry.is_executable);
         assert!(matches!(entry.value, Value::Variable(_)));
     }

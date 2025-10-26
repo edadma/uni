@@ -14,6 +14,7 @@ pub fn words_builtin(interp: &mut AsyncInterpreter)
         // Collect all words first to avoid borrow checker issues
         let mut words: Vec<String> = interp
             .dictionary
+            .borrow()
             .keys()
             .map(|k| String::from(k.as_ref()))
             .collect();

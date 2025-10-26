@@ -13,6 +13,11 @@ use std::collections::HashMap;
 #[cfg(target_os = "none")]
 use alloc::collections::BTreeMap as HashMap;
 
+#[cfg(not(target_os = "none"))]
+use std::cell::RefCell;
+#[cfg(target_os = "none")]
+use core::cell::RefCell;
+
 // ASYNC CONCEPT: Dictionary entry with metadata
 // Each entry contains the value and a flag indicating execution behavior
 #[derive(Clone)]
@@ -36,7 +41,7 @@ impl core::fmt::Debug for DictEntry {
 pub struct AsyncInterpreter {
     pub stack: Vec<Value>,
     pub return_stack: Vec<Value>, // Return stack for Forth-like operations
-    pub dictionary: HashMap<Rc<str>, DictEntry>,
+    pub dictionary: Rc<RefCell<HashMap<Rc<str>, DictEntry>>>,
     pub atoms: HashMap<String, Rc<str>>,
     pub local_frames: Vec<HashMap<Rc<str>, Value>>, // Stack of local variable frames for lexical scoping
     pub current_pos: Option<SourcePos>, // Track current execution position for error messages
@@ -58,7 +63,7 @@ impl AsyncInterpreter {
         let mut interpreter = Self {
             stack: Vec::new(),
             return_stack: Vec::new(),
-            dictionary: HashMap::new(),
+            dictionary: Rc::new(RefCell::new(HashMap::new())),
             atoms: HashMap::new(),
             local_frames: Vec::new(),
             current_pos: None,
@@ -101,7 +106,7 @@ impl AsyncInterpreter {
     }
 
     pub fn attach_doc(&mut self, atom: &Rc<str>, doc: Rc<str>) -> Result<(), RuntimeError> {
-        if let Some(entry) = self.dictionary.get_mut(atom) {
+        if let Some(entry) = self.dictionary.borrow_mut().get_mut(atom) {
             entry.doc = Some(doc);
             Ok(())
         } else {

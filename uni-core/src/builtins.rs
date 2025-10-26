@@ -25,7 +25,7 @@ pub fn register_async_builtins(interp: &mut AsyncInterpreter) {
     // Helper to add async builtin with optional documentation
     let add_builtin = |interp: &mut AsyncInterpreter, name: &str, func: AsyncBuiltinFn, doc: Option<&str>| {
         let atom = interp.intern_atom(name);
-        interp.dictionary.insert(
+        interp.dictionary.borrow_mut().insert(
             atom,
             DictEntry {
                 value: Value::AsyncBuiltin(func),

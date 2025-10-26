@@ -6,6 +6,11 @@ use crate::compat::Box;
 use core::future::Future;
 use core::pin::Pin;
 
+#[cfg(not(target_os = "none"))]
+use std::collections::HashMap;
+#[cfg(target_os = "none")]
+use alloc::collections::BTreeMap as HashMap;
+
 pub fn spawn(interp: &mut AsyncInterpreter) -> Pin<Box<dyn Future<Output = Result<(), RuntimeError>> + '_>> {
     Box::pin(async move {
         // Pop quotation from stack
@@ -37,12 +42,12 @@ async fn spawn_task_embassy(quotation: Value, interp: &mut AsyncInterpreter) -> 
             #[cfg(feature = "target-stm32h753zi")]
             defmt::info!("Spawning background task with quotation");
 
-            // Clone quotation and dictionary for the spawned task
+            // Clone quotation and dictionary Rc for the spawned task
             let quotation_clone = quotation.clone();
-            let dict_clone = interp.dictionary.clone();
+            let dict_rc = interp.dictionary.clone();
 
             // Spawn the task
-            spawner.spawn(background_task(quotation_clone, dict_clone))
+            spawner.spawn(background_task(quotation_clone, dict_rc))
                 .map_err(|_| {
                     #[cfg(feature = "target-stm32h753zi")]
                     defmt::error!("Failed to spawn task - spawner full");
@@ -63,7 +68,7 @@ async fn spawn_task_embassy(quotation: Value, interp: &mut AsyncInterpreter) -> 
 #[embassy_executor::task]
 async fn background_task(
     quotation: Value,
-    dictionary: crate::compat::BTreeMap<crate::compat::Rc<str>, crate::interpreter::DictEntry>,
+    dictionary: crate::compat::Rc<core::cell::RefCell<HashMap<crate::compat::Rc<str>, crate::interpreter::DictEntry>>>,
 ) {
     use crate::interpreter::AsyncInterpreter;
     use crate::compat::Box;
@@ -73,7 +78,7 @@ async fn background_task(
     // Create new interpreter for this task
     let mut task_interp = AsyncInterpreter::new();
 
-    // Copy the dictionary so it has access to defined words
+    // Share the dictionary with the main task
     task_interp.dictionary = dictionary;
 
     // Set up output to use the same channel
@@ -81,7 +86,7 @@ async fn background_task(
     task_interp.set_async_output(output);
     defmt::info!("Background task: output handler set");
 
-    defmt::info!("Background task executing quotation with {} items in dict", task_interp.dictionary.len());
+    defmt::info!("Background task executing quotation with {} items in dict", task_interp.dictionary.borrow().len());
 
     // Execute the quotation by pushing it and calling exec
     // Push quotation to stack

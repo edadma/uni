@@ -330,16 +330,19 @@ async fn execute_atom_with_continuations(
     }
 
     // Not in local frames - try dictionary lookup
-    match interp.dictionary.get(atom_name) {
-        Some(entry) => {
-            let entry_copy = entry.clone();
+    let entry_copy = {
+        let dict = interp.dictionary.borrow();
+        dict.get(atom_name).cloned()
+    };
 
-            if entry_copy.is_executable {
+    match entry_copy {
+        Some(entry) => {
+            if entry.is_executable {
                 // Push definition execution continuation
-                continuation_stack.push(Continuation::Definition(entry_copy.value));
+                continuation_stack.push(Continuation::Definition(entry.value));
             } else {
                 // Non-executable entry - just push as constant
-                interp.push(entry_copy.value);
+                interp.push(entry.value);
             }
             Ok(())
         }

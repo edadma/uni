@@ -37,7 +37,9 @@ async fn help_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     } else {
         let entry = interp
             .dictionary
+            .borrow()
             .get(&atom)
+            .cloned()
             .ok_or_else(|| RuntimeError::UndefinedWord(atom.to_string()))?;
         (entry.doc.clone(), entry.is_executable)
     };

@@ -20,7 +20,7 @@ pub fn def_impl(interp: &mut AsyncInterpreter) -> Result<(), RuntimeError> {
     interp.set_pending_doc_target(atom.clone());
 
     // Insert into dictionary as executable
-    interp.dictionary.insert(
+    interp.dictionary.borrow_mut().insert(
         atom,
         DictEntry {
             value: body,
@@ -46,7 +46,7 @@ mod tests {
         interp.push(interp.make_list(vec![Value::Number(42.0)]));
         def_impl(&mut interp).unwrap();
 
-        let entry = interp.dictionary.get(&name).unwrap();
+        let entry = interp.dictionary.borrow().get(&name).cloned().unwrap();
         assert!(entry.is_executable);
     }
 }

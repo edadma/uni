@@ -69,7 +69,7 @@ pub fn make_record_type_impl(interp: &mut AsyncInterpreter) -> Result<(), Runtim
 
     // Store record type in dictionary for later use
     let record_type_atom = interp.intern_atom(&format!("<record-type:{}>", type_name));
-    interp.dictionary.insert(
+    interp.dictionary.borrow_mut().insert(
         record_type_atom.clone(),
         DictEntry {
             value: record_type.clone(),
@@ -97,7 +97,7 @@ pub fn make_record_type_impl(interp: &mut AsyncInterpreter) -> Result<(), Runtim
         .map_err(|e| RuntimeError::TypeError(format!("Failed to parse constructor: {:?}", e)))?;
 
     if let Some(parsed) = parsed_values.into_iter().next() {
-        interp.dictionary.insert(
+        interp.dictionary.borrow_mut().insert(
             constructor_atom.clone(),
             DictEntry {
                 value: parsed,
@@ -119,7 +119,7 @@ pub fn make_record_type_impl(interp: &mut AsyncInterpreter) -> Result<(), Runtim
         .map_err(|e| RuntimeError::TypeError(format!("Failed to parse predicate: {:?}", e)))?;
 
     if let Some(parsed) = parsed_values.into_iter().next() {
-        interp.dictionary.insert(
+        interp.dictionary.borrow_mut().insert(
             predicate_atom.clone(),
             DictEntry {
                 value: parsed,
@@ -142,7 +142,7 @@ pub fn make_record_type_impl(interp: &mut AsyncInterpreter) -> Result<(), Runtim
             .map_err(|e| RuntimeError::TypeError(format!("Failed to parse accessor: {:?}", e)))?;
 
         if let Some(parsed) = parsed_values.into_iter().next() {
-            interp.dictionary.insert(
+            interp.dictionary.borrow_mut().insert(
                 accessor_atom.clone(),
                 DictEntry {
                     value: parsed,
@@ -164,7 +164,7 @@ pub fn make_record_type_impl(interp: &mut AsyncInterpreter) -> Result<(), Runtim
             .map_err(|e| RuntimeError::TypeError(format!("Failed to parse mutator: {:?}", e)))?;
 
         if let Some(parsed) = parsed_values.into_iter().next() {
-            interp.dictionary.insert(
+            interp.dictionary.borrow_mut().insert(
                 mutator_atom.clone(),
                 DictEntry {
                     value: parsed,
