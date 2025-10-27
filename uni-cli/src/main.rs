@@ -35,8 +35,6 @@ mod repl;
 // STM32 modules
 #[cfg(all(target_os = "none", feature = "target-stm32h753zi"))]
 mod stm32_output;
-#[cfg(all(target_os = "none", feature = "target-stm32h753zi"))]
-mod stm32_rtc;
 
 // Linux entry point
 #[cfg(not(target_os = "none"))]
@@ -280,8 +278,11 @@ async fn stm32_main(spawner: embassy_executor::Spawner) {
         // Inject spawner for async task spawning
         interp.set_spawner(spawner);
 
-        // TODO: Inject RTC into Platform
-        // Will be updated to use new Platform pattern instead of TimeSource
+        // Inject RTC into Platform
+        use uni_core::platform::{Platform, Stm32Platform};
+        interp.platform = Platform::Stm32(Stm32Platform {
+            rtc: Some(rtc_arc.clone()),
+        });
 
         // Load prelude
         match interp.load_prelude().await {

@@ -46,7 +46,6 @@ pub mod parser;
 pub mod builtins;
 pub mod evaluator;
 pub mod primitives;
-pub mod time_source;
 pub mod hardware;
 pub mod platform;
 pub mod prelude;
@@ -66,4 +65,3 @@ pub use output::AsyncOutput;
 #[cfg(feature = "std")]
 pub use stdout_output::StdoutOutput;
 pub use evaluator::{execute, execute_string};
-pub use time_source::{TimeSource, DateComponents};

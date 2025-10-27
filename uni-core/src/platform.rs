@@ -3,6 +3,12 @@
 //! This module defines the Platform enum which encapsulates platform-specific
 //! hardware state (RTC, SPI, I2C, GPIO, etc.) in a type-safe way.
 
+#[cfg(feature = "target-stm32h753zi")]
+use crate::compat::Arc;
+
+#[cfg(feature = "target-stm32h753zi")]
+use core::cell::RefCell;
+
 /// Platform-specific state for STM32H753ZI
 #[cfg(feature = "target-stm32h753zi")]
 pub struct Stm32Platform {

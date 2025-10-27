@@ -12,9 +12,12 @@ pub use std::{
     rc::Rc,
     sync::Arc,
     string::{String, ToString},
-    vec,
     vec::Vec,
 };
+
+#[cfg(not(target_os = "none"))]
+#[allow(unused_imports)]
+pub use std::vec;
 
 #[cfg(target_os = "none")]
 pub use self::alloc::{
@@ -23,9 +26,12 @@ pub use self::alloc::{
     rc::Rc,
     sync::Arc,
     string::{String, ToString},
-    vec,
     vec::Vec,
 };
+
+#[cfg(target_os = "none")]
+#[allow(unused_imports)]
+pub use self::alloc::vec;
 
 #[cfg(target_os = "none")]
 pub use core::fmt;
